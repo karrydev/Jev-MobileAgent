@@ -1,6 +1,6 @@
 # 并行开发协作约定
 
-适用范围：按[开发路线](development-roadmap.md)执行本地任务。任务文件在 [`.scratch/mobile-agent-development/`](../.scratch/mobile-agent-development/spec.md)，由集成负责人统一调度；当前文档不代表已经启动任何开发任务。
+适用范围：按[开发路线](development-roadmap.md)执行本地任务。任务文件在 [`.scratch/mobile-agent-v1/`](../.scratch/mobile-agent-v1/index.md)，由集成负责人统一调度；具体进度以各任务文件为准。旧 mobile-agent-development 仅作历史规划参考，不再领取。
 
 ## 1. 任务状态
 
@@ -14,7 +14,7 @@
 | `Owner` / `Branch` | 当前负责人和工作分支；`unassigned` 表示未领取 |
 | `Gate` | 此任务需要关闭的验收门槛；详细要求写在正文 |
 
-可领取任务必须同时满足：`Status: ready-for-agent`、`Execution: pending`、未分配负责人、所有 `Blocked by` 已在集成分支上为 `Execution: done`。需要用户的任务单独推进；没有凭据或设备不能据此将真正依赖它的任务算作完成。
+可领取任务必须同时满足：`Status: ready-for-agent`、`Execution: pending`、未分配负责人、所有 `Blocked by` 已在集成分支上为 `Execution: done`。13、14、21、26 为人工访问条件，仅按票内触发时机请求；尽可能合并相邻请求。没有凭据或设备不能据此将真正依赖它的任务算作完成。
 
 规格不充分时改为 `needs-info` 并记录缺少的决策。实施完成但尚未合入或验收时保持 `in-progress`，在 Comments 中说明剩余项。这里是实施任务，不使用 wayfinder 的 claimed/resolved 状态。
 
@@ -29,7 +29,7 @@
 
 ## 3. 接口先行与 Mock 边界
 
-共享契约任务先产出 schema、正反样例、版本策略和一个端到端协议交互样例。Android 与服务端都必须消费同一版本；Agent 和评测适配同一观察、动作和核验语义。
+任务 01 先通过一个模拟任务闭环产出最小契约、正反样例、版本策略和端到端交互。后续行为切片逐步扩展契约，统一由协调者合入。Android 与服务端都必须消费同一版本；Agent 和评测适配同一观察、动作和核验语义。
 
 Mock 用来解除模块开发对真实 API、设备或服务的阻塞。每次交付必须列明：Mock 覆盖了什么、真实依赖还差什么、由哪张任务验收。生产代码不得静默切换为 Mock；真实能力缺失时返回明确不可用或等待条件。
 

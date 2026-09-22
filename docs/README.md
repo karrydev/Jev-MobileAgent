@@ -6,7 +6,7 @@
 
 1. [开发路线](development-roadmap.md)：交付范围、阶段门槛、工作线、并行波次、共享契约及证据要求。
 2. [并行协作约定](parallel-development.md)：本地任务领取、worktree、共享文件归属、合入顺序和交接。
-3. [实施任务索引](../.scratch/mobile-agent-development/spec.md)：21 张独立任务及其依赖；从无阻塞且未领取的任务开始。
+3. [实施任务索引](../.scratch/mobile-agent-v1/index.md)：28 项已确认任务及其依赖；从无阻塞且未领取的 Agent 任务开始；人工准备按触发时机延后。
 4. [领域词汇](../CONTEXT.md)：统一任务、观察、动作核验、任务完成、接管与恢复的含义。
 
 ## 当前决策与研究依据

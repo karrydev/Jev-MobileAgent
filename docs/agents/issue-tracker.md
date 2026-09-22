@@ -2,6 +2,8 @@
 
 本项目的任务与规格保存在 `.scratch/`，随项目进行版本管理。
 
+当前实施入口为 `.scratch/mobile-agent-v1/index.md`，规格为同目录 `spec.md`。旧 `.scratch/mobile-agent-development/` 保留为历史规划参考，不再领取，也不将旧票批量改为完成。
+
 ## 文件约定
 
 - 每个功能一个目录：`.scratch/<feature-slug>/`。

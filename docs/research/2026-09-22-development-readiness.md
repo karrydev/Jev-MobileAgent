@@ -2,6 +2,8 @@
 
 核查日期：2026-09-22。本文为准备清单；公开 Fork 与工程初始化已完成。本次尚未购买额度、安装模型运行依赖或调用付费模型。当前选型为 v3.5、公开 Fork 后裁剪、按需整版升级或择取补丁，完整决定见[项目方向](../project-direction.md)。
 
+实际请求时机以[已确认任务](../../.scratch/mobile-agent-v1/index.md)为准：先推进离线与模拟器，VLM/手机在首次真实联调前请求，Jev 在仅 VLM 闭环后请求，服务器在真实恢复和本地部署准备通过后请求。下列账号信息是核查时的参考，使用前由实施任务重新验证，不要求用户现在办理。
+
 ## 1. 仓库起步方式
 
 已确定从开始即公开，先 Fork 完整 `X-PLUG/MobileAgent`，再围绕 Android App 裁剪。GitHub Fork 的对象是仓库；只复制一个目录属于代码提取，不保留完整的 fork/upstream 关系。Fork 后可以删除不需要的工作树目录，同时保留来源与 Git 历史。[GitHub Fork 说明](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo)
@@ -58,7 +60,7 @@ v3.5 真机入口 `mobile_use` 要求提供 `--api_key`、`--base_url`、`--mode
 - [TypeSafe 控制台](https://console.typesafe.ai/)、[创建 API Key](https://console.typesafe.ai/keys)、[快速开始](https://docs.typesafe.ai/introduction/quickstart)、[模型与价格](https://docs.typesafe.ai/models)。
 - [ModelScope GUI-Owl-1.5-8B-Think](https://modelscope.cn/models/iic/GUI-Owl-1.5-8B-Think)，由 [MobileAgent 官方 README](https://github.com/X-PLUG/MobileAgent) 链接。
 
-建议先准备百炼与 TypeSafe 两套账号，以托管推理开始接入，不预先购买 GPU。需要精确复现指定 GUI-Owl-1.5 权重时，再确认其可用托管服务或自部署路径；GUI-Plus 商业 ID 的参数量及公开 checkpoint 对应未披露，不能直接声明等同于开源 8B、32B 或论文的 235B-A22B。
+先完成无凭据探针与离线链路，再按真实能力关口分别请求 VLM 和 TypeSafe 账号；以托管推理开始接入，不预先购买 GPU。需要精确复现指定 GUI-Owl-1.5 权重时，再确认其可用托管服务或自部署路径；GUI-Plus 商业 ID 的参数量及公开 checkpoint 对应未披露，不能直接声明等同于开源 8B、32B 或论文的 235B-A22B。
 
 百炼当前文档推荐配置：
 
@@ -84,7 +86,7 @@ Jev 使用 `POST https://api.typesafe.ai/v1/systemone`。API key 保存在服务
 
 | 准备项 | 何时需要 | 具体用途 |
 |---|---|---|
-| Android 11+ 手机与 USB 数据线 | 开始阶段 | 安装 App、跑原 ADB 基线、采集真实树；Accessibility 截图 API 从 API 30 提供，截图仍受窗口和系统限制 |
+| Android 11+ 手机与 USB 数据线 | 安装包就绪、首次真实基线前 | 安装 App、跑原 ADB 基线、采集真实树；Accessibility 截图 API 从 API 30 提供，截图仍受窗口和系统限制 |
 | 手机开发者选项、USB 调试；后续手动启用本 App 的无障碍服务 | 原版基线及 App 联调 | 初期 ADB 用于安装/调试和对照；正式设备观察与执行逐步迁移到 App |
 | Android Studio、SDK/Platform Tools、配套 JDK | App 开发 | 编译 Kotlin App、设备日志、模拟器；纯无障碍方案无需预先配置 root 或 Shizuku |
 | Python 隔离环境与 Git | 开始阶段 | 运行 MobileAgent、模型接口和设备桥；先在现有开发机运行服务即可 |
@@ -97,4 +99,4 @@ v3.5 真机示例的文本输入使用 ADB Keyboard，跑原版基线时按 READ
 
 来源：[Android AccessibilityService](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService)、[Android Studio](https://developer.android.com/studio)、[原版设备准备](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/README.md)、[MobileWorld 环境要求](https://github.com/Tongyi-MAI/MobileWorld)。
 
-准备顺序：公开 Fork 并固定 v3.5 来源 → 准备手机和两套 API 账号 → 验证模型连接、代码问题与角色协议 → 建立原版基线 → 提取所需代码并裁剪、复验 → 按[阶段方案](2026-09-22-stages-evaluation-and-flows.md)接入 App 与 Jev。注册、支付、设备授权由用户完成；仓库整理、代码适配、环境配置与验证在正式开始开发后执行。
+准备顺序：固定 v3.5 来源 → 模拟闭环、离线评测与 App 模拟器 → 按需请求 VLM 和手机 → 验证协议并建立原版基线 → 提取、裁剪与复验 → 真实 App+VLM → 按需请求 Jev → 策略对照 → 按需请求服务器。注册、支付、设备授权由用户完成；仓库整理、代码适配、环境配置与验证在正式开始开发后执行。
