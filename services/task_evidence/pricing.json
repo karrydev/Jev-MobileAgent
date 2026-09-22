@@ -1,0 +1,8 @@
+{
+  "format": "jev-task-evidence/pricing-v1",
+  "price_book_version": "local-unpriced-v1",
+  "currency": "USD",
+  "effective_at": null,
+  "models": {},
+  "notes": "No live or current supplier prices are assumed. Add a reviewed local rate before producing a priced report."
+}
