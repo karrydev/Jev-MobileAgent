@@ -1,0 +1,39 @@
+{
+  "format": "jev-independent-evaluation/experiment-template-v1",
+  "status": "proposal_not_user_approved",
+  "purpose": "Freeze the first real evaluation conditions before collecting live evidence.",
+  "dataset_split": "holdout",
+  "proposed_repeat_policy": {
+    "repeat_count": 3,
+    "numeric_values_are_proposals": true,
+    "rationale": "Repeat the same task and environment condition enough to expose run-to-run variation before a real freeze."
+  },
+  "proposed_budget": {
+    "max_steps_per_task": 20,
+    "max_wall_time_seconds": 120,
+    "numeric_values_are_proposals": true,
+    "rationale": "Use a bounded run so loading, retries, and loops remain observable and comparable."
+  },
+  "proposed_regression_rules": [
+    {
+      "metric": "task_success_rate",
+      "rule": "The candidate must not regress against the paired baseline beyond the explicitly approved tolerance.",
+      "proposed_tolerance": 0.0,
+      "numeric_values_are_proposals": true
+    },
+    {
+      "metric": "unknown_rate",
+      "rule": "An increase in UNKNOWN requires a recorded explanation and explicit approval before promotion.",
+      "proposed_tolerance": 0.0,
+      "numeric_values_are_proposals": true
+    }
+  ],
+  "freeze_before_real_evaluation": [
+    "task and trajectory membership for dev and holdout",
+    "code, model, prompt, device, app, and environment versions",
+    "repeat count and per-task step/time budget",
+    "task completion rubrics and independent evidence sources",
+    "regression tolerances and the promotion decision owner"
+  ],
+  "approval_note": "Every numeric value in this file is a suggested starting point, not a user-approved release rule."
+}

@@ -1,0 +1,156 @@
+{
+  "format": "jev-independent-evaluation/tasks-v1",
+  "dataset_id": "jev-synthetic-page-tasks-v1",
+  "tasks": [
+    {
+      "task_id": "task-dev-action-success-incomplete",
+      "trajectory_id": "traj-dev-action-success-incomplete",
+      "split": "dev",
+      "initial_state": {
+        "cart_items": [],
+        "loading": false,
+        "page": "product"
+      },
+      "input": {
+        "instruction": "Add the blue mug and submit the order."
+      },
+      "goal": {
+        "description": "The blue mug is in the cart and the order is submitted.",
+        "completion_rule": "order_submitted"
+      },
+      "decision_payload": {
+        "instruction": "Add the blue mug and submit the order.",
+        "initial_observation": {
+          "page": "product",
+          "visible_controls": ["add_blue_mug"]
+        },
+        "available_actions": ["tap:add_blue_mug", "tap:submit_order"]
+      }
+    },
+    {
+      "task_id": "task-dev-no-effect",
+      "trajectory_id": "traj-dev-no-effect",
+      "split": "dev",
+      "initial_state": {
+        "loading": false,
+        "page": "settings",
+        "notifications_enabled": false
+      },
+      "input": {
+        "instruction": "Enable notifications."
+      },
+      "goal": {
+        "description": "Notifications are enabled.",
+        "completion_rule": "notifications_enabled"
+      },
+      "decision_payload": {
+        "instruction": "Enable notifications.",
+        "initial_observation": {
+          "page": "settings",
+          "visible_controls": ["notifications_toggle"]
+        },
+        "available_actions": ["tap:notifications_toggle"]
+      }
+    },
+    {
+      "task_id": "task-dev-success",
+      "trajectory_id": "traj-dev-success",
+      "split": "dev",
+      "initial_state": {
+        "cart_items": [],
+        "loading": false,
+        "page": "product"
+      },
+      "input": {
+        "instruction": "Add the blue mug to the cart and open checkout."
+      },
+      "goal": {
+        "description": "The blue mug is in the cart and checkout is open.",
+        "completion_rule": "cart_has_blue_mug_and_page_checkout"
+      },
+      "decision_payload": {
+        "instruction": "Add the blue mug to the cart and open checkout.",
+        "initial_observation": {
+          "page": "product",
+          "visible_controls": ["add_blue_mug", "open_checkout"]
+        },
+        "available_actions": ["tap:add_blue_mug", "tap:open_checkout"]
+      }
+    },
+    {
+      "task_id": "task-holdout-environment-failure",
+      "trajectory_id": "traj-holdout-environment-failure",
+      "split": "holdout",
+      "initial_state": {
+        "loading": false,
+        "page": "home"
+      },
+      "input": {
+        "instruction": "Open the calendar."
+      },
+      "goal": {
+        "description": "The calendar page is visible.",
+        "completion_rule": "page_calendar"
+      },
+      "decision_payload": {
+        "instruction": "Open the calendar.",
+        "initial_observation": {
+          "page": "home",
+          "visible_controls": ["calendar"]
+        },
+        "available_actions": ["tap:calendar"]
+      }
+    },
+    {
+      "task_id": "task-holdout-insufficient-evidence",
+      "trajectory_id": "traj-holdout-insufficient-evidence",
+      "split": "holdout",
+      "initial_state": {
+        "loading": false,
+        "page": "payment",
+        "payment_state": "ready"
+      },
+      "input": {
+        "instruction": "Confirm the payment."
+      },
+      "goal": {
+        "description": "The payment is confirmed.",
+        "completion_rule": "payment_confirmed"
+      },
+      "decision_payload": {
+        "instruction": "Confirm the payment.",
+        "initial_observation": {
+          "page": "payment",
+          "visible_controls": ["confirm_payment"]
+        },
+        "available_actions": ["tap:confirm_payment"]
+      }
+    },
+    {
+      "task_id": "task-holdout-loading",
+      "trajectory_id": "traj-holdout-loading",
+      "split": "holdout",
+      "initial_state": {
+        "loading": false,
+        "page": "search",
+        "query": "blue mug"
+      },
+      "input": {
+        "instruction": "Search for the blue mug and wait for the results."
+      },
+      "goal": {
+        "description": "Search results for the blue mug are loaded.",
+        "completion_rule": "search_results_loaded"
+      },
+      "decision_payload": {
+        "instruction": "Search for the blue mug and wait for the results.",
+        "initial_observation": {
+          "page": "search",
+          "query": "blue mug",
+          "visible_controls": ["submit_search"]
+        },
+        "available_actions": ["tap:submit_search"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "format": "jev-independent-evaluation/traces-v1",
+  "dataset_id": "jev-synthetic-page-traces-v1",
+  "trajectories": [
+    {
+      "trajectory_id": "traj-dev-action-success-incomplete",
+      "task_id": "task-dev-action-success-incomplete",
+      "steps": [
+        {
+          "step_id": "01-add",
+          "observation_before": {
+            "page": "product",
+            "visible_controls": ["add_blue_mug"]
+          },
+          "action": {
+            "target": "add_blue_mug",
+            "type": "tap"
+          },
+          "receipt": {
+            "accepted": true
+          },
+          "observation_after": {
+            "cart_items": ["blue_mug"],
+            "page": "product"
+          }
+        }
+      ]
+    },
+    {
+      "trajectory_id": "traj-dev-no-effect",
+      "task_id": "task-dev-no-effect",
+      "steps": [
+        {
+          "step_id": "01-toggle",
+          "observation_before": {
+            "notifications_enabled": false,
+            "page": "settings"
+          },
+          "action": {
+            "target": "notifications_toggle",
+            "type": "tap"
+          },
+          "receipt": {
+            "accepted": true
+          },
+          "observation_after": {
+            "notifications_enabled": false,
+            "page": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "trajectory_id": "traj-dev-success",
+      "task_id": "task-dev-success",
+      "steps": [
+        {
+          "step_id": "01-add",
+          "observation_before": {
+            "page": "product",
+            "visible_controls": ["add_blue_mug", "open_checkout"]
+          },
+          "action": {
+            "target": "add_blue_mug",
+            "type": "tap"
+          },
+          "receipt": {
+            "accepted": true
+          },
+          "observation_after": {
+            "cart_items": ["blue_mug"],
+            "page": "product"
+          }
+        },
+        {
+          "step_id": "02-checkout",
+          "observation_before": {
+            "cart_items": ["blue_mug"],
+            "page": "product",
+            "visible_controls": ["open_checkout"]
+          },
+          "action": {
+            "target": "open_checkout",
+            "type": "tap"
+          },
+          "receipt": {
+            "accepted": true
+          },
+          "observation_after": {
+            "cart_items": ["blue_mug"],
+            "page": "checkout"
+          }
+        }
+      ]
+    },
+    {
+      "trajectory_id": "traj-holdout-environment-failure",
+      "task_id": "task-holdout-environment-failure",
+      "steps": []
+    },
+    {
+      "trajectory_id": "traj-holdout-insufficient-evidence",
+      "task_id": "task-holdout-insufficient-evidence",
+      "steps": [
+        {
+          "step_id": "01-confirm",
+          "observation_before": {
+            "page": "payment",
+            "payment_state": "ready",
+            "visible_controls": ["confirm_payment"]
+          },
+          "action": {
+            "target": "confirm_payment",
+            "type": "tap"
+          },
+          "receipt": {
+            "accepted": true
+          },
+          "observation_after": {
+            "page": "payment",
+            "visible_text": "Processing"
+          }
+        }
+      ]
+    },
+    {
+      "trajectory_id": "traj-holdout-loading",
+      "task_id": "task-holdout-loading",
+      "steps": [
+        {
+          "step_id": "01-search",
+          "observation_before": {
+            "page": "search",
+            "query": "blue mug",
+            "visible_controls": ["submit_search"]
+          },
+          "action": {
+            "target": "submit_search",
+            "type": "tap"
+          },
+          "receipt": {
+            "accepted": true
+          },
+          "observation_after": {
+            "loading": true,
+            "page": "search",
+            "query": "blue mug"
+          }
+        }
+      ]
+    }
+  ]
+}

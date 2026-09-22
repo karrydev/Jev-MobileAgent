@@ -1,0 +1,240 @@
+{
+  "format": "jev-independent-evaluation/truth-v1",
+  "dataset_id": "jev-synthetic-page-truth-v1",
+  "records": [
+    {
+      "task_id": "task-dev-action-success-incomplete",
+      "trajectory_id": "traj-dev-action-success-incomplete",
+      "source": "synthetic_page_truth/v1",
+      "environment": {
+        "status": "READY",
+        "reason": "page_state_available"
+      },
+      "initial_state": {
+        "cart_items": [],
+        "loading": false,
+        "page": "product"
+      },
+      "steps": [
+        {
+          "step_id": "01-add",
+          "action_postcondition": {
+            "status": "SUCCESS",
+            "reason": "cart_item_added",
+            "failure_class": null,
+            "evidence": {
+              "kind": "external_page_state",
+              "page": "product",
+              "cart_items": ["blue_mug"]
+            }
+          }
+        }
+      ],
+      "task_completion": {
+        "status": "FAILURE",
+        "reason": "task_incomplete",
+        "failure_class": "agent",
+        "evidence": {
+          "kind": "external_page_state",
+          "order_submitted": false,
+          "page": "product"
+        }
+      }
+    },
+    {
+      "task_id": "task-dev-no-effect",
+      "trajectory_id": "traj-dev-no-effect",
+      "source": "synthetic_page_truth/v1",
+      "environment": {
+        "status": "READY",
+        "reason": "page_state_available"
+      },
+      "initial_state": {
+        "loading": false,
+        "page": "settings",
+        "notifications_enabled": false
+      },
+      "steps": [
+        {
+          "step_id": "01-toggle",
+          "action_postcondition": {
+            "status": "FAILURE",
+            "reason": "no_effect",
+            "failure_class": "agent",
+            "evidence": {
+              "kind": "external_page_delta",
+              "before": {
+                "notifications_enabled": false
+              },
+              "after": {
+                "notifications_enabled": false
+              }
+            }
+          }
+        }
+      ],
+      "task_completion": {
+        "status": "FAILURE",
+        "reason": "task_incomplete_after_no_effect",
+        "failure_class": "agent",
+        "evidence": {
+          "kind": "external_page_state",
+          "notifications_enabled": false,
+          "page": "settings"
+        }
+      }
+    },
+    {
+      "task_id": "task-dev-success",
+      "trajectory_id": "traj-dev-success",
+      "source": "synthetic_page_truth/v1",
+      "environment": {
+        "status": "READY",
+        "reason": "page_state_available"
+      },
+      "initial_state": {
+        "cart_items": [],
+        "loading": false,
+        "page": "product"
+      },
+      "steps": [
+        {
+          "step_id": "01-add",
+          "action_postcondition": {
+            "status": "SUCCESS",
+            "reason": "cart_item_added",
+            "failure_class": null,
+            "evidence": {
+              "kind": "external_page_state",
+              "page": "product",
+              "cart_items": ["blue_mug"]
+            }
+          }
+        },
+        {
+          "step_id": "02-checkout",
+          "action_postcondition": {
+            "status": "SUCCESS",
+            "reason": "checkout_opened",
+            "failure_class": null,
+            "evidence": {
+              "kind": "external_page_state",
+              "page": "checkout",
+              "cart_items": ["blue_mug"]
+            }
+          }
+        }
+      ],
+      "task_completion": {
+        "status": "SUCCESS",
+        "reason": "goal_state_reached",
+        "failure_class": null,
+        "evidence": {
+          "kind": "external_page_state",
+          "page": "checkout",
+          "cart_items": ["blue_mug"]
+        }
+      }
+    },
+    {
+      "task_id": "task-holdout-environment-failure",
+      "trajectory_id": "traj-holdout-environment-failure",
+      "source": "synthetic_page_truth/v1",
+      "environment": {
+        "status": "UNAVAILABLE",
+        "reason": "page_launch_failed"
+      },
+      "initial_state": {
+        "loading": false,
+        "page": "home"
+      },
+      "steps": [],
+      "task_completion": {
+        "status": "FAILURE",
+        "reason": "environment_unavailable",
+        "failure_class": "environment",
+        "evidence": {
+          "kind": "environment_event",
+          "page_launched": false
+        }
+      }
+    },
+    {
+      "task_id": "task-holdout-insufficient-evidence",
+      "trajectory_id": "traj-holdout-insufficient-evidence",
+      "source": "synthetic_page_truth/v1",
+      "environment": {
+        "status": "EVIDENCE_MISSING",
+        "reason": "post_snapshot_missing"
+      },
+      "initial_state": {
+        "loading": false,
+        "page": "payment",
+        "payment_state": "ready"
+      },
+      "steps": [
+        {
+          "step_id": "01-confirm",
+          "action_postcondition": {
+            "status": "UNKNOWN",
+            "reason": "insufficient_evidence",
+            "failure_class": "environment",
+            "evidence": {
+              "kind": "missing_external_page_snapshot",
+              "before_available": true,
+              "after_available": false
+            }
+          }
+        }
+      ],
+      "task_completion": {
+        "status": "UNKNOWN",
+        "reason": "insufficient_evidence",
+        "failure_class": "environment",
+        "evidence": {
+          "kind": "missing_external_page_snapshot",
+          "completion_state_known": false
+        }
+      }
+    },
+    {
+      "task_id": "task-holdout-loading",
+      "trajectory_id": "traj-holdout-loading",
+      "source": "synthetic_page_truth/v1",
+      "environment": {
+        "status": "LOADING",
+        "reason": "search_request_in_flight"
+      },
+      "initial_state": {
+        "loading": false,
+        "page": "search",
+        "query": "blue mug"
+      },
+      "steps": [
+        {
+          "step_id": "01-search",
+          "action_postcondition": {
+            "status": "PENDING",
+            "reason": "page_loading",
+            "failure_class": null,
+            "evidence": {
+              "kind": "external_page_state",
+              "loading": true,
+              "page": "search"
+            }
+          }
+        }
+      ],
+      "task_completion": {
+        "status": "PENDING",
+        "reason": "page_loading",
+        "failure_class": null,
+        "evidence": {
+          "kind": "external_page_state",
+          "loading": true,
+          "page": "search"
+        }
+      }
+    }
+  ]
+}
