@@ -12,12 +12,41 @@ from typing import Any
 
 
 class TransportError(RuntimeError):
+    DEVICE_REJECTION_CODES = frozenset(
+        {
+            "invalid_action",
+            "device_identity_mismatch",
+            "stale_session",
+            "action_id_conflict",
+            "action_in_flight",
+            "action_out_of_order",
+            "observation_required",
+            "stale_observation",
+            "unsupported_action",
+            "target_node_not_found",
+            "target_node_mismatch",
+            "action_not_applicable",
+        }
+    )
+
     def __init__(self, status: int, payload: Any):
         self.status = status
         self.payload = payload
         error = payload.get("error") if isinstance(payload, dict) else None
-        code = error.get("code", "transport_error") if isinstance(error, dict) else "transport_error"
-        super().__init__(f"device HTTP {status}: {code}")
+        self.error_code = error.get("code", "transport_error") if isinstance(error, dict) else "transport_error"
+        self.error_message = error.get("message", self.error_code) if isinstance(error, dict) else "device transport failed"
+        super().__init__(f"device HTTP {status}: {self.error_code}")
+
+    @property
+    def is_explicit_device_rejection(self) -> bool:
+        """Whether a trusted action endpoint explicitly refused this action.
+
+        Only known action-rejection codes in the device's 4xx range qualify.
+        Proxy 5xx responses, malformed bodies, and unknown status/code pairs
+        remain transport-uncertain because they do not prove non-execution.
+        """
+
+        return self.status in {400, 403, 409, 422} and self.error_code in self.DEVICE_REJECTION_CODES
 
 
 def request_json(
@@ -28,6 +57,7 @@ def request_json(
     device_id: str,
     protocol_version: int,
     body: dict[str, Any] | None = None,
+    session_id: str | None = None,
     timeout: float = 2.0,
 ) -> dict[str, Any]:
     headers = {
@@ -40,6 +70,8 @@ def request_json(
     if body is not None:
         data = json.dumps(body, sort_keys=True).encode("utf-8")
         headers["Content-Type"] = "application/json"
+    if session_id is not None:
+        headers["X-JEV-Session-Id"] = session_id
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -85,7 +117,7 @@ class DeviceClient:
         self.protocol_version = protocol_version
         self.timeout = timeout
 
-    def observe(self, task_id: str) -> dict[str, Any]:
+    def observe(self, task_id: str, *, session_id: str | None = None) -> dict[str, Any]:
         encoded_task_id = urllib.parse.quote(task_id, safe="")
         return request_json(
             f"{self.base_url}/v1/simulated/observations?task_id={encoded_task_id}",
@@ -93,6 +125,7 @@ class DeviceClient:
             token=self.token,
             device_id=self.device_id,
             protocol_version=self.protocol_version,
+            session_id=session_id,
             timeout=self.timeout,
         )
 

@@ -11,6 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from .device import SimulatedDevice, create_device_server, utc_now
+from .model import minimal_probe
 from .schema import check_fixtures
 from .service import SimulationService, create_service_server
 
@@ -78,11 +79,23 @@ def _submit(service_server: Any, token: str, payload: dict[str, Any]) -> dict[st
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the Jev-MobileAgent Task 01 simulated loop")
+    parser = argparse.ArgumentParser(description="Run the Jev-MobileAgent simulated task, control, and replay loop")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     schema_parser = subparsers.add_parser("schema-check", help="validate v1 positive and negative fixtures")
     schema_parser.set_defaults(handler=_schema_check)
+
+    probe_parser = subparsers.add_parser(
+        "probe",
+        aliases=["live-probe"],
+        help="inspect live-model configuration; send the local probe only with --execute",
+    )
+    probe_parser.add_argument("--endpoint", default=os.environ.get("JEV_VLM_ENDPOINT"))
+    probe_parser.add_argument("--model", default=os.environ.get("JEV_VLM_MODEL"))
+    probe_parser.add_argument("--credential-env", default="JEV_VLM_API_KEY")
+    probe_parser.add_argument("--timeout", type=float, default=10.0)
+    probe_parser.add_argument("--execute", action="store_true", help="send the probe request to the configured endpoint")
+    probe_parser.set_defaults(handler=_probe)
 
     demo_parser = subparsers.add_parser("demo", help="run one task through two localhost HTTP hops")
     demo_parser.add_argument("--auth-token")
@@ -90,6 +103,14 @@ def build_parser() -> argparse.ArgumentParser:
     demo_parser.add_argument("--scenario", choices=["apply_effect", "receipt_without_effect"], default="apply_effect")
     demo_parser.add_argument("--real-time", action="store_true", help="use wall-clock timestamps instead of fixed demo timestamps")
     demo_parser.set_defaults(handler=_demo)
+
+    replay_parser = subparsers.add_parser("replay", help="drive a task with a deterministic model response replay")
+    replay_parser.add_argument("--auth-token")
+    replay_parser.add_argument("--task-id", default="task-replay-001")
+    replay_parser.add_argument("--prompt", default="请点击开始按钮并完成当前任务。")
+    replay_parser.add_argument("--image", action="append", default=[])
+    replay_parser.add_argument("--scenario", choices=["apply_effect", "receipt_without_effect"], default="apply_effect")
+    replay_parser.set_defaults(handler=_replay)
 
     serve_parser = subparsers.add_parser("serve", help="serve the simulated device and task API")
     serve_parser.add_argument("--auth-token")
@@ -104,6 +125,20 @@ def _schema_check(args: argparse.Namespace, parser: argparse.ArgumentParser) -> 
     positive, negative = check_fixtures()
     print(json.dumps({"positive_fixtures": positive, "negative_fixtures": negative, "schema_version": "1.0"}, sort_keys=True))
     return 0
+
+
+def _probe(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    del parser
+    result = minimal_probe(
+        endpoint=args.endpoint,
+        model=args.model,
+        credential_env=args.credential_env,
+        timeout=args.timeout,
+        execute=args.execute,
+        clock=FixedClock(),
+    )
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    return 0 if result["ready"] else 2
 
 
 def _demo(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
@@ -124,6 +159,52 @@ def _demo(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
                 "mode": "simulated",
                 "goal": "advance_to_done",
                 "scenario": args.scenario,
+            },
+        )
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 0
+    finally:
+        _stop_servers(device_server, service_server, device_thread, service_thread)
+
+
+def _replay(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    token = _token(parser, args.auth_token)
+    device, device_server, service, service_server, device_thread, service_thread = _start_servers(
+        token,
+        args.scenario,
+        deterministic=True,
+    )
+    try:
+        images = [
+            {"image_id": image_id, "media_type": "image/png", "data": "<omitted>"}
+            for image_id in args.image
+        ]
+        result = _submit(
+            service_server,
+            token,
+            {
+                "schema_version": "1.0",
+                "task_id": args.task_id,
+                "device_id": device.device_id,
+                "mode": "simulated",
+                "goal": "advance_to_done",
+                "scenario": args.scenario,
+                "model": {
+                    "mode": "replay",
+                    "prompt": args.prompt,
+                    "images": images,
+                    "responses": [
+                        {
+                            "kind": "action",
+                            "action": {
+                                "kind": "tap",
+                                "target_node_id": "start-button",
+                                "expected_page_state": "done",
+                            },
+                            "usage": {"input_tokens": 1, "output_tokens": 1},
+                        }
+                    ],
+                },
             },
         )
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
