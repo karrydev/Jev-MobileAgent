@@ -18,6 +18,7 @@ from .harness import (
     evaluate_controlled_observation,
     evaluate_controlled_observations,
     run_androidworld_baseline,
+    run_androidworld_extracted_baseline,
     run_phone_baseline,
 )
 
@@ -34,5 +35,6 @@ __all__ = [
     "evaluate_controlled_observation",
     "evaluate_controlled_observations",
     "run_androidworld_baseline",
+    "run_androidworld_extracted_baseline",
     "run_phone_baseline",
 ]
