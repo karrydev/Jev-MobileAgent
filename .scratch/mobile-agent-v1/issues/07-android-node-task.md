@@ -33,3 +33,5 @@ Gate: 从 App 发起中文输入任务并控制执行
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-22：03/05/06 已验收；按用户最新要求，后续优先在已授权 OnePlus 8T 真机的项目受控页面测试。领取范围 android-app/、services/android_bridge/、contracts/android/ 和独立 Android 测试；不得修改 04 独占的 sim_loop/contracts/v1。复用公开运行/控制语义，新增真实 App 执行适配。独占真机，所有 ADB 指定设备；系统授权可由 Agent UI 操作，密码等不可代办步骤才请求用户。
+
+2026-09-22：初版构建成功、真机安装指纹 `e926c7b7384174b605b70424795e1ad03dd83e3a9413bf3c0fc22a23b87dc9c2`。中文输入已实跑 obs141→EXECUTED→obs142→SUCCESS/input_applied。协调者复测节点点击 click-3 为 obs246→App 执行→obs247→SUCCESS/postcondition_met；click-2 则 FAILED/stale_observation，未发生点击。Terra 指出任务按钮自身触发的自动观察刷新与绑定动作有竞态，需修复，不以单次成功验收。暂停/取消/重复投递的真机负向仍待验证。代码冻结在独立分支，未合入。
