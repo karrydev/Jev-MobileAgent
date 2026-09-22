@@ -448,7 +448,142 @@
       "completion_tokens": 11,
       "estimated_list_price_cny": 0.0083265,
       "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-1",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 2829,
+      "completion_tokens": 152,
+      "estimated_list_price_cny": 0.0049275,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-2",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3719,
+      "completion_tokens": 70,
+      "estimated_list_price_cny": 0.0058935,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-3",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5474,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.0082605,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-4",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3206,
+      "completion_tokens": 118,
+      "estimated_list_price_cny": 0.00534,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-5",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3754,
+      "completion_tokens": 97,
+      "estimated_list_price_cny": 0.0060675,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-6",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5498,
+      "completion_tokens": 68,
+      "estimated_list_price_cny": 0.008553,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-7",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3248,
+      "completion_tokens": 132,
+      "estimated_list_price_cny": 0.005466,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-8",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3868,
+      "completion_tokens": 116,
+      "estimated_list_price_cny": 0.006324,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-9",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5506,
+      "completion_tokens": 81,
+      "estimated_list_price_cny": 0.0086235,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-10",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3519,
+      "completion_tokens": 156,
+      "estimated_list_price_cny": 0.0059805,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-11",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 4009,
+      "completion_tokens": 117,
+      "estimated_list_price_cny": 0.00654,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-12",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5506,
+      "completion_tokens": 87,
+      "estimated_list_price_cny": 0.0086505,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-13",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3542,
+      "completion_tokens": 185,
+      "estimated_list_price_cny": 0.0061455,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-14",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 4165,
+      "completion_tokens": 113,
+      "estimated_list_price_cny": 0.006756,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-pruned01-15",
+      "result": "pruned reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5506,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.0083085,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 0.254085
+  "estimated_list_price_total_cny": 0.3559215
 }

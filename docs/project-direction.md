@@ -1,6 +1,6 @@
 # Jev-MobileAgent：当前项目方向与决策
 
-更新日期：2026-09-22。本文记录已经确定的方向，作为后续开发的入口。文档只保留当前方案。已完成公开 Fork、合入研究文档和工程技能配置、初始化 CodeGraph；Android App 的观察、输入、节点动作、截图与手势已在受控真机验证，模型基础访问已通过；真实角色协议正在验证，上游代码尚未裁剪。
+更新日期：2026-09-22。本文记录已经确定的方向，作为后续开发的入口。文档只保留当前方案。已完成公开 Fork、合入研究文档和工程技能配置、初始化 CodeGraph；Android App 的观察、输入、节点动作、截图与手势已在受控真机验证，模型基础访问已通过；真实角色协议、原版双入口基线和角色提取对照已完成；原版与提取版亮度任务严格判分均未成功。当前正在裁剪无关目录，App+VLM闭环尚未验收。
 
 ## 1. 已确定的方向
 
@@ -33,13 +33,13 @@ v3.5 的两个 Android 入口需要区分：
 
 来源：[真机入口](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/mobile_use/run_gui_owl_1_5_for_mobile.py)、[四角色调用入口](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3.py)、[角色与状态定义](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3_agent.py)。
 
-当前方案是基于 v3.5 的 Android 相关代码构建衍生项目，并保留需要的多角色能力。具体提取接口与模块划分尚待开发验证。上游没有可直接嵌入的独立 Android App；“保留 Android 相关代码”包含服务端编排和评测适配，不等于只留下一个现成 APK 文件夹。
+当前方案是基于 v3.5 的 Android 相关代码构建衍生项目，并保留需要的多角色能力。角色现已提取至 `agent_core/vlm/`，参考适配保留在 `services/original_baselines/`；同输入分支和真实参考运行已验证，App通道集成仍待完成。上游没有可直接嵌入的独立 Android App；“保留 Android 相关代码”包含服务端编排和评测适配，不等于只留下一个现成 APK 文件夹。
 
 仅接入 Jev 不会自动得到布局树、手机设备桥、用户接管或断线恢复。这些需要新增；已有规划、视觉和记忆能力可以复用，但仍需要原生成式模型提供推理能力。
 
 ## 3. Fork、裁剪与上游同步
 
-按以下顺序推进；第 1 项已完成，第 2–4 项尚待实施：
+按以下顺序推进；第1–2项及第3项角色提取已完成，目录裁剪与复验正在实施：
 
 1. 公开 Fork 整个仓库并保留完整历史，记录上游地址与基线提交；将当前研究文档合入工作副本。
 2. 固定模型配置，跑通选定 v3.5 入口并保存原始轨迹、费用和判分。若需修复原示例阻塞问题，单独记录补丁，区分原始源码与修复后的可运行基线。
@@ -90,7 +90,7 @@ App 提供统一观察：当前窗口、可访问节点的文字/语义/状态/�
 
 v3.5 真机脚本要求传入 `--api_key`、`--base_url`、`--model`，通过兼容 OpenAI 的 API 调用模型；没有默认选定的模型规模，也不会自行下载权重。该 API 可以来自托管服务，也可以来自自己用 vLLM 部署的推理服务。README 的本地 Transformers 示例使用 8B，不代表真机脚本默认加载 8B。[参数与调用入口](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/mobile_use/run_gui_owl_1_5_for_mobile.py)、[部署说明](https://huggingface.co/mPLUG/GUI-Owl-1.5-8B-Instruct#deploy)
 
-首期优先托管 API，准备百炼与 TypeSafe 账号，无需先购买 GPU。百炼 `gui-plus-2026-02-26` 是候选服务，但其参数量与公开权重的精确对应未披露，不能称其为已确认的 8B/32B 服务；实际角色协议兼容性尚未调用验证。OpenAI SDK 只表示接口兼容，不要求购买 OpenAI 额度。[GUI-Plus 官方接口](https://help.aliyun.com/zh/model-studio/gui-plus-interface-interaction-model)
+首期优先托管 API，准备百炼与 TypeSafe 账号，无需先购买 GPU。百炼 `gui-plus-2026-02-26` 是候选服务，但其参数量与公开权重的精确对应未披露，不能称其为已确认的 8B/32B 服务；最小坐标适配后的真实角色协议已验证；配置与全部失败见本地任务15–17的证据记录。OpenAI SDK 只表示接口兼容，不要求购买 OpenAI 额度。[GUI-Plus 官方接口](https://help.aliyun.com/zh/model-studio/gui-plus-interface-interaction-model)
 
 真机脚本的可选 App 名称解析还有 `qwen-plus` 默认配置：直接映射失败时才走这条辅助路径。接入时需确认是否保留，或以 App 提供的包名映射替代；它不是 GUI-Owl 主模型的默认值。账号、设备与具体配置见[开发准备](research/2026-09-22-development-readiness.md)。
 

@@ -6,9 +6,9 @@ Blocked by: 08, 10, 14, 18
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-app-vlm-loop
+Branch: codex/v1-app-vlm-loop
 Evidence: 真实 API 与物理手机
 Gate: 用户通过 App 完成仅 VLM 的真实任务
 
@@ -34,3 +34,5 @@ Gate: 用户通过 App 完成仅 VLM 的真实任务
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-23 用户既有补充需求落位：正式 App 提供模型供应商/endpoint/model/API Key 配置入口，用户可在 App 填写自己的 Key；不要求最终用户编辑开发机 env 文件，设备桥 Token 与模型 Key 分开。按首版单用户/自有编排服务边界实现最小配置与受保护的凭据处理，模型 Key 不进入日志、公开轨迹或仓库；服务器最终传输配置在27验收。此项来自用户已明确要求，不能将目前开发者 env 方式报告为产品配置能力。真机验证后须锁屏。
+
+2026-09-23：前置08/10/14/18均完成，领取仅VLM的App闭环。复用现有角色、App观察/截图/动作、桥接任务控制与证据边界，不新建通用框架，不加入Jev/树语义核验/按需规划。同条件设备通道对照冻结为OnePlus 8T项目受控页 ready→completed，同一提取角色/GUI-Plus、0–1000坐标、5步/最多25请求/1024输出，每入口1次、¥1上限；参考执行经ADB、产品执行经App，初始页面相同，最终由实际观察状态独立判分。App额外验证中文输入/手势以及暂停取消、截图或权限不可用；已有07/08设备证据仅在相关实现未改变时沿用。所有尝试累计入总¥10预算，测试完锁屏。模型Key配置按用户要求在App填写，不能与设备token混用或落入日志/公开轨迹。

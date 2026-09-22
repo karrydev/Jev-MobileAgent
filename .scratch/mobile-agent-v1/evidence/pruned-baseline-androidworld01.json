@@ -1,0 +1,484 @@
+{
+  "status": "completed",
+  "success": false,
+  "entrypoint": "extracted_roles_androidworld_reference",
+  "baseline_variant": "extracted_roles_with_contract_observation_adapter",
+  "source_files": {
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3.py": {
+      "sha256": "79c067d3f4bbf526c52c5434771d109e6c117e8e8c32591c93cc48e913f8f38a"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3_agent.py": {
+      "sha256": "00a1b656ada4a100b85b6b1347f6a983f2a4547230a8058aeca92ac2d26352be"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/infer_ma3.py": {
+      "sha256": "6d42e0ab94909fee6003e6463fba2f7268fcd5a4390dd45c94f55b896db4d79f"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/task_evals/single/system.py": {
+      "sha256": "3eff14c200e762e1fe68285f35d5e7e6fd16354741e8a0ea71e0d0d440548c90"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/episode_runner.py": {
+      "sha256": "779117bbc340a5b0d2022e32ad64171359ee0788809e3c945b0bfd1dfcb34215"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/env/env_launcher.py": {
+      "sha256": "45ea45b3c7fbae44af20786f7bc05904bf23cfab6e0ef4f8f86ab45c0c6b1c32"
+    },
+    "agent_core/vlm/roles.py": {
+      "sha256": "2413580bde1fa58535675704aba907865be820e9792368280e3eca7848493274"
+    },
+    "agent_core/vlm/orchestration.py": {
+      "sha256": "a26e4ab4c1312a3b8e89bcb6d2e0064c3c436ced0b3c385cd31c89960a27557e"
+    },
+    "services/original_baselines/extracted_androidworld.py": {
+      "sha256": "3553d05eb1b4d90f177013d166b751d4aa80771d71bb7e9c2afa2466e062902a"
+    }
+  },
+  "task": {
+    "name": "SystemBrightnessMax",
+    "goal": "Turn brightness to the max value.",
+    "judge": "SystemBrightnessMax.is_successful",
+    "initial_score": 0.0,
+    "initial_expected_score": 0.0,
+    "initial_state": "initialized_low",
+    "initial_success": true,
+    "final_score": 0.0,
+    "system_brightness_max_score": 0.0,
+    "independent_score": 0.0,
+    "independent_success": false,
+    "final_expected_score": 1.0
+  },
+  "episode": {
+    "done": false,
+    "step_count": 5
+  },
+  "budget": {
+    "max_requests": 25,
+    "requests_attempted": 15,
+    "reserved_cny": 0.25343999999999994,
+    "budget_cny": 1.0,
+    "estimated_spend_cny": 0.1018365,
+    "usage_missing": false,
+    "stop_reason": null,
+    "per_request_upper_bound_cny": 0.016896
+  },
+  "baseline_result": "real_candidate",
+  "evidence_mode": "real_environment",
+  "run_at": "2026-09-22T18:54:41.389208+00:00",
+  "harness_sha256": "b3a6a834cd7aa727eab360dfde09c7090f776da55e5e9532894ced69468883d0",
+  "run_id": "pruned01",
+  "source_base_sha": "170f30c12da95a1adf91596a2c84344ad04978fd",
+  "config": {
+    "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "model": "gui-plus-2026-02-26",
+    "console_port": 5556,
+    "grpc_port": 8554,
+    "device_id": "android-world-pixel6-api33",
+    "task": "SystemBrightnessMax",
+    "goal": "Turn brightness to the max value.",
+    "max_steps": 5,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "budget_cny": 1.0,
+    "timeout_seconds": 30.0,
+    "coordinate_adaptation": true,
+    "freeze_datetime": false,
+    "execution_mode": "real_environment",
+    "role_implementation_mode": "extracted_roles_reference_adapter",
+    "role_sources": {
+      "roles": "agent_core/vlm/roles.py",
+      "orchestration": "agent_core/vlm/orchestration.py",
+      "reference_adapter": "services/original_baselines/extracted_androidworld.py"
+    },
+    "source_hash_mode": "explicit_extracted_and_original"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 0,
+      "prompt_sha256": "3900d24af078d680115599868ba986f3a18bfd2bab01635762367b54bc8e7f4b",
+      "request_sha256": "e99ae425207da20326d7bfe439d4c1e8c85ea76483e9e79a180aba7f03c3a735",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 2829,
+        "completion_tokens": 152,
+        "total_tokens": 2981,
+        "completion_tokens_details": {
+          "text_tokens": 152
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 277
+        }
+      },
+      "estimated_cost_cny": 0.0049275,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 2,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 0,
+      "prompt_sha256": "73b8f27e66244fab9a6a726fba149deee2692c07556313e9d82056259b2e7ab3",
+      "request_sha256": "c3a489301f6ab33984c5d6d884d4d4f3bec71c2e677874a804ba615fda40b50a",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3719,
+        "completion_tokens": 70,
+        "total_tokens": 3789,
+        "completion_tokens_details": {
+          "text_tokens": 70
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1167
+        }
+      },
+      "estimated_cost_cny": 0.0058935,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 3,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 0,
+      "prompt_sha256": "1d29a81c1fb72cc2f13c3bc8738f199e9d1bdc3de0afa5aaf008a54686b189a5",
+      "request_sha256": "2bdea9e2d2a0c2abc5ec481ccbb5b9f91454af1f1787d2023f5f0d3f48695a6e",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5474,
+        "completion_tokens": 11,
+        "total_tokens": 5485,
+        "completion_tokens_details": {
+          "text_tokens": 11
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 370
+        }
+      },
+      "estimated_cost_cny": 0.0082605,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 4,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 1,
+      "prompt_sha256": "f6bb64f6c0bfbd22fbd3fad7f501b9afdc6af08b8aee785038de29c1a2609671",
+      "request_sha256": "e8e455ccb9d7d4995f24c81cf250b533eb2076b1a32e1d9cbccaf751b13164e4",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3206,
+        "completion_tokens": 118,
+        "total_tokens": 3324,
+        "completion_tokens_details": {
+          "text_tokens": 118
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 654
+        }
+      },
+      "estimated_cost_cny": 0.00534,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 5,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 1,
+      "prompt_sha256": "ec9046c05b71599155f3b7e4f1688fea8141b7238f0f4e6b18a37f8208b3fc00",
+      "request_sha256": "1393e1597d268a40214a30deaae1c21ce7e2e5575c3f42d843b7d25e3717a3d1",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3754,
+        "completion_tokens": 97,
+        "total_tokens": 3851,
+        "completion_tokens_details": {
+          "text_tokens": 97
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1202
+        }
+      },
+      "estimated_cost_cny": 0.0060675,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 6,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 1,
+      "prompt_sha256": "8068273ed7c31eed2f6bea17ae77d759812d4350f71fb048b1576020d6f58561",
+      "request_sha256": "28ad3630c9b22d6070d4f67b42f99c295ffa8de8968e03a8352c193b16e1c2d8",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5498,
+        "completion_tokens": 68,
+        "total_tokens": 5566,
+        "completion_tokens_details": {
+          "text_tokens": 68
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 394
+        }
+      },
+      "estimated_cost_cny": 0.008553,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 7,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 2,
+      "prompt_sha256": "2cacfdad40163b382f546a76b631f61b3fe74cafe2eb5d69be8fd25354d77185",
+      "request_sha256": "2e84fd20ac85b3d5728895c34cc69a909a6e687eadb638f556e2e2274d71cb7a",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3248,
+        "completion_tokens": 132,
+        "total_tokens": 3380,
+        "completion_tokens_details": {
+          "text_tokens": 132
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 696
+        }
+      },
+      "estimated_cost_cny": 0.005466,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 8,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 2,
+      "prompt_sha256": "da4a8ce268a4571a2c5707a97d6fe7febbc5e135fdf67c986461fa359b691856",
+      "request_sha256": "de8a7e9302173cf26586761450b5a62208bd7489c5d601cafc92ebe54442ba12",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3868,
+        "completion_tokens": 116,
+        "total_tokens": 3984,
+        "completion_tokens_details": {
+          "text_tokens": 116
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1316
+        }
+      },
+      "estimated_cost_cny": 0.006324,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 9,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 2,
+      "prompt_sha256": "e2d5e4de7efc5ae942a554d07f1655dc654e929b8bbd7f9ce171dcc815b6097c",
+      "request_sha256": "14225e0b8eb82929eff4c7a8b2efc3df5d39d99d25d2484d870dec08ddadab9c",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5506,
+        "completion_tokens": 81,
+        "total_tokens": 5587,
+        "completion_tokens_details": {
+          "text_tokens": 81
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 402
+        }
+      },
+      "estimated_cost_cny": 0.0086235,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 10,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 3,
+      "prompt_sha256": "6f19b66597e909451a4ae5920c4b777852edf6d471d394cc109748ab88018398",
+      "request_sha256": "d7a73255bf18aa7f85134fcfb5f5031959e964da3f062a05a32f1e3c2f59f90e",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3519,
+        "completion_tokens": 156,
+        "total_tokens": 3675,
+        "completion_tokens_details": {
+          "text_tokens": 156
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 967
+        }
+      },
+      "estimated_cost_cny": 0.0059805,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 11,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 3,
+      "prompt_sha256": "227931858efb9aef5467d6fef92f6c4133fedbd46ff8293b6dab6990d68c65c6",
+      "request_sha256": "34d375ddd61f8ef051424774e8a9f504691bd68c5ba5d4bd005eebb6c36b36bd",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 4009,
+        "completion_tokens": 117,
+        "total_tokens": 4126,
+        "completion_tokens_details": {
+          "text_tokens": 117
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1457
+        }
+      },
+      "estimated_cost_cny": 0.00654,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 12,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 3,
+      "prompt_sha256": "e3dafb298d9b5f569246ae55e4c1bc7491f356c94dafb385baa0d8f0c64e26a6",
+      "request_sha256": "03c57042d911cf0766d1a91123505dc20a5cafba7b8de98040ce6fae6c89b00c",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5506,
+        "completion_tokens": 87,
+        "total_tokens": 5593,
+        "completion_tokens_details": {
+          "text_tokens": 87
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 402
+        }
+      },
+      "estimated_cost_cny": 0.0086505,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 13,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 4,
+      "prompt_sha256": "78c7607be94de6fd23f39ff0b0ad9b6de68f36101dad49d54eb0bf7d8c319cf8",
+      "request_sha256": "c7dc4f8e1102ffdb03aacb9070fb5f3e5d742b19d05e0690e80d48950ef74569",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3542,
+        "completion_tokens": 185,
+        "total_tokens": 3727,
+        "completion_tokens_details": {
+          "text_tokens": 185
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 990
+        }
+      },
+      "estimated_cost_cny": 0.0061455,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 14,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 4,
+      "prompt_sha256": "a2c41b991d6d6af580c09af12c1fe24f01b8dc1c01185c17ffa8b206e45e850a",
+      "request_sha256": "2a65e0ba6bb49e3613ea106c47621823c9fe92e4b128b725f3af9524efc1b05a",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 4165,
+        "completion_tokens": 113,
+        "total_tokens": 4278,
+        "completion_tokens_details": {
+          "text_tokens": 113
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1613
+        }
+      },
+      "estimated_cost_cny": 0.006756,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 15,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 4,
+      "prompt_sha256": "49c6265432440160026fd2c463f350cfcc3a978850f3e9d0901de855448dc2ab",
+      "request_sha256": "86726e1ff240fb0485874ebd7ad2e1e58f57d0a61e28565eb2f9b70eabe098ae",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5506,
+        "completion_tokens": 11,
+        "total_tokens": 5517,
+        "completion_tokens_details": {
+          "text_tokens": 11
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 402
+        }
+      },
+      "estimated_cost_cny": 0.0083085,
+      "transport_error": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "comparison": {
+    "before_run": "extracted01",
+    "before_final_score": 0.0,
+    "after_final_score": 0.0,
+    "interpretation": "Real reference entry remains runnable after pruning; strict task goal remains unmet, no success-rate claim.",
+    "action_summary": [
+      "open Settings",
+      "swipe",
+      "swipe",
+      "swipe",
+      "click"
+    ]
+  },
+  "raw_evidence_policy": "Raw screenshots and provider payloads retained locally, not published."
+}
