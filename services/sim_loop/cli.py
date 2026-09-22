@@ -31,9 +31,24 @@ def _token(parser: argparse.ArgumentParser, value: str | None) -> str:
     return token
 
 
-def _start_servers(token: str, behavior: str, *, deterministic: bool, device_port: int = 0, service_port: int = 0):
+def _start_servers(
+    token: str,
+    behavior: str,
+    *,
+    deterministic: bool,
+    device_port: int = 0,
+    service_port: int = 0,
+    device_state_path: str | None = None,
+    service_state_path: str | None = None,
+):
     clock = FixedClock() if deterministic else utc_now
-    device = SimulatedDevice(device_id="sim-device-01", token=token, behavior=behavior, clock=clock)
+    device = SimulatedDevice(
+        device_id="sim-device-01",
+        token=token,
+        behavior=behavior,
+        clock=clock,
+        state_path=device_state_path,
+    )
     device_server = create_device_server(device, port=device_port)
     device_thread = threading.Thread(target=device_server.serve_forever, daemon=True)
     device_thread.start()
@@ -44,6 +59,7 @@ def _start_servers(token: str, behavior: str, *, deterministic: bool, device_por
         device_id="sim-device-01",
         behavior=behavior,
         clock=clock,
+        state_path=service_state_path,
     )
     service_server = create_service_server(service, port=service_port)
     service_thread = threading.Thread(target=service_server.serve_forever, daemon=True)
@@ -117,6 +133,8 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--scenario", choices=["apply_effect", "receipt_without_effect"], default="apply_effect")
     serve_parser.add_argument("--device-port", type=int, default=8766)
     serve_parser.add_argument("--service-port", type=int, default=8765)
+    serve_parser.add_argument("--device-state-path", help="durable local JSON checkpoint for the simulated device")
+    serve_parser.add_argument("--service-state-path", help="durable local JSON checkpoint for task recovery")
     serve_parser.set_defaults(handler=_serve)
     return parser
 
@@ -221,6 +239,8 @@ def _serve(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         deterministic=False,
         device_port=args.device_port,
         service_port=args.service_port,
+        device_state_path=args.device_state_path,
+        service_state_path=args.service_state_path,
     )
     print(f"service=http://127.0.0.1:{service_server.server_address[1]} device_simulator=http://127.0.0.1:{device_server.server_address[1]}", flush=True)
     try:

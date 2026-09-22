@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
 from urllib.parse import parse_qs, urlparse
@@ -18,6 +19,7 @@ from .http_common import (
     require_protocol,
     send_json,
 )
+from .persistence import load_json, save_json
 from .schema import PROTOCOL_VERSION, SCHEMA_VERSION, SchemaValidationError, assert_valid
 
 Clock = Callable[[], str]
@@ -54,6 +56,8 @@ class SimulatedDevice:
         behavior: str = "apply_effect",
         clock: Clock = utc_now,
         action_delay: float = 0.0,
+        state_path: str | Path | None = None,
+        persistence_path: str | Path | None = None,
     ):
         if not token:
             raise ValueError("device token must be supplied explicitly")
@@ -64,16 +68,87 @@ class SimulatedDevice:
         self.behavior = behavior
         self.clock = clock
         self.action_delay = action_delay
+        if state_path is not None and persistence_path is not None and Path(state_path) != Path(persistence_path):
+            raise ValueError("state_path and persistence_path must identify the same file")
+        self.state_path = Path(state_path if state_path is not None else persistence_path) if (state_path is not None or persistence_path is not None) else None
         self.page_state = "landing"
         self._lock = threading.Lock()
         self._action_in_flight = False
+        self._in_flight_action_key: tuple[str, str] | None = None
         self._observation_counts: dict[str, int] = {}
         self._latest_observation_id: dict[str, str] = {}
+        self._latest_observation_version: dict[str, str] = {}
+        self._scene_revision: dict[str, int] = {}
         self._receipts: dict[tuple[str, str], dict[str, Any]] = {}
         self._actions: dict[tuple[str, str], dict[str, Any]] = {}
         self._session_by_task: dict[str, str] = {}
         self._next_sequence: dict[tuple[str, str | None], int] = {}
         self.action_count = 0
+        self._load_state()
+
+    def _load_state(self) -> None:
+        if self.state_path is None:
+            return
+        state = load_json(self.state_path)
+        if state is None:
+            return
+        if state.get("device_id") not in (None, self.device_id):
+            raise ValueError("persistent device state belongs to another device")
+        if state.get("behavior") not in (None, self.behavior):
+            raise ValueError("persistent device state uses another simulation behavior")
+        self.page_state = state.get("page_state", self.page_state)
+        self.action_count = int(state.get("action_count", 0))
+        self._observation_counts = {str(k): int(v) for k, v in state.get("observation_counts", {}).items()}
+        self._latest_observation_id = {str(k): str(v) for k, v in state.get("latest_observation_id", {}).items()}
+        self._latest_observation_version = {str(k): str(v) for k, v in state.get("latest_observation_version", {}).items()}
+        self._scene_revision = {str(k): int(v) for k, v in state.get("scene_revision", {}).items()}
+        self._session_by_task = {str(k): str(v) for k, v in state.get("session_by_task", {}).items()}
+        self._receipts = {
+            (str(item["task_id"]), str(item["action_id"])): dict(item["receipt"])
+            for item in state.get("receipts", [])
+            if isinstance(item, dict) and isinstance(item.get("receipt"), dict)
+        }
+        self._actions = {
+            (str(item["task_id"]), str(item["action_id"])): dict(item["action"])
+            for item in state.get("actions", [])
+            if isinstance(item, dict) and isinstance(item.get("action"), dict)
+        }
+        self._next_sequence = {
+            (str(item["task_id"]), item.get("session_id")): int(item["next_sequence"])
+            for item in state.get("next_sequence", [])
+            if isinstance(item, dict)
+        }
+
+    def _state_snapshot_locked(self) -> dict[str, Any]:
+        return {
+            "format_version": 1,
+            "schema_version": SCHEMA_VERSION,
+            "device_id": self.device_id,
+            "behavior": self.behavior,
+            "page_state": self.page_state,
+            "action_count": self.action_count,
+            "observation_counts": dict(self._observation_counts),
+            "latest_observation_id": dict(self._latest_observation_id),
+            "latest_observation_version": dict(self._latest_observation_version),
+            "scene_revision": dict(self._scene_revision),
+            "session_by_task": dict(self._session_by_task),
+            "receipts": [
+                {"task_id": task_id, "action_id": action_id, "receipt": receipt}
+                for (task_id, action_id), receipt in self._receipts.items()
+            ],
+            "actions": [
+                {"task_id": task_id, "action_id": action_id, "action": action}
+                for (task_id, action_id), action in self._actions.items()
+            ],
+            "next_sequence": [
+                {"task_id": task_id, "session_id": session_id, "next_sequence": sequence}
+                for (task_id, session_id), sequence in self._next_sequence.items()
+            ],
+        }
+
+    def _persist_locked(self) -> None:
+        if self.state_path is not None:
+            save_json(self.state_path, self._state_snapshot_locked())
 
     def bind_session(self, task_id: str, session_id: str) -> None:
         if not isinstance(session_id, str) or not session_id:
@@ -84,6 +159,7 @@ class SimulatedDevice:
                 raise DeviceRequestError("stale_session", "session belongs to an obsolete device session", status=409)
             if known_session is None:
                 self._session_by_task[task_id] = session_id
+                self._persist_locked()
 
     def has_bound_session(self, task_id: str) -> bool:
         with self._lock:
@@ -101,7 +177,7 @@ class SimulatedDevice:
                 "schema_version": SCHEMA_VERSION,
                 "task_id": task_id,
                 "observation_id": f"obs-{task_id}-{suffix}",
-                "observation_version": f"obs-{task_id}-{suffix}",
+                "observation_version": f"scene-{task_id}-{self._scene_revision.get(task_id, 0)}",
                 "device_id": self.device_id,
                 "captured_at": self.clock(),
                 "page_state": self.page_state,
@@ -117,7 +193,12 @@ class SimulatedDevice:
             }
             if known_session is not None:
                 observation["session_id"] = known_session
-            self._latest_observation_id[task_id] = observation["observation_id"]
+            # A read during an in-flight command must not invalidate the
+            # observation that was already accepted for that command.
+            if not self._action_in_flight:
+                self._latest_observation_id[task_id] = observation["observation_id"]
+                self._latest_observation_version[task_id] = observation["observation_version"]
+            self._persist_locked()
         assert_valid(observation, "observation")
         return observation
 
@@ -156,6 +237,7 @@ class SimulatedDevice:
                     status=409,
                 )
             self._action_in_flight = True
+            self._in_flight_action_key = (task_id, action_id)
         try:
             if self.action_delay:
                 time.sleep(self.action_delay)
@@ -166,7 +248,8 @@ class SimulatedDevice:
                 expected_observation_id = self._latest_observation_id.get(task_id)
                 if action["observation_id"] != expected_observation_id:
                     raise DeviceRequestError("stale_observation", "action is bound to an obsolete observation", status=409)
-                if action.get("observation_version") not in (None, expected_observation_id):
+                expected_observation_version = self._latest_observation_version.get(task_id)
+                if action.get("observation_version") not in (None, expected_observation_version, expected_observation_id):
                     raise DeviceRequestError("stale_observation", "action observation version is obsolete", status=409)
                 if action["kind"] != "tap":
                     raise DeviceRequestError("unsupported_action", "the simulated device does not support this action", status=422)
@@ -187,6 +270,7 @@ class SimulatedDevice:
                 self.action_count += 1
                 if self.behavior == "apply_effect":
                     self.page_state = "done"
+                    self._scene_revision[task_id] = self._scene_revision.get(task_id, 0) + 1
                 receipt = {
                     "schema_version": SCHEMA_VERSION,
                     "task_id": task_id,
@@ -206,11 +290,58 @@ class SimulatedDevice:
                 self._receipts[(task_id, action_id)] = dict(receipt)
                 if sequence is not None:
                     self._next_sequence[(task_id, session_id)] = sequence + 1
+                self._persist_locked()
             assert_valid(receipt, "receipt")
             return receipt
         finally:
             with self._lock:
                 self._action_in_flight = False
+                self._in_flight_action_key = None
+
+    def action_status(
+        self,
+        task_id: str,
+        action_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Return durable action history for reconciliation.
+
+        A missing action is only a *device-local* statement.  If the service
+        cannot reach this endpoint it must keep the action UNKNOWN instead of
+        converting the transport failure into NOT_EXECUTED.
+        """
+
+        with self._lock:
+            known_session = self._session_by_task.get(task_id)
+            if session_id is not None and known_session not in (None, session_id):
+                raise DeviceRequestError("stale_session", "action history belongs to an obsolete device session", status=409)
+            receipt = self._receipts.get((task_id, action_id))
+            action = self._actions.get((task_id, action_id))
+            if self._action_in_flight:
+                status = "UNKNOWN"
+            elif receipt is not None:
+                status = "EXECUTED"
+            elif action is None:
+                status = "NOT_EXECUTED"
+            else:
+                # The simulated device only records an action atomically with
+                # its receipt.  Keep this branch for future adapters whose
+                # action journal can contain an incomplete entry.
+                status = "UNKNOWN"
+            result: dict[str, Any] = {
+                "schema_version": SCHEMA_VERSION,
+                "task_id": task_id,
+                "action_id": action_id,
+                "device_id": self.device_id,
+                "status": status,
+                "in_flight": self._action_in_flight,
+                "durable_history": self.state_path is not None,
+                "checked_at": self.clock(),
+            }
+            if receipt is not None:
+                result["receipt"] = dict(receipt)
+            return result
 
 
 def create_device_server(device: SimulatedDevice, host: str = "127.0.0.1", port: int = 0) -> ThreadingHTTPServer:
@@ -226,6 +357,19 @@ def create_device_server(device: SimulatedDevice, host: str = "127.0.0.1", port:
             try:
                 self._guard()
                 parsed = urlparse(self.path)
+                if parsed.path == "/v1/simulated/action-status":
+                    query = parse_qs(parsed.query)
+                    task_ids = query.get("task_id", [])
+                    action_ids = query.get("action_id", [])
+                    if len(task_ids) != 1 or not task_ids[0] or len(action_ids) != 1 or not action_ids[0]:
+                        raise RequestRejected(400, "invalid_action_query", "task_id and action_id query parameters are required")
+                    status = device.action_status(
+                        task_ids[0],
+                        action_ids[0],
+                        session_id=self.headers.get("X-JEV-Session-Id"),
+                    )
+                    send_json(self, 200, status)
+                    return
                 if parsed.path != "/v1/simulated/observations":
                     raise RequestRejected(404, "not_found", "device endpoint not found")
                 query = parse_qs(parsed.query)
@@ -242,9 +386,9 @@ def create_device_server(device: SimulatedDevice, host: str = "127.0.0.1", port:
                         status=409,
                     )
                 send_json(self, 200, device.observe(task_ids[0]))
-            except RequestRejected as exc:
-                send_json(self, exc.status, error_payload(exc.code, exc.message))
             except DeviceRequestError as exc:
+                send_json(self, exc.status, error_payload(exc.code, exc.message))
+            except RequestRejected as exc:
                 send_json(self, exc.status, error_payload(exc.code, exc.message))
             except Exception:
                 send_json(self, 500, error_payload("device_internal_error", "simulated device failed"))
