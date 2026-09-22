@@ -6,10 +6,10 @@ Blocked by: 07
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
-Evidence: Android 模拟器
+Execution: in-progress
+Owner: luna-android-visual-task
+Branch: codex/v1-android-visual-task
+Evidence: 物理手机受控页面
 Gate: 手势与截图支持完成受控页面任务
 
 ## 前置与规格
@@ -32,3 +32,5 @@ Gate: 手势与截图支持完成受控页面任务
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：07 已验收，领取手势/截图完整切片，按用户要求在已授权物理手机验证。修改范围 Android App、Android bridge、Android 契约与直接测试；沿用既有控制和节点绑定保护，不改原版角色或模拟运行器。由于运行环境已达子 Agent 总创建上限，复用现有 Luna-max 与 Terra-max，主 Agent 统一 Git 和验收。
