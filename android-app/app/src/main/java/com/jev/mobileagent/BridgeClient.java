@@ -59,6 +59,48 @@ public final class BridgeClient {
         }
     }
 
+    public static JSONObject submitTask(BridgeConfig config, String goal) throws BridgeException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("schema_version", "1.0");
+            body.put("android_schema_version", "1.0");
+            body.put("task_id", config.taskId);
+            body.put("device_id", config.deviceId);
+            body.put("goal", goal == null ? "" : goal);
+            body.put("source", "android-app-user");
+        } catch (JSONException exception) {
+            throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
+        }
+        return request(config, "POST", "/v1/android/tasks", body);
+    }
+
+    public static JSONObject taskStatus(BridgeConfig config) throws BridgeException {
+        return request(config, "GET", taskPath(config, ""), null);
+    }
+
+    public static JSONObject controlTask(BridgeConfig config, String command) throws BridgeException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("command", command);
+            body.put("reason", "user_" + command);
+        } catch (JSONException exception) {
+            throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
+        }
+        return request(config, "POST", taskPath(config, "/" + command), body);
+    }
+
+    public static JSONObject postReceipt(BridgeConfig config, JSONObject receipt) throws BridgeException {
+        return request(config, "POST", taskPath(config, "/receipt"), receipt);
+    }
+
+    private static String taskPath(BridgeConfig config, String suffix) throws BridgeException {
+        try {
+            return "/v1/android/tasks/" + URLEncoder.encode(config.taskId, "UTF-8") + suffix;
+        } catch (IOException exception) {
+            throw new BridgeException(0, "invalid_task_id", exception.getMessage(), exception);
+        }
+    }
+
     private static JSONObject request(
             BridgeConfig config,
             String method,

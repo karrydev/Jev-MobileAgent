@@ -18,12 +18,18 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /** Minimal pairing and observation status screen for the emulator acceptance task. */
 public class MainActivity extends Activity {
+    private static final String DEFAULT_NODE_GOAL = "在中文输入框中输入“手机验收，中文”";
+    private static final String DEFAULT_CLICK_GOAL = "点击“切换受控状态”按钮";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    /** Short task-control requests are serialized; polling runs separately. */
+    private final ExecutorService taskExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService taskLoopExecutor = Executors.newSingleThreadExecutor();
     private EditText endpointInput;
     private EditText tokenInput;
     private EditText deviceInput;
@@ -31,9 +37,21 @@ public class MainActivity extends Activity {
     private TextView connectionStatus;
     private TextView permissionStatus;
     private TextView currentObservation;
+    private EditText goalInput;
+    private TextView taskStatus;
+    private Button startTaskButton;
+    private Button pauseTaskButton;
+    private Button cancelTaskButton;
     private Button connectButton;
     private volatile boolean foregroundRefreshInFlight;
     private volatile long observationGeneration;
+    private volatile boolean taskRunnerActive;
+    private volatile String dispatchedActionId;
+    private volatile JSONObject pendingReceipt;
+    private volatile BridgeConfig activeTaskConfig;
+    private volatile boolean taskSubmissionInFlight;
+    private volatile String pendingControlCommand;
+    private volatile long taskControlEpoch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,6 +121,9 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         advanceObservationGeneration();
         executor.shutdownNow();
+        taskExecutor.shutdownNow();
+        taskLoopExecutor.shutdownNow();
+        ObservationAccessibilityService.endTaskCapture();
         super.onDestroy();
     }
 
@@ -140,8 +161,49 @@ public class MainActivity extends Activity {
 
         Button controlledPage = new Button(this);
         controlledPage.setText("Open controlled observation page");
-        controlledPage.setOnClickListener(v -> startActivity(new Intent(this, ControlledPageActivity.class)));
+        controlledPage.setOnClickListener(v -> {
+            // Keep the user-entered goal with the controlled page so the task
+            // can be started while that page is the observed foreground
+            // window.  The action is still submitted through the same bridge
+            // contract and is bound to that page's fresh observation.
+            getSharedPreferences("jev_android_observation", MODE_PRIVATE)
+                    .edit()
+                    .putString("task_goal", goalInput == null ? "" : goalInput.getText().toString())
+                    .apply();
+            startActivity(new Intent(this, ControlledPageActivity.class));
+        });
         root.addView(controlledPage, widthMatchWrap());
+
+        root.addView(label("Deterministic node task", 18, Color.rgb(35, 50, 65)), marginTop(widthMatchWrap(), 20));
+        goalInput = input("目标，例如：点击“切换受控状态”按钮", false);
+        root.addView(goalInput, widthMatchWrap());
+        Button sampleGoal = new Button(this);
+        sampleGoal.setText("Fill deterministic Chinese input goal");
+        sampleGoal.setContentDescription("Fill deterministic Chinese input goal");
+        sampleGoal.setOnClickListener(v -> goalInput.setText(DEFAULT_NODE_GOAL));
+        root.addView(sampleGoal, widthMatchWrap());
+        Button clickGoal = new Button(this);
+        clickGoal.setText("Fill deterministic click goal");
+        clickGoal.setContentDescription("Fill deterministic click goal");
+        clickGoal.setOnClickListener(v -> goalInput.setText(DEFAULT_CLICK_GOAL));
+        root.addView(clickGoal, widthMatchWrap());
+        startTaskButton = new Button(this);
+        startTaskButton.setText("Start node task");
+        startTaskButton.setOnClickListener(v -> submitNodeTask());
+        root.addView(startTaskButton, marginTop(widthMatchWrap(), 10));
+        pauseTaskButton = new Button(this);
+        pauseTaskButton.setText("Pause task");
+        pauseTaskButton.setEnabled(false);
+        pauseTaskButton.setOnClickListener(v -> controlNodeTask("pause"));
+        root.addView(pauseTaskButton, widthMatchWrap());
+        cancelTaskButton = new Button(this);
+        cancelTaskButton.setText("Cancel task");
+        cancelTaskButton.setEnabled(false);
+        cancelTaskButton.setOnClickListener(v -> controlNodeTask("cancel"));
+        root.addView(cancelTaskButton, widthMatchWrap());
+        taskStatus = statusLabel("Task: no task submitted");
+        taskStatus.setTextIsSelectable(true);
+        root.addView(taskStatus, marginTop(widthMatchWrap(), 8));
 
         connectionStatus = statusLabel("Connection: not paired");
         permissionStatus = statusLabel("Accessibility permission: checking");
@@ -160,6 +222,11 @@ public class MainActivity extends Activity {
         tokenInput.setText(config.token);
         deviceInput.setText(config.deviceId);
         taskInput.setText(config.taskId);
+        String configuredGoal = getSharedPreferences("jev_android_observation", MODE_PRIVATE)
+                .getString("task_goal", "");
+        if (!configuredGoal.isEmpty()) {
+            goalInput.setText(configuredGoal);
+        }
     }
 
     private BridgeConfig readConfig() {
@@ -349,6 +416,339 @@ public class MainActivity extends Activity {
             }
         }
         return "none";
+    }
+
+    private void submitNodeTask() {
+        String goal = goalInput == null ? "" : goalInput.getText().toString().trim();
+        if (goal.isEmpty()) {
+            taskStatus.setText("Task: enter a Chinese node goal first");
+            return;
+        }
+        final BridgeConfig config = readConfig();
+        activeTaskConfig = config;
+        final long runEpoch = ++taskControlEpoch;
+        pendingControlCommand = null;
+        taskSubmissionInFlight = true;
+        taskRunnerActive = true;
+        dispatchedActionId = null;
+        pendingReceipt = null;
+        setTaskButtons(true, "RUNNING");
+        taskStatus.setText("Task: submitting goal…");
+        // The start-button accessibility event can schedule an automatic
+        // capture while submit is in flight. Reserve the stream and publish
+        // one explicit fresh before frame first.
+        ObservationAccessibilityService.beginTaskCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+            @Override
+            public void onSuccess(JSONObject acknowledgement) {
+                taskExecutor.execute(() -> submitNodeTaskAfterCapture(config, goal, runEpoch));
+            }
+
+            @Override
+            public void onError(String code, String message) {
+                taskSubmissionInFlight = false;
+                taskRunnerActive = false;
+                ObservationAccessibilityService.endTaskCapture();
+                updateOnUi(() -> {
+                    taskStatus.setText("Task: fresh observation failed — " + message);
+                    setTaskButtons(false, "FAILED");
+                });
+            }
+        });
+    }
+
+    private void submitNodeTaskAfterCapture(BridgeConfig config, String goal, long runEpoch) {
+        try {
+            JSONObject status = BridgeClient.submitTask(config, goal);
+            taskSubmissionInFlight = false;
+            renderTaskStatus(status);
+            // A pause/cancel click can legitimately happen before this
+            // request returns. Apply that intent before polling can dispatch.
+            if (runEpoch != taskControlEpoch || pendingControlCommand != null) {
+                JSONObject controlled = applyPendingControl(config);
+                if (controlled != null && controlled.optBoolean("action_result_unknown", false)) {
+                    taskLoopExecutor.execute(() -> runNodeTaskLoop(config, taskControlEpoch));
+                } else {
+                    taskRunnerActive = false;
+                    ObservationAccessibilityService.endTaskCapture();
+                }
+                return;
+            }
+            taskLoopExecutor.execute(() -> runNodeTaskLoop(config, runEpoch));
+        } catch (BridgeClient.BridgeException exception) {
+            taskSubmissionInFlight = false;
+            taskRunnerActive = false;
+            ObservationAccessibilityService.endTaskCapture();
+            updateOnUi(() -> {
+                taskStatus.setText("Task: submission failed — " + exception.getMessage());
+                setTaskButtons(false, "FAILED");
+            });
+        }
+    }
+
+    private void runNodeTaskLoop(BridgeConfig config, long runEpoch) {
+        while (taskRunnerActive && !Thread.currentThread().isInterrupted()) {
+            boolean receiptPending = pendingReceipt != null;
+            if (receiptPending) {
+                try {
+                    JSONObject pending = pendingReceipt;
+                    JSONObject status = BridgeClient.postReceipt(config, pending);
+                    pendingReceipt = null;
+                    renderTaskStatus(status);
+                    if (pending.optBoolean("accepted", false)
+                            && !pending.has("after_observation_id")) {
+                        requestPostActionCapture(config);
+                    } else {
+                        ObservationAccessibilityService.endTaskCapture();
+                    }
+                } catch (BridgeClient.BridgeException exception) {
+                    updateOnUi(() -> taskStatus.setText("Task: receipt pending — " + exception.getMessage()));
+                }
+            }
+            try {
+                JSONObject status = BridgeClient.taskStatus(config);
+                renderTaskStatus(status);
+                String state = status.optString("state", "FAILED");
+                JSONObject next = status.optJSONObject("next_action");
+                boolean controlRequested = runEpoch != taskControlEpoch || pendingControlCommand != null;
+                if ("RUNNING".equals(state) && next != null && pendingReceipt == null && !controlRequested) {
+                    String actionId = next.optString("action_id", "");
+                    if (!actionId.isEmpty() && !actionId.equals(dispatchedActionId)) {
+                        dispatchedActionId = actionId;
+                        // Re-read the bridge state at the delivery boundary;
+                        // the user may have pressed pause/cancel while the
+                        // first status request was in flight.
+                        JSONObject beforeDispatch = BridgeClient.taskStatus(config);
+                        if (runEpoch == taskControlEpoch
+                                && pendingControlCommand == null
+                                && "RUNNING".equals(beforeDispatch.optString("state", ""))
+                                && beforeDispatch.optJSONObject("next_action") != null) {
+                            executeNodeAction(config, beforeDispatch.optJSONObject("next_action"));
+                        }
+                    }
+                }
+                if ("SUCCEEDED".equals(state) || "FAILED".equals(state) || "CANCELLED".equals(state)) {
+                    if (pendingReceipt == null && !status.optBoolean("action_result_unknown", false)) {
+                        taskRunnerActive = false;
+                        ObservationAccessibilityService.endTaskCapture();
+                        setTaskButtons(false, state);
+                        return;
+                    }
+                }
+                if ("PAUSED".equals(state) && pendingReceipt == null) {
+                    taskRunnerActive = false;
+                    ObservationAccessibilityService.endTaskCapture();
+                    setTaskButtons(false, state);
+                    return;
+                }
+                Thread.sleep(300L);
+            } catch (BridgeClient.BridgeException exception) {
+                updateOnUi(() -> taskStatus.setText("Task: bridge unavailable — " + exception.getMessage()));
+                try {
+                    Thread.sleep(500L);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+
+    private void executeNodeAction(final BridgeConfig config, final JSONObject action) {
+        ObservationAccessibilityService.executeAction(config, action, new ObservationAccessibilityService.ActionCallback() {
+            @Override
+            public void onSuccess() {
+                // Capture the postcondition frame before publishing the
+                // accepted receipt.  The acknowledgement supplies an
+                // explicit after-observation association for the bridge.
+                requestPostActionCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+                    @Override
+                    public void onSuccess(JSONObject acknowledgement) {
+                        pendingReceipt = buildReceipt(action, true, null, null, acknowledgement);
+                    }
+
+                    @Override
+                    public void onError(String code, String message) {
+                        // Keep the receipt truthful about execution; the
+                        // fallback capture after receipt remains available.
+                        pendingReceipt = buildReceipt(action, true, null, null, null);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String code, String message) {
+                pendingReceipt = buildReceipt(action, false, code, message);
+            }
+        });
+    }
+
+    private void requestPostActionCapture(
+            final BridgeConfig config,
+            final ObservationAccessibilityService.CaptureCallback callback) {
+        ObservationAccessibilityService.requestCaptureAfterAction(config, callback);
+    }
+
+    private void requestPostActionCapture(final BridgeConfig config) {
+        requestPostActionCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+            @Override
+            public void onSuccess(JSONObject acknowledgement) {
+                // The fallback observation is associated by its receipt-time
+                // version gate when no explicit token was available.
+                ObservationAccessibilityService.endTaskCapture();
+            }
+
+            @Override
+            public void onError(String code, String message) {
+                ObservationAccessibilityService.endTaskCapture();
+                updateOnUi(() -> taskStatus.setText("Task: post-action observation pending — " + message));
+            }
+        });
+    }
+
+    private JSONObject buildReceipt(JSONObject action, boolean accepted, String errorCode, String errorMessage) {
+        return buildReceipt(action, accepted, errorCode, errorMessage, null);
+    }
+
+    private JSONObject buildReceipt(
+            JSONObject action,
+            boolean accepted,
+            String errorCode,
+            String errorMessage,
+            JSONObject afterObservation) {
+        try {
+            JSONObject receipt = new JSONObject();
+            receipt.put("schema_version", "1.0");
+            receipt.put("android_schema_version", "1.0");
+            receipt.put("task_id", action.optString("task_id"));
+            receipt.put("receipt_id", "android-receipt-" + action.optString("action_id"));
+            receipt.put("action_id", action.optString("action_id"));
+            receipt.put("device_id", action.optString("device_id"));
+            receipt.put("accepted", accepted);
+            receipt.put("outcome", accepted ? "EXECUTED" : "REJECTED");
+            receipt.put("received_at", Instant.now().toString());
+            receipt.put("error_code", errorCode == null ? JSONObject.NULL : errorCode);
+            receipt.put("error_message", errorMessage == null ? JSONObject.NULL : errorMessage);
+            receipt.put("observation_id", action.optString("observation_id"));
+            receipt.put("observation_version", action.optInt("observation_version"));
+            if (afterObservation != null) {
+                String afterId = afterObservation.optString("observation_id", "");
+                int afterVersion = afterObservation.optInt("observation_version", 0);
+                if (!afterId.isEmpty() && afterVersion > 0) {
+                    receipt.put("after_observation_id", afterId);
+                    receipt.put("after_observation_version", afterVersion);
+                }
+            }
+            receipt.put("deduplicated", false);
+            return receipt;
+        } catch (JSONException exception) {
+            updateOnUi(() -> taskStatus.setText("Task: could not build execution receipt — " + exception.getMessage()));
+            return null;
+        }
+    }
+
+    private void controlNodeTask(String command) {
+        final BridgeConfig config = activeTaskConfig == null ? readConfig() : activeTaskConfig;
+        final long controlEpoch = ++taskControlEpoch;
+        pendingControlCommand = command;
+        taskRunnerActive = true;
+        setTaskButtons(true, "RUNNING");
+        taskExecutor.execute(() -> {
+            if (controlEpoch != taskControlEpoch || !command.equals(pendingControlCommand)) {
+                return;
+            }
+            try {
+                JSONObject status = BridgeClient.controlTask(config, command);
+                if (controlEpoch != taskControlEpoch || !command.equals(pendingControlCommand)) {
+                    return;
+                }
+                pendingControlCommand = null;
+                renderTaskStatus(status);
+                if ("cancel".equals(command) && !status.optBoolean("action_result_unknown", false)) {
+                    taskRunnerActive = false;
+                    ObservationAccessibilityService.endTaskCapture();
+                }
+            } catch (BridgeClient.BridgeException exception) {
+                // Submit/control can cross on the wire.  Keep the local epoch
+                // cancelled and let the submit worker apply this intent once
+                // its task has been created instead of allowing an action.
+                if (exception.status == 404 && taskSubmissionInFlight) {
+                    return;
+                }
+                updateOnUi(() -> taskStatus.setText("Task: " + command + " failed — " + exception.getMessage()));
+            }
+        });
+    }
+
+    private JSONObject applyPendingControl(BridgeConfig config) {
+        String command = pendingControlCommand;
+        if (command == null) {
+            return null;
+        }
+        try {
+            JSONObject status = BridgeClient.controlTask(config, command);
+            pendingControlCommand = null;
+            renderTaskStatus(status);
+            if (!status.optBoolean("action_result_unknown", false)) {
+                taskRunnerActive = false;
+                ObservationAccessibilityService.endTaskCapture();
+            }
+            return status;
+        } catch (BridgeClient.BridgeException exception) {
+            updateOnUi(() -> taskStatus.setText("Task: " + command + " failed — " + exception.getMessage()));
+            return null;
+        }
+    }
+
+    private void renderTaskStatus(JSONObject status) {
+        if (status == null) {
+            return;
+        }
+        String state = status.optString("state", "UNKNOWN");
+        String phase = status.optString("phase", "");
+        StringBuilder message = new StringBuilder("Task: ").append(state);
+        if (!phase.isEmpty()) {
+            message.append("\nphase=").append(phase);
+        }
+        message.append("\ngoal=").append(status.optString("goal", ""));
+        JSONObject action = status.optJSONObject("action");
+        if (action != null) {
+            message.append("\naction=").append(action.optString("kind", ""))
+                    .append(" target=").append(action.optString("target_node_label", ""));
+        }
+        JSONObject receipt = status.optJSONObject("receipt");
+        if (receipt != null) {
+            message.append("\nreceipt=").append(receipt.optString("outcome", ""));
+        }
+        JSONObject verification = status.optJSONObject("verification");
+        if (verification != null) {
+            message.append("\nverification=").append(verification.optString("status", ""))
+                    .append(" reason=").append(verification.optString("reason", ""));
+        }
+        JSONObject failure = status.optJSONObject("failure");
+        if (failure != null) {
+            message.append("\nfailure=").append(failure.optString("code", ""))
+                    .append(" ").append(failure.optString("message", ""));
+        }
+        updateOnUi(() -> {
+            taskStatus.setText(message.toString());
+            setTaskButtons(taskRunnerActive, state);
+        });
+    }
+
+    private void setTaskButtons(boolean active, String state) {
+        if (startTaskButton == null) {
+            return;
+        }
+        boolean terminal = "SUCCEEDED".equals(state) || "FAILED".equals(state) || "CANCELLED".equals(state);
+        boolean paused = "PAUSED".equals(state);
+        // A paused task remains the same server task. Starting here would
+        // submit a second task with the same identity instead of resuming it.
+        startTaskButton.setEnabled(!active && (terminal || "".equals(state)));
+        pauseTaskButton.setEnabled(active && "RUNNING".equals(state));
+        cancelTaskButton.setEnabled(!terminal && (active || paused));
     }
 
     private void failConnection(String message, long generation) {

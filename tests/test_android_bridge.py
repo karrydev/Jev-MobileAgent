@@ -97,6 +97,174 @@ def observation(version: int = 1, *, availability: str = "AVAILABLE") -> dict:
     }
 
 
+def node_task_observation(
+    version: int = 1,
+    *,
+    task_id: str = "observation-session",
+    device_id: str = "android-emulator-01",
+    completed: bool = False,
+    input_text: str = "",
+    obscured: bool = False,
+) -> dict:
+    """Synthetic transport fixture for the Android task boundary.
+
+    The physical acceptance uses the real Accessibility tree; this fixture
+    only exercises task identity, delivery and negative protocol decisions.
+    """
+
+    state = "completed" if completed else "ready"
+    nodes = [
+        {
+            "node_id": "window-1-0-node-0",
+            "parent_node_id": None,
+            "class_name": "android.widget.LinearLayout",
+            "package_name": "com.jev.mobileagent",
+            "text": "Controlled observation page",
+            "content_description": "",
+            "state_description": "",
+            "view_id_resource_name": "com.jev.mobileagent:id/root",
+            "enabled": True,
+            "visible_to_user": True,
+            "clickable": False,
+            "focusable": False,
+            "focused": False,
+            "selected": False,
+            "scrollable": False,
+            "editable": False,
+            "bounds": {"left": 0, "top": 0, "right": 1080, "bottom": 2400},
+            "child_node_ids": [
+                "window-1-0-node-0-0",
+                "window-1-0-node-0-1",
+                "window-1-0-node-0-2",
+                "window-1-0-node-0-3",
+            ],
+        },
+        {
+            "node_id": "window-1-0-node-0-0",
+            "parent_node_id": "window-1-0-node-0",
+            "class_name": "android.widget.Button",
+            "package_name": "com.jev.mobileagent",
+            "text": "Toggle controlled state",
+            "content_description": "Toggle controlled state button",
+            "state_description": "",
+            "view_id_resource_name": "",
+            "enabled": True,
+            "visible_to_user": True,
+            "clickable": True,
+            "focusable": True,
+            "focused": False,
+            "selected": False,
+            "scrollable": False,
+            "editable": False,
+            "bounds": {"left": 20, "top": 200, "right": 900, "bottom": 300},
+            "child_node_ids": [],
+        },
+        {
+            "node_id": "window-1-0-node-0-1",
+            "parent_node_id": "window-1-0-node-0",
+            "class_name": "android.widget.EditText",
+            "package_name": "com.jev.mobileagent",
+            "text": input_text,
+            "content_description": "中文输入框",
+            "state_description": "",
+            "view_id_resource_name": "",
+            "enabled": True,
+            "visible_to_user": True,
+            "clickable": True,
+            "focusable": True,
+            "focused": False,
+            "selected": False,
+            "scrollable": False,
+            "editable": True,
+            "bounds": {"left": 20, "top": 320, "right": 900, "bottom": 440},
+            "child_node_ids": [],
+        },
+        {
+            "node_id": "window-1-0-node-0-2",
+            "parent_node_id": "window-1-0-node-0",
+            "class_name": "android.widget.TextView",
+            "package_name": "com.jev.mobileagent",
+            "text": f"Controlled action state: {state}",
+            "content_description": f"Controlled action state {state}",
+            "state_description": "",
+            "view_id_resource_name": "",
+            "enabled": True,
+            "visible_to_user": True,
+            "clickable": False,
+            "focusable": False,
+            "focused": False,
+            "selected": False,
+            "scrollable": False,
+            "editable": False,
+            "bounds": {"left": 20, "top": 100, "right": 900, "bottom": 180},
+            "child_node_ids": [],
+        },
+        {
+            "node_id": "window-1-0-node-0-3",
+            "parent_node_id": "window-1-0-node-0",
+            "class_name": "android.widget.TextView",
+            "package_name": "com.jev.mobileagent",
+            "text": f"Controlled input state: {input_text or 'empty'}",
+            "content_description": f"Controlled input state {input_text or 'empty'}",
+            "state_description": "",
+            "view_id_resource_name": "",
+            "enabled": True,
+            "visible_to_user": True,
+            "clickable": False,
+            "focusable": False,
+            "focused": False,
+            "selected": False,
+            "scrollable": False,
+            "editable": False,
+            "bounds": {"left": 20, "top": 450, "right": 900, "bottom": 530},
+            "child_node_ids": [],
+        },
+    ]
+    windows = [
+        {
+            "window_id": 1,
+            "window_type": 1,
+            "title": "Controlled observation page",
+            "package_name": "com.jev.mobileagent",
+            "active": True,
+            "focused": True,
+            "layer": 0,
+            "bounds": {"left": 0, "top": 0, "right": 1080, "bottom": 2400},
+            "root_node_id": "window-1-0-node-0",
+        }
+    ]
+    if obscured:
+        windows.append({
+            "window_id": 2,
+            "window_type": 2,
+            "title": "Obscuring overlay",
+            "package_name": "com.android.systemui",
+            "active": True,
+            "focused": True,
+            "layer": 1,
+            "bounds": {"left": 0, "top": 180, "right": 1080, "bottom": 500},
+            "root_node_id": None,
+        })
+    return {
+        "schema_version": "1.0",
+        "android_schema_version": "1.0",
+        "task_id": task_id,
+        "observation_id": f"android-phone-01-node-obs-{version}",
+        "device_id": device_id,
+        "observation_version": version,
+        "captured_at": "2026-09-22T00:00:00Z",
+        "page_state": "observed",
+        "availability": "AVAILABLE",
+        "unavailable_reason": None,
+        "permission": {"service_enabled": True, "can_observe": True, "reason": None},
+        "screen": {"width_px": 1080, "height_px": 2400, "rotation": 0},
+        "windows": windows,
+        "nodes": nodes,
+        "root_node_ids": ["window-1-0-node-0"],
+        "capabilities": ["accessibility_tree", "windows", "tap", "set_text"],
+    }
+
+
 class AndroidBridgeHTTPTests(unittest.TestCase):
     def setUp(self) -> None:
         self.token = "bridge-test-token"
@@ -307,6 +475,289 @@ class AndroidBridgeHTTPTests(unittest.TestCase):
         })
         self.assertEqual(status, 400)
         self.assertEqual(result["error"]["code"], "invalid_schema")
+
+    def _post_node_observation(self, version: int = 1, **kwargs: object) -> tuple[int, dict]:
+        return self._request(
+            "POST",
+            "/v1/android/observations",
+            payload=node_task_observation(version, **kwargs),
+        )
+
+    def _submit_node_task(self, goal: str) -> tuple[int, dict]:
+        return self._request(
+            "POST",
+            "/v1/android/tasks",
+            payload={
+                "schema_version": "1.0",
+                "android_schema_version": "1.0",
+                "task_id": self.device_id.replace("android-emulator-01", "observation-session"),
+                "device_id": self.device_id,
+                "goal": goal,
+                "source": "android-app-test",
+            },
+        )
+
+    def test_android_task_input_preserves_chinese_and_verifies_fresh_observation(self) -> None:
+        self._pair()
+        status, accepted = self._post_node_observation()
+        self.assertEqual(status, 200)
+        self.assertTrue(accepted["accepted"])
+
+        status, task = self._submit_node_task("在中文输入框输入“你好，Jev”")
+        self.assertEqual(status, 200)
+        self.assertEqual(task["state"], "RUNNING")
+        action = task["next_action"]
+        self.assertEqual(action["kind"], "set_text")
+        self.assertEqual(action["parameters"]["text"], "你好，Jev")
+        self.assertEqual(action["observation_version"], 1)
+
+        receipt = {
+            "schema_version": "1.0",
+            "android_schema_version": "1.0",
+            "task_id": self.device_id.replace("android-emulator-01", "observation-session"),
+            "receipt_id": "android-receipt-input",
+            "action_id": action["action_id"],
+            "device_id": self.device_id,
+            "accepted": True,
+            "outcome": "EXECUTED",
+            "received_at": "2026-09-22T00:00:01Z",
+            "error_code": None,
+            "error_message": None,
+            "observation_id": action["observation_id"],
+            "observation_version": action["observation_version"],
+            "deduplicated": False,
+        }
+        status, waiting = self._request(
+            "POST",
+            "/v1/android/tasks/observation-session/receipt",
+            payload=receipt,
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(waiting["phase"], "WAITING_OBSERVATION")
+
+        status, after = self._post_node_observation(2, input_text="你好，Jev")
+        self.assertEqual(status, 200)
+        self.assertTrue(after["accepted"])
+        status, final = self._request("GET", "/v1/android/tasks/observation-session")
+        self.assertEqual(status, 200)
+        self.assertEqual(final["state"], "SUCCEEDED")
+        self.assertEqual(final["verification"]["status"], "SUCCESS")
+        self.assertEqual(final["verification"]["after_observation_id"], after["observation_id"] if "observation_id" in after else "android-phone-01-node-obs-2")
+
+        status, duplicate = self._request(
+            "POST",
+            "/v1/android/tasks/observation-session/receipt",
+            payload=receipt,
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(duplicate["receipt"]["deduplicated"])
+
+    def test_android_task_does_not_verify_a_newer_observation_seen_before_receipt(self) -> None:
+        self._pair()
+        self._post_node_observation(1)
+        status, task = self._submit_node_task("在中文输入框输入“你好，Jev”")
+        self.assertEqual(status, 200)
+        action = task["next_action"]
+
+        # The delayed Accessibility auto-capture can upload a newer frame
+        # before the action receipt reaches the bridge.  It is still part of
+        # the pre-action stream and cannot satisfy the postcondition.
+        self._post_node_observation(2, input_text="")
+        receipt = {
+            "schema_version": "1.0",
+            "android_schema_version": "1.0",
+            "task_id": "observation-session",
+            "receipt_id": "android-receipt-before-after",
+            "action_id": action["action_id"],
+            "device_id": self.device_id,
+            "accepted": True,
+            "outcome": "EXECUTED",
+            "received_at": "2026-09-22T00:00:01Z",
+            "error_code": None,
+            "error_message": None,
+            "observation_id": action["observation_id"],
+            "observation_version": action["observation_version"],
+            "deduplicated": False,
+        }
+        status, waiting = self._request(
+            "POST", "/v1/android/tasks/observation-session/receipt", payload=receipt
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(waiting["state"], "RUNNING")
+        self.assertEqual(waiting["phase"], "WAITING_OBSERVATION")
+        self.assertIsNone(waiting["verification"])
+        self.assertIsNone(waiting["after_observation_id"])
+
+        # Only an explicit capture after the receipt may close the task.
+        self._post_node_observation(3, input_text="你好，Jev")
+        status, final = self._request("GET", "/v1/android/tasks/observation-session")
+        self.assertEqual(status, 200)
+        self.assertEqual(final["state"], "SUCCEEDED")
+        self.assertEqual(final["verification"]["after_observation_id"], "android-phone-01-node-obs-3")
+
+    def test_android_task_control_before_submit_is_consumed_before_action_delivery(self) -> None:
+        self._pair()
+        self._post_node_observation()
+
+        # This models a control click racing the submit HTTP request.  The
+        # first response can still be 404, but the intent must be consumed by
+        # the task creation and no executable action may be exposed.
+        status, result = self._request(
+            "POST", "/v1/android/tasks/observation-session/cancel", payload={}
+        )
+        self.assertEqual(status, 404)
+        self.assertEqual(result["error"]["code"], "task_not_found")
+
+        status, cancelled = self._submit_node_task("点击“切换受控状态”按钮")
+        self.assertEqual(status, 200)
+        self.assertEqual(cancelled["state"], "CANCELLED")
+        self.assertIsNone(cancelled["next_action"])
+        self.assertFalse(cancelled["action_result_unknown"])
+        self.assertEqual(cancelled["control"]["command"], "cancel")
+
+    def test_android_task_uses_explicit_after_observation_association(self) -> None:
+        self._pair()
+        self._post_node_observation(1)
+        status, task = self._submit_node_task("点击“切换受控状态”按钮")
+        self.assertEqual(status, 200)
+        action = task["next_action"]
+        status, after = self._post_node_observation(2, completed=True)
+        self.assertEqual(status, 200)
+
+        receipt = {
+            "schema_version": "1.0",
+            "android_schema_version": "1.0",
+            "task_id": "observation-session",
+            "receipt_id": "android-receipt-explicit-after",
+            "action_id": action["action_id"],
+            "device_id": self.device_id,
+            "accepted": True,
+            "outcome": "EXECUTED",
+            "received_at": "2026-09-22T00:00:01Z",
+            "error_code": None,
+            "error_message": None,
+            "observation_id": action["observation_id"],
+            "observation_version": action["observation_version"],
+            "after_observation_id": "android-phone-01-node-obs-2",
+            "after_observation_version": 2,
+            "deduplicated": False,
+        }
+        status, final = self._request(
+            "POST", "/v1/android/tasks/observation-session/receipt", payload=receipt
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(final["state"], "SUCCEEDED")
+        self.assertEqual(final["verification"]["after_observation_id"], "android-phone-01-node-obs-2")
+
+    def test_android_task_rejects_unsupported_or_obscured_targets(self) -> None:
+        self._pair()
+        self._post_node_observation()
+        status, result = self._submit_node_task("点击不存在的按钮")
+        self.assertEqual(status, 422)
+        self.assertEqual(result["error"]["code"], "unsupported_goal")
+
+        self._pair()
+        self._post_node_observation(2, obscured=True)
+        status, result = self._submit_node_task("点击“切换受控状态”按钮")
+        self.assertEqual(status, 409)
+        self.assertEqual(result["error"]["code"], "target_obscured")
+
+    def test_android_task_click_accepts_android_button_all_caps_text(self) -> None:
+        self._pair()
+        payload = node_task_observation()
+        payload["nodes"][1]["text"] = "TOGGLE CONTROLLED STATE"
+        status, accepted = self._request("POST", "/v1/android/observations", payload=payload)
+        self.assertEqual(status, 200)
+        self.assertTrue(accepted["accepted"])
+        status, task = self._submit_node_task("点击“切换受控状态”按钮")
+        self.assertEqual(status, 200)
+        self.assertEqual(task["next_action"]["kind"], "tap")
+
+    def test_android_task_pause_cancel_and_late_receipt_keep_single_task_boundary(self) -> None:
+        self._pair()
+        self._post_node_observation()
+        status, task = self._submit_node_task("点击“切换受控状态”按钮")
+        self.assertEqual(status, 200)
+        action = task["next_action"]
+        status, paused = self._request("POST", "/v1/android/tasks/observation-session/pause", payload={})
+        self.assertEqual(status, 200)
+        self.assertEqual(paused["state"], "PAUSED")
+        self.assertIsNone(paused["next_action"])
+
+        late_receipt = {
+            "schema_version": "1.0",
+            "android_schema_version": "1.0",
+            "task_id": "observation-session",
+            "receipt_id": "android-receipt-late",
+            "action_id": action["action_id"],
+            "device_id": self.device_id,
+            "accepted": True,
+            "outcome": "EXECUTED",
+            "received_at": "2026-09-22T00:00:01Z",
+            "error_code": None,
+            "error_message": None,
+            "observation_id": action["observation_id"],
+            "observation_version": action["observation_version"],
+            "deduplicated": False,
+        }
+        status, late = self._request("POST", "/v1/android/tasks/observation-session/receipt", payload=late_receipt)
+        self.assertEqual(status, 200)
+        self.assertEqual(late["state"], "PAUSED")
+        self.assertEqual(late["phase"], "PAUSED")
+        status, blocked = self._submit_node_task("点击“切换受控状态”按钮")
+        self.assertEqual(status, 409)
+        self.assertEqual(blocked["error"]["code"], "task_active")
+
+        status, cancelled = self._request("POST", "/v1/android/tasks/observation-session/cancel", payload={})
+        self.assertEqual(status, 200)
+        self.assertEqual(cancelled["state"], "CANCELLED")
+        status, duplicate = self._request("POST", "/v1/android/tasks/observation-session/cancel", payload={})
+        self.assertEqual(status, 200)
+        self.assertEqual(duplicate["state"], "CANCELLED")
+
+    def test_android_task_late_receipt_preserves_cancelled_terminal_phase(self) -> None:
+        self._pair()
+        self._post_node_observation()
+        status, task = self._submit_node_task("点击“切换受控状态”按钮")
+        self.assertEqual(status, 200)
+        action = task["next_action"]
+
+        status, cancelled = self._request("POST", "/v1/android/tasks/observation-session/cancel", payload={})
+        self.assertEqual(status, 200)
+        self.assertEqual(cancelled["state"], "CANCELLED")
+        self.assertEqual(cancelled["phase"], "CANCELLED")
+        self.assertTrue(cancelled["action_result_unknown"])
+
+        status, after = self._post_node_observation(2, completed=True)
+        self.assertEqual(status, 200)
+        self.assertTrue(after["accepted"])
+        late_receipt = {
+            "schema_version": "1.0",
+            "android_schema_version": "1.0",
+            "task_id": "observation-session",
+            "receipt_id": "android-receipt-cancelled-late",
+            "action_id": action["action_id"],
+            "device_id": self.device_id,
+            "accepted": True,
+            "outcome": "EXECUTED",
+            "received_at": "2026-09-22T00:00:01Z",
+            "error_code": None,
+            "error_message": None,
+            "observation_id": action["observation_id"],
+            "observation_version": action["observation_version"],
+            "after_observation_id": "android-phone-01-node-obs-2",
+            "after_observation_version": 2,
+            "deduplicated": False,
+        }
+        status, late = self._request(
+            "POST", "/v1/android/tasks/observation-session/receipt", payload=late_receipt
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(late["state"], "CANCELLED")
+        self.assertEqual(late["phase"], "CANCELLED")
+        self.assertFalse(late["action_result_unknown"])
+        self.assertIsNone(late["after_observation_id"])
+        self.assertEqual(late["receipt"]["after_observation_id"], "android-phone-01-node-obs-2")
 
 
 if __name__ == "__main__":

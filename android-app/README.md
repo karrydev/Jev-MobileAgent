@@ -87,3 +87,35 @@ When Accessibility is revoked, the service posts a fresh
 app also checks permission and bridge freshness when it returns to the
 foreground, so it clears the old tree on revocation, a failed bridge request,
 or a stale latest response.
+
+## Reproducible deterministic node task
+
+On the connection screen, set the endpoint, token, device identity and a new
+task identity for the run, then press **Connect and capture observation**.
+This saves the pairing and task configuration and uploads the first fresh
+tree. Use the deterministic goal buttons to fill either the click goal or the
+Chinese input goal, then press **Open controlled observation page** and press
+**Start configured node task** there. The app captures and
+uploads a fresh before observation, submits the goal, polls the bridge, and
+performs the returned `tap` or `set_text` through the Accessibility service.
+It captures the after observation and sends the execution receipt before
+showing the task result. The product action must come from this app flow;
+`adb` is only for installation, transport setup, or observing the device.
+
+Use the same bridge headers shown above to inspect a run, replacing the task
+identity with the value entered in the app:
+
+```bash
+curl -sS \
+  -H 'Authorization: Bearer local-dev-token' \
+  -H 'X-JEV-Protocol-Version: 1' \
+  -H 'X-JEV-Device-Id: android-emulator-01' \
+  'http://127.0.0.1:8765/v1/android/tasks/<task-id>'
+```
+
+Task identities are single-use while retained by the bridge, so a rerun needs
+a new identity and a new **Connect and capture observation** pairing. Pausing
+leaves the existing task in `PAUSED`; the app keeps **Cancel task** enabled
+and disables **Start node task** so a pause cannot be mistaken for a new
+submission. Cancel the paused task from the controlled page before beginning
+another run.
