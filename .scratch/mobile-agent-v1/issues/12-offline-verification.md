@@ -6,9 +6,9 @@ Blocked by: 01, 02
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-offline-policies
+Branch: codex/v1-offline-policies
 Evidence: 离线行为
 Gate: 四态核验驱动等待、回退或停止
 
@@ -31,3 +31,5 @@ Gate: 四态核验驱动等待、回退或停止
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：01/02 已验收合入；协调者领取本批。范围：agent_core/、独立离线 fixtures 与 tests/test_offline_*.py；eval/ 与 contracts/v1 只读，不接入真实运行策略。 按 code-this 由新 Luna-max 实现，主 Agent 负责 Git，Terra-max 审查。

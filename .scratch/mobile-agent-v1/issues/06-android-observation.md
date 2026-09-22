@@ -6,9 +6,9 @@ Blocked by: 01
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-android-observation
+Branch: codex/v1-android-observation
 Evidence: Android 模拟器
 Gate: 在模拟器中连接 App 并查看当前观察
 
@@ -32,3 +32,5 @@ Gate: 在模拟器中连接 App 并查看当前观察
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：01/02 已验收合入；协调者领取本批。范围：android-app/、独立 services/android_bridge/、contracts/android/、tests/test_android_bridge.py；不改 sim_loop、contracts/v1、根构建或其他工作线。共享最小封套语义需复用，Android 扩展独立版本化。 按 code-this 由新 Luna-max 实现，主 Agent 负责 Git，Terra-max 审查。

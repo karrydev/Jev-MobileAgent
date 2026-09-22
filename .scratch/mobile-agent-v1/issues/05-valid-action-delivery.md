@@ -6,9 +6,9 @@ Blocked by: 01
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-runtime-controls
+Branch: codex/v1-runtime-controls
 Evidence: 离线行为
 Gate: 旧目标与重复命令不会产生额外动作
 
@@ -31,3 +31,5 @@ Gate: 旧目标与重复命令不会产生额外动作
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：01/02 已验收合入；协调者领取本批。范围：services/sim_loop/、contracts/v1/、tests/test_sim_loop.py 与新的 runtime 测试；同一运行链合批，实现暂停/取消后再接回放。 按 code-this 由新 Luna-max 实现，主 Agent 负责 Git，Terra-max 审查。
