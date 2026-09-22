@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Jev Android Observation</string>
+    <string name="accessibility_service_label">Jev observation service</string>
+    <string name="accessibility_service_description">Captures the current accessible window and node tree for the paired Jev bridge.</string>
+</resources>
