@@ -1,6 +1,6 @@
 # 工程指引
 
-开展工作前阅读 `docs/README.md` 和 `docs/project-direction.md`；阶段实施与验证阅读 `docs/research/2026-09-22-stages-evaluation-and-flows.md`。
+开展工作前阅读 `docs/README.md`、`docs/project-direction.md` 和 `CONTEXT.md`。领取开发任务前阅读 `docs/development-roadmap.md`、`docs/parallel-development.md` 与 `.scratch/mobile-agent-development/spec.md`；按任务链接读取相关研究和 ADR。
 
 基于 MobileAgent v3.5 开发 Android App 与服务端。先建立原版基线，再提取角色代码和裁剪；保留来源历史、许可证及上游提交记录。工程初始化不代表模型、设备桥或真机评测已通过。
 

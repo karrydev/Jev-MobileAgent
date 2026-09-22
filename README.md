@@ -1,3 +1,11 @@
+# Jev-MobileAgent
+
+本仓库是 [X-PLUG/MobileAgent](https://github.com/X-PLUG/MobileAgent) 的公开衍生项目，以 v3.5 为起点开发 Android App + 服务端 + Jev 的自动操作闭环。当前已完成工程初始化和开发规划，功能与真机效果尚待实现和验证。
+
+开发从[文档索引](docs/README.md)、[开发路线](docs/development-roadmap.md)和[本地任务](.scratch/mobile-agent-development/spec.md)开始。以下保留上游项目介绍；其中发布成果不代表本衍生项目已经完成相同能力。
+
+---
+
 <div align="center">
 <p align="center">
   <img src="assets/logo.png"/>
