@@ -265,6 +265,26 @@ def node_task_observation(
     }
 
 
+def screenshot_for(observation_payload: dict, *, screenshot_id: str, capture_type: str) -> dict:
+    return {
+        "schema_version": "1.0",
+        "android_schema_version": "1.0",
+        "task_id": observation_payload["task_id"],
+        "device_id": observation_payload["device_id"],
+        "screenshot_id": screenshot_id,
+        "observation_id": observation_payload["observation_id"],
+        "observation_version": observation_payload["observation_version"],
+        "capture_type": capture_type,
+        "captured_at": "2026-09-22T00:00:00Z",
+        "width_px": observation_payload["screen"]["width_px"],
+        "height_px": observation_payload["screen"]["height_px"],
+        "png_base64": "cG5n",
+        "capture_count": observation_payload["observation_version"],
+        "upload_count": observation_payload["observation_version"],
+        "missing_reason": None,
+    }
+
+
 class AndroidBridgeHTTPTests(unittest.TestCase):
     def setUp(self) -> None:
         self.token = "bridge-test-token"
@@ -758,6 +778,203 @@ class AndroidBridgeHTTPTests(unittest.TestCase):
         self.assertFalse(late["action_result_unknown"])
         self.assertIsNone(late["after_observation_id"])
         self.assertEqual(late["receipt"]["after_observation_id"], "android-phone-01-node-obs-2")
+
+    def test_visual_action_requires_and_binds_before_and_after_screenshots(self) -> None:
+        self._pair()
+        before = node_task_observation(1)
+        self._request("POST", "/v1/android/observations", payload=before)
+        status, missing = self._submit_node_task("滑动视觉目标")
+        self.assertEqual(status, 409)
+        self.assertEqual(missing["error"]["code"], "before_screenshot_required")
+
+        status, accepted = self._request(
+            "POST", "/v1/android/screenshots", payload=screenshot_for(
+                before, screenshot_id="before-visual", capture_type="BEFORE"
+            )
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(accepted["accepted"])
+        status, task = self._submit_node_task("滑动视觉目标")
+        self.assertEqual(status, 200)
+        action = task["next_action"]
+        self.assertEqual(action["kind"], "swipe")
+        self.assertTrue(action["requires_screenshot"])
+        self.assertEqual(action["before_screenshot_id"], "before-visual")
+        self.assertEqual(action["coordinate_frame"]["rotation"], 0)
+        self.assertEqual(action["parameters"]["x1"], 270.0)
+        self.assertEqual(action["parameters"]["y1"], 1200.0)
+        self.assertEqual(action["parameters"]["x2"], 810.0)
+        self.assertEqual(action["parameters"]["y2"], 1200.0)
+
+        after = node_task_observation(2)
+        after["nodes"][4]["text"] = "Visual gesture state: swipe completed"
+        after["nodes"][4]["content_description"] = "Visual gesture state swipe completed"
+        self._request("POST", "/v1/android/observations", payload=after)
+        status, after_shot = self._request(
+            "POST", "/v1/android/screenshots", payload=screenshot_for(
+                after, screenshot_id="after-visual", capture_type="AFTER"
+            )
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(after_shot["accepted"])
+        receipt = {
+            "schema_version": "1.0",
+            "android_schema_version": "1.0",
+            "task_id": "observation-session",
+            "receipt_id": "receipt-visual",
+            "action_id": action["action_id"],
+            "device_id": self.device_id,
+            "accepted": True,
+            "outcome": "EXECUTED",
+            "received_at": "2026-09-22T00:00:01Z",
+            "error_code": None,
+            "error_message": None,
+            "observation_id": action["observation_id"],
+            "observation_version": action["observation_version"],
+            "after_observation_id": after["observation_id"],
+            "after_observation_version": 2,
+            "after_screenshot_id": "after-visual",
+            "deduplicated": False,
+        }
+        status, final = self._request(
+            "POST", "/v1/android/tasks/observation-session/receipt", payload=receipt
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(final["state"], "SUCCEEDED")
+        self.assertEqual(final["before_screenshot_id"], "before-visual")
+        self.assertEqual(final["after_screenshot_id"], "after-visual")
+        self.assertEqual(final["verification"]["status"], "SUCCESS")
+        self.assertEqual(final["before_visual"]["capture_state"], "CAPTURED")
+        self.assertEqual(final["before_visual"]["upload_count"], 1)
+        self.assertEqual(final["after_visual"]["capture_state"], "CAPTURED")
+        self.assertEqual(final["after_visual"]["upload_count"], 2)
+
+    def test_screenshot_failure_is_queryable_but_cannot_satisfy_visual_before(self) -> None:
+        self._pair()
+        before = node_task_observation(1)
+        self._request("POST", "/v1/android/observations", payload=before)
+        missing = screenshot_for(before, screenshot_id="before-missing", capture_type="BEFORE")
+        missing["png_base64"] = ""
+        missing["upload_count"] = 0
+        missing["missing_reason"] = "flag_secure_window"
+        status, accepted = self._request("POST", "/v1/android/screenshots", payload=missing)
+        self.assertEqual(status, 200)
+        self.assertTrue(accepted["accepted"])
+        self.assertFalse(accepted["available"])
+        self.assertEqual(accepted["missing_reason"], "flag_secure_window")
+
+        status, latest = self._request(
+            "GET", "/v1/android/observations/latest?device_id=android-emulator-01"
+        )
+        self.assertEqual(status, 200)
+        visual = latest["observation"]["visual"]
+        self.assertEqual(visual["capture_state"], "UNAVAILABLE")
+        self.assertEqual(visual["capture_count"], 1)
+        self.assertEqual(visual["upload_count"], 0)
+        self.assertEqual(visual["missing_reason"], "flag_secure_window")
+        self.assertIsNone(visual["screenshot_id"])
+
+        status, blocked = self._submit_node_task("滑动视觉目标")
+        self.assertEqual(status, 409)
+        self.assertEqual(blocked["error"]["code"], "before_screenshot_required")
+
+        usable = screenshot_for(before, screenshot_id="before-retry", capture_type="BEFORE")
+        usable["capture_count"] = 2
+        usable["upload_count"] = 1
+        status, accepted = self._request("POST", "/v1/android/screenshots", payload=usable)
+        self.assertEqual(status, 200)
+        self.assertTrue(accepted["available"])
+        status, latest = self._request(
+            "GET", "/v1/android/observations/latest?device_id=android-emulator-01"
+        )
+        self.assertEqual(status, 200)
+        visual = latest["observation"]["visual"]
+        self.assertEqual(visual["capture_state"], "CAPTURED")
+        self.assertEqual(visual["capture_count"], 2)
+        self.assertEqual(visual["upload_count"], 1)
+        self.assertEqual(visual["screenshot_id"], "before-retry")
+
+    def test_coordinate_frame_preserves_rotated_screen_coordinates(self) -> None:
+        self._pair()
+        rotated = node_task_observation(1)
+        rotated["screen"] = {"width_px": 2400, "height_px": 1080, "rotation": 1}
+        for window in rotated["windows"]:
+            window["bounds"] = {"left": 0, "top": 0, "right": 2400, "bottom": 1080}
+        for node in rotated["nodes"]:
+            node["bounds"]["right"] = min(node["bounds"]["right"], 2400)
+            node["bounds"]["bottom"] = min(node["bounds"]["bottom"], 1080)
+        self._request("POST", "/v1/android/observations", payload=rotated)
+        self._request(
+            "POST", "/v1/android/screenshots", payload=screenshot_for(
+                rotated, screenshot_id="before-rotation-1", capture_type="BEFORE"
+            )
+        )
+        status, task = self._submit_node_task("点击坐标(600,594)")
+        self.assertEqual(status, 200)
+        action = task["next_action"]
+        self.assertEqual(action["coordinate_frame"]["rotation"], 1)
+        self.assertEqual(action["parameters"]["x"], 600.0)
+        self.assertEqual(action["parameters"]["y"], 594.0)
+        self.assertEqual(action["coordinate_frame"]["active_window_id"], 1)
+        self.assertEqual(action["coordinate_frame"]["active_window_bounds"], {
+            "left": 0, "top": 0, "right": 2400, "bottom": 1080,
+        })
+
+    def test_visual_receipt_without_after_screenshot_pauses_with_missing_reason(self) -> None:
+        self._pair()
+        before = node_task_observation(1)
+        self._request("POST", "/v1/android/observations", payload=before)
+        self._request(
+            "POST", "/v1/android/screenshots", payload=screenshot_for(
+                before, screenshot_id="before-missing-after", capture_type="BEFORE"
+            )
+        )
+        _, task = self._submit_node_task("系统返回")
+        action = task["next_action"]
+        after = node_task_observation(2)
+        after["nodes"][4]["text"] = "Visual gesture state: system back completed"
+        after["nodes"][4]["content_description"] = "Visual gesture state system back completed"
+        self._request("POST", "/v1/android/observations", payload=after)
+        missing_after = screenshot_for(after, screenshot_id="after-missing", capture_type="AFTER")
+        missing_after["png_base64"] = ""
+        missing_after["upload_count"] = 1
+        missing_after["missing_reason"] = "flag_secure_window"
+        status, accepted = self._request(
+            "POST", "/v1/android/screenshots", payload=missing_after
+        )
+        self.assertEqual(status, 200)
+        self.assertFalse(accepted["available"])
+        receipt = {
+            "schema_version": "1.0",
+            "android_schema_version": "1.0",
+            "task_id": "observation-session",
+            "receipt_id": "receipt-missing-after",
+            "action_id": action["action_id"],
+            "device_id": self.device_id,
+            "accepted": True,
+            "outcome": "EXECUTED",
+            "received_at": "2026-09-22T00:00:01Z",
+            "error_code": None,
+            "error_message": None,
+            "observation_id": action["observation_id"],
+            "observation_version": action["observation_version"],
+            "after_observation_id": after["observation_id"],
+            "after_observation_version": 2,
+            "after_screenshot_missing_reason": "flag_secure_window",
+            "deduplicated": False,
+        }
+        status, paused = self._request(
+            "POST", "/v1/android/tasks/observation-session/receipt", payload=receipt
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(paused["state"], "PAUSED")
+        self.assertEqual(paused["phase"], "PAUSED")
+        self.assertEqual(paused["failure"]["code"], "screenshot_missing")
+        self.assertIn("flag_secure_window", paused["failure"]["message"])
+        self.assertEqual(paused["after_visual"]["capture_state"], "UNAVAILABLE")
+        self.assertEqual(paused["after_visual"]["capture_count"], 2)
+        self.assertEqual(paused["after_visual"]["upload_count"], 1)
+        self.assertEqual(paused["after_visual"]["missing_reason"], "flag_secure_window")
 
 
 if __name__ == "__main__":

@@ -32,6 +32,9 @@ _INPUT_GOAL_PATTERNS = (
     re.compile(r"^在中文输入框中?输入[“\"](?P<text>.*)[”\"]$"),
     re.compile(r"^在中文输入框中?输入(?P<text>.+)$"),
 )
+_COORDINATE_GOAL_PATTERN = re.compile(
+    r"^(?:点击|点击坐标|坐标点击|点击屏幕坐标)\s*[（(]\s*(?P<x>\d+(?:\.\d+)?)\s*[,，]\s*(?P<y>\d+(?:\.\d+)?)\s*[）)]$"
+)
 
 
 def _normalise_goal(goal: str) -> str:
@@ -54,7 +57,77 @@ def _parse_node_goal(goal: str) -> dict[str, Any]:
             "target_label": "Toggle controlled state",
             "target_role": "button",
             "expected_page_state": "controlled_state_completed",
-    }
+        }
+    if normalised in {
+        "长按切换受控状态",
+        "长按切换受控状态按钮",
+        "长按Toggle controlled state",
+        "长按Toggle controlled state按钮",
+    }:
+        return {
+            "kind": "long_press",
+            "target_label": "Toggle controlled state",
+            "target_role": "button",
+            "expected_page_state": "long_press_completed",
+            "parameters": {"duration_ms": 800},
+            "requires_screenshot": True,
+        }
+    if normalised in {"长按视觉目标", "长按自绘目标"}:
+        return {
+            "kind": "long_press",
+            "target_label": "",
+            "target_role": "visual_surface",
+            "expected_page_state": "long_press_completed",
+            "parameters": {
+                "fraction_x": 0.5,
+                # The controlled page keeps its visual surface around the
+                # display center in both portrait and landscape.  Keep the
+                # deterministic fixture on that center line so the same
+                # strategy remains inside the surface after rotation.
+                "fraction_y": 0.5,
+                "duration_ms": 800,
+                "coordinate_space": "screen",
+            },
+            "requires_screenshot": True,
+        }
+    if normalised in {"滑动视觉目标", "滑动自绘目标", "向右滑动视觉目标", "向右滑动"}:
+        return {
+            "kind": "swipe",
+            "target_label": "",
+            "target_role": "visual_surface",
+            "expected_page_state": "swipe_completed",
+            "parameters": {
+                "start_fraction_x": 0.25,
+                "end_fraction_x": 0.75,
+                "fraction_y": 0.5,
+                "duration_ms": 600,
+                "coordinate_space": "screen",
+            },
+            "requires_screenshot": True,
+        }
+    if normalised in {"系统返回", "返回", "按系统返回", "system back", "back"}:
+        return {
+            "kind": "system_back",
+            "target_label": "",
+            "target_role": "system_navigation",
+            "expected_page_state": "system_back_completed",
+            "parameters": {},
+            "requires_screenshot": True,
+        }
+    coordinate_match = _COORDINATE_GOAL_PATTERN.fullmatch(_normalise_goal(raw_goal))
+    if coordinate_match is not None:
+        return {
+            "kind": "coordinate_tap",
+            "target_label": "",
+            "target_role": "visual_surface",
+            "expected_page_state": "coordinate_tap_completed",
+            "parameters": {
+                "x": float(coordinate_match.group("x")),
+                "y": float(coordinate_match.group("y")),
+                "coordinate_space": "screen",
+            },
+            "requires_screenshot": True,
+        }
     for pattern in _INPUT_GOAL_PATTERNS:
         # Match the syntax on the original text so full-width punctuation and
         # Chinese input are preserved byte-for-byte in the action parameter.
@@ -70,11 +143,12 @@ def _parse_node_goal(goal: str) -> dict[str, Any]:
                     "target_role": "edit_text",
                     "expected_page_state": "input_applied",
                     "input_text": value,
+                    "parameters": {"text": value},
                 }
     raise BridgeRequestError(
         422,
         "unsupported_goal",
-        "supported deterministic goals are clicking the controlled-state button or entering text in 中文输入框",
+        "supported deterministic goals are node click/text, long press, visual swipe, coordinate tap, or system back",
     )
 
 
@@ -123,6 +197,9 @@ class AndroidBridge:
         self._last_observation_monotonic: float | None = None
         self._tasks: dict[str, dict[str, Any]] = {}
         self._active_task_id: str | None = None
+        self._screenshots: dict[str, dict[str, Any]] = {}
+        self._screenshot_events: dict[str, dict[str, Any]] = {}
+        self._screenshot_by_observation: dict[tuple[str, str], str] = {}
         # A control button can be pressed while the App's submit request is
         # still in flight.  Keep that intent briefly so the successful submit
         # consumes it before exposing an executable action.
@@ -162,6 +239,9 @@ class AndroidBridge:
             # for its first fresh observation.
             self._latest = None
             self._observation_history.clear()
+            self._screenshots.clear()
+            self._screenshot_events.clear()
+            self._screenshot_by_observation.clear()
             self._received_at = None
             self._last_observation_monotonic = None
             self._pending_controls.clear()
@@ -212,6 +292,89 @@ class AndroidBridge:
                 "received_at": received_at,
             }
 
+    def receive_screenshot(self, screenshot: dict[str, Any]) -> dict[str, Any]:
+        """Store a screenshot only when it names an already accepted observation.
+
+        The image is evidence attached to a tree version; it is never accepted
+        as a free-standing latest frame.  This prevents a delayed or fabricated
+        image from becoming the before/after evidence for another action.
+        """
+        try:
+            assert_valid(screenshot, "screenshot")
+        except SchemaValidationError as exc:
+            raise BridgeRequestError(400, "invalid_schema", str(exc)) from exc
+        if screenshot["device_id"] != self.device_id:
+            raise BridgeRequestError(403, "device_identity_mismatch", "screenshot device is not paired with this bridge")
+        with self._lock:
+            if not self._paired:
+                raise BridgeRequestError(409, "device_not_paired", "pair the Android app before sending screenshots")
+            observation = self._observation_history.get(screenshot["observation_id"])
+            if observation is None:
+                raise BridgeRequestError(409, "observation_unavailable", "screenshot observation is not available")
+            if (
+                observation["device_id"] != self.device_id
+                or observation["task_id"] != screenshot["task_id"]
+                or observation["observation_version"] != screenshot["observation_version"]
+            ):
+                raise BridgeRequestError(409, "observation_mismatch", "screenshot does not match its observation")
+            screenshot_id = screenshot["screenshot_id"]
+            if screenshot_id in self._screenshot_events:
+                raise BridgeRequestError(409, "screenshot_exists", "screenshot_id has already been uploaded")
+            missing_reason = screenshot.get("missing_reason")
+            has_png = bool(screenshot.get("png_base64"))
+            if missing_reason is None and not has_png:
+                raise BridgeRequestError(400, "invalid_screenshot", "a successful screenshot must contain PNG data")
+            if missing_reason is not None and (not isinstance(missing_reason, str) or not missing_reason.strip()):
+                raise BridgeRequestError(400, "invalid_screenshot", "missing_reason must be a non-empty string when the image is unavailable")
+            if missing_reason is not None and has_png:
+                raise BridgeRequestError(400, "invalid_screenshot", "an unavailable screenshot must not contain PNG data")
+            available = missing_reason is None
+            key = (screenshot["observation_id"], screenshot["capture_type"])
+            previous = self._screenshot_by_observation.get(key)
+            if previous is not None:
+                raise BridgeRequestError(409, "screenshot_exists", "this observation already has a screenshot of this type")
+            event = copy.deepcopy(screenshot)
+            self._screenshot_events[screenshot_id] = event
+            visual = copy.deepcopy(observation.get("visual") or {
+                "capture_state": "NOT_REQUESTED",
+                "capture_count": 0,
+                "upload_count": 0,
+                "missing_reason": None,
+                "screenshot_id": None,
+            })
+            visual.update({
+                "capture_state": "CAPTURED" if available else "UNAVAILABLE",
+                "capture_count": screenshot["capture_count"],
+                "upload_count": screenshot["upload_count"],
+                "missing_reason": None if available else missing_reason,
+                "screenshot_id": screenshot_id if available else None,
+            })
+            observation["visual"] = visual
+            self._observation_history[screenshot["observation_id"]] = copy.deepcopy(observation)
+            if self._latest is not None and self._latest["observation_id"] == screenshot["observation_id"]:
+                self._latest["visual"] = copy.deepcopy(visual)
+            if available:
+                self._screenshots[screenshot_id] = event
+                self._screenshot_by_observation[key] = screenshot_id
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "android_schema_version": ANDROID_SCHEMA_VERSION,
+                "device_id": self.device_id,
+                "accepted": True,
+                "available": available,
+                "screenshot_id": screenshot_id,
+                "observation_id": screenshot["observation_id"],
+                "observation_version": screenshot["observation_version"],
+                "capture_type": screenshot["capture_type"],
+                "capture_count": screenshot["capture_count"],
+                "upload_count": screenshot["upload_count"],
+                "missing_reason": missing_reason,
+            }
+
+    def _screenshot_for_observation_locked(self, observation_id: str, capture_type: str) -> dict[str, Any] | None:
+        screenshot_id = self._screenshot_by_observation.get((observation_id, capture_type))
+        return self._screenshots.get(screenshot_id) if screenshot_id is not None else None
+
     @staticmethod
     def _bounds_contains(bounds: dict[str, Any], x: float, y: float) -> bool:
         return (
@@ -219,6 +382,46 @@ class AndroidBridge:
             and bounds.get("left", 0) <= x <= bounds.get("right", 0)
             and bounds.get("top", 0) <= y <= bounds.get("bottom", 0)
         )
+
+    @staticmethod
+    def _coordinate_frame(observation: dict[str, Any]) -> dict[str, Any]:
+        screen = observation.get("screen") or {}
+        width = int(screen.get("width_px", 1))
+        height = int(screen.get("height_px", 1))
+        insets = screen.get("system_bar_insets") or {"left": 0, "top": 0, "right": 0, "bottom": 0}
+        offset = screen.get("window_offset") or {"x": 0, "y": 0}
+        active_windows = [
+            window for window in observation.get("windows", [])
+            if window.get("active") and window.get("focused")
+        ]
+        active_window = max(active_windows, key=lambda window: int(window.get("layer", 0)), default=None)
+        active_bounds = copy.deepcopy(active_window.get("bounds")) if active_window is not None else None
+        content_width = int(screen.get("content_width_px", width))
+        content_height = int(screen.get("content_height_px", height))
+        return {
+            "screen_width_px": width,
+            "screen_height_px": height,
+            "rotation": int(screen.get("rotation", 0)),
+            "model_width_px": width,
+            "model_height_px": height,
+            "content_width_px": content_width,
+            "content_height_px": content_height,
+            "system_bar_insets": {
+                "left": int(insets.get("left", 0)),
+                "top": int(insets.get("top", 0)),
+                "right": int(insets.get("right", 0)),
+                "bottom": int(insets.get("bottom", 0)),
+            },
+            "window_offset": {
+                "x": int(offset.get("x", 0)),
+                "y": int(offset.get("y", 0)),
+            },
+            "active_window_id": int(active_window.get("window_id", -1)) if active_window is not None else -1,
+            "active_window_package": str(active_window.get("package_name", "")) if active_window is not None else "",
+            "active_window_layer": int(active_window.get("layer", -1)) if active_window is not None else -1,
+            "active_window_bounds": active_bounds,
+            "coordinate_space": "screen",
+        }
 
     def _target_window_locked(self, observation: dict[str, Any], node_id: str) -> dict[str, Any] | None:
         nodes = {node["node_id"]: node for node in observation["nodes"]}
@@ -238,7 +441,7 @@ class AndroidBridge:
         candidates: list[dict[str, Any]] = []
         for node in observation["nodes"]:
             label = plan["target_label"]
-            if plan["kind"] == "tap":
+            if plan["kind"] in {"tap", "long_press"}:
                 text = str(node.get("text") or "")
                 description = str(node.get("content_description") or "")
                 matches_label = (
@@ -307,6 +510,10 @@ class AndroidBridge:
             "control": copy.deepcopy(task.get("control")),
             "before_observation_id": task.get("before_observation_id"),
             "after_observation_id": task.get("after_observation_id"),
+            "before_screenshot_id": task.get("before_screenshot_id"),
+            "after_screenshot_id": task.get("after_screenshot_id"),
+            "before_visual": copy.deepcopy(task.get("before_visual")),
+            "after_visual": copy.deepcopy(task.get("after_visual")),
             "action_result_unknown": bool(task.get("action_result_unknown")),
             "trace": copy.deepcopy(task["trace"]),
         }
@@ -334,9 +541,39 @@ class AndroidBridge:
             if observation["availability"] != "AVAILABLE":
                 raise BridgeRequestError(409, "permission_unavailable", "the App has no current actionable Accessibility tree")
             plan = _parse_node_goal(payload["goal"])
-            target = self._find_target_locked(observation, plan)
+            target = {"node_id": ""}
+            if plan["kind"] in {"tap", "set_text", "long_press"} and plan.get("target_label"):
+                target = self._find_target_locked(observation, plan)
+            requires_screenshot = bool(plan.get("requires_screenshot", False))
+            before_screenshot = (
+                self._screenshot_for_observation_locked(observation["observation_id"], "BEFORE")
+                if requires_screenshot else None
+            )
+            if requires_screenshot and before_screenshot is None:
+                raise BridgeRequestError(
+                    409,
+                    "before_screenshot_required",
+                    "a real BEFORE screenshot bound to the fresh observation is required for this visual action",
+                )
             task_id = payload["task_id"]
             session_id = f"android-session-{task_id}"
+            coordinate_frame = self._coordinate_frame(observation)
+            parameters = copy.deepcopy(plan.get("parameters", {}))
+            if plan["kind"] == "swipe":
+                width = coordinate_frame["screen_width_px"]
+                height = coordinate_frame["screen_height_px"]
+                fraction_y = float(parameters.pop("fraction_y", 0.5))
+                parameters.update({
+                    "x1": width * float(parameters.pop("start_fraction_x", 0.25)),
+                    "y1": height * fraction_y,
+                    "x2": width * float(parameters.pop("end_fraction_x", 0.75)),
+                    "y2": height * fraction_y,
+                })
+            if plan["kind"] == "long_press" and "fraction_x" in parameters:
+                width = coordinate_frame["screen_width_px"]
+                height = coordinate_frame["screen_height_px"]
+                parameters["x"] = width * float(parameters.pop("fraction_x"))
+                parameters["y"] = height * float(parameters.pop("fraction_y", 0.55))
             action: dict[str, Any] = {
                 "schema_version": SCHEMA_VERSION,
                 "android_schema_version": ANDROID_SCHEMA_VERSION,
@@ -352,7 +589,10 @@ class AndroidBridge:
                 "target_node_label": plan["target_label"],
                 "target_node_role": plan["target_role"],
                 "expected_page_state": plan["expected_page_state"],
-                "parameters": {"text": plan["input_text"]} if plan["kind"] == "set_text" else {},
+                "parameters": parameters if plan["kind"] != "set_text" else {"text": plan["input_text"]},
+                "coordinate_frame": coordinate_frame,
+                "requires_screenshot": requires_screenshot,
+                "before_screenshot_id": before_screenshot.get("screenshot_id") if before_screenshot else None,
                 "source": "deterministic-android-node-strategy",
                 "created_at": self.clock(),
             }
@@ -378,6 +618,11 @@ class AndroidBridge:
                 "post_observation_min_version": None,
                 "post_observation_id": None,
                 "post_observation_version": None,
+                "requires_screenshot": requires_screenshot,
+                "before_screenshot_id": before_screenshot.get("screenshot_id") if before_screenshot else None,
+                "after_screenshot_id": None,
+                "before_visual": copy.deepcopy(observation.get("visual")) if requires_screenshot else None,
+                "after_visual": None,
                 "trace": [],
             }
             self._tasks[task_id] = task
@@ -456,6 +701,8 @@ class AndroidBridge:
             raise BridgeRequestError(400, "invalid_schema", str(exc)) from exc
         after_id = receipt.get("after_observation_id")
         after_version = receipt.get("after_observation_version")
+        after_screenshot_id = receipt.get("after_screenshot_id")
+        after_screenshot_missing_reason = receipt.get("after_screenshot_missing_reason")
         if (after_id is None) != (after_version is None):
             raise BridgeRequestError(
                 400,
@@ -496,11 +743,35 @@ class AndroidBridge:
                         "observation_mismatch",
                         "the explicitly associated post-action observation does not match this task",
                     )
+            if after_screenshot_id is not None:
+                if after_id is None:
+                    raise BridgeRequestError(
+                        400,
+                        "invalid_schema",
+                        "after_screenshot_id requires after_observation_id and after_observation_version",
+                    )
+                after_screenshot = self._screenshots.get(after_screenshot_id)
+                if (
+                    after_screenshot is None
+                    or after_screenshot["capture_type"] != "AFTER"
+                    or after_screenshot["observation_id"] != after_id
+                    or after_screenshot["observation_version"] != after_version
+                    or after_screenshot["task_id"] != task_id
+                    or after_screenshot["device_id"] != self.device_id
+                ):
+                    raise BridgeRequestError(
+                        409,
+                        "screenshot_mismatch",
+                        "the explicitly associated after screenshot does not match this task observation",
+                    )
             if task.get("receipt") is not None:
                 duplicate = copy.deepcopy(task["receipt"])
                 duplicate["deduplicated"] = True
                 return {**self._task_status_locked(task), "receipt": duplicate}
             task["receipt"] = copy.deepcopy(receipt)
+            task["after_screenshot_id"] = after_screenshot_id
+            if associated_after is not None:
+                task["after_visual"] = copy.deepcopy(associated_after.get("visual"))
             self._record_task_event_locked(task, "receipt.received", receipt["receipt_id"])
             if task["state"] in {"CANCELLED", "PAUSED"}:
                 if task.get("action_result_unknown"):
@@ -535,7 +806,22 @@ class AndroidBridge:
                     # An explicitly associated observation can have arrived
                     # before the receipt response was delivered.  It is still
                     # the only observation eligible for this action.
-                    self._maybe_verify_task_locked()
+                    if not action.get("requires_screenshot") or after_screenshot_id is not None:
+                        self._maybe_verify_task_locked()
+                if action.get("requires_screenshot") and after_screenshot_id is None:
+                    # The device may have executed the gesture, but without a
+                    # real after image the visual result is not decidable.
+                    # Preserve the receipt and hold the single-task boundary.
+                    task["state"] = "PAUSED"
+                    task["phase"] = "PAUSED"
+                    task["action_result_unknown"] = True
+                    reason = after_screenshot_missing_reason or "after_screenshot_missing"
+                    task["failure"] = {
+                        "code": "screenshot_missing",
+                        "message": "after screenshot evidence is unavailable: " + reason,
+                    }
+                    task["verification"] = None
+                    self._record_task_event_locked(task, "task.paused", task_id)
             return self._task_status_locked(task)
 
     def _maybe_verify_task_locked(self) -> None:
@@ -597,6 +883,26 @@ class AndroidBridge:
             expected_text = (action.get("parameters") or {}).get("text", "")
             successful = any(
                 node.get("content_description") == "中文输入框" and node.get("text") == expected_text
+                for node in observation["nodes"]
+            )
+        else:
+            expected = action.get("expected_page_state", "")
+            aliases = {
+                "long_press_completed": ("long press", "long_press"),
+                "swipe_completed": ("swipe", "swipe"),
+                "coordinate_tap_completed": ("coordinate tap", "coordinate_tap"),
+                "system_back_completed": ("system back", "system_back"),
+            }
+            tokens = aliases.get(expected, (expected.replace("_", " "), expected))
+            successful = any(
+                any(
+                    token in str(node.get(field, "")).casefold()
+                    for field in ("text", "content_description", "state_description")
+                    for token in tokens
+                )
+                and ("completed" in str(node.get("text", "")).casefold()
+                     or "completed" in str(node.get("content_description", "")).casefold()
+                     or expected in str(node.get("content_description", "")))
                 for node in observation["nodes"]
             )
         verification = {
@@ -680,7 +986,7 @@ class AndroidBridge:
             }
 
 
-MAX_BODY_BYTES = 2 * 1024 * 1024
+MAX_BODY_BYTES = 8 * 1024 * 1024
 
 
 def _error_payload(code: str, message: str) -> dict[str, Any]:
@@ -750,6 +1056,9 @@ def create_server(bridge: AndroidBridge, host: str = "127.0.0.1", port: int = 0)
                     return
                 if self.path == "/v1/android/observations":
                     _send_json(self, 200, bridge.receive_observation(_read_json(self)))
+                    return
+                if self.path == "/v1/android/screenshots":
+                    _send_json(self, 200, bridge.receive_screenshot(_read_json(self)))
                     return
                 segments = [part for part in path.split("/") if part]
                 task_prefix = segments[:2] in (["v1", "tasks"], ["v1", "android"])

@@ -41,6 +41,10 @@ public final class BridgeClient {
         return request(config, "POST", "/v1/android/observations", observation);
     }
 
+    public static JSONObject postScreenshot(BridgeConfig config, JSONObject screenshot) throws BridgeException {
+        return request(config, "POST", "/v1/android/screenshots", screenshot);
+    }
+
     public static JSONObject latest(BridgeConfig config) throws BridgeException {
         try {
             String query = "?device_id=" + URLEncoder.encode(config.deviceId, "UTF-8");

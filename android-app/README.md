@@ -119,3 +119,46 @@ leaves the existing task in `PAUSED`; the app keeps **Cancel task** enabled
 and disables **Start node task** so a pause cannot be mistaken for a new
 submission. Cancel the paused task from the controlled page before beginning
 another run.
+
+## Reproducible visual and gesture task
+
+The controlled page includes a small self-drawn gesture surface whose semantic
+description is intentionally empty. Its separate `Visual gesture state` text
+node records the observed result. The page also keeps the Chinese `EditText`,
+the node-addressable controlled-state button, and the system-back state on the
+same screen, so IME, semantic-missing, rotation, and window-stack cases can be
+checked without operating a private app.
+
+Use a new task identity, pair and capture first, then choose one of these
+goals on the connection screen before opening the controlled page:
+
+| Goal | Accessibility action | Expected independent page state |
+| --- | --- | --- |
+| `长按“切换受控状态”按钮` | retained-node long press | `long press completed` |
+| `滑动视觉目标` | coordinate swipe through the visual surface | `swipe completed` |
+| `点击坐标(540,1200)` | coordinate tap | `coordinate tap completed` |
+| `系统返回` | Accessibility global Back | `system back completed` |
+
+For visual goals the App first uploads a fresh tree and a real API 30+
+Accessibility screenshot tagged `BEFORE` with that observation id/version.
+The bridge refuses the action if that image is absent or belongs to another
+observation. After Accessibility reports the gesture/global action complete,
+the App uploads a fresh `AFTER` observation and screenshot before sending the
+receipt. The receipt records acceptance separately from the postcondition;
+missing screenshot reasons leave a visual task paused rather than reporting
+success. Screenshot capture and successful upload counters are separate fields
+in the screenshot payload. A failed capture or upload is sent as an unavailable
+visual event with its reason and counters; the bridge exposes that metadata on
+the latest observation and task status while keeping the failed event out of
+the usable BEFORE/AFTER image index.
+
+The action frame carries display size, model size, rotation, system-bar
+insets, window offset, coordinate space, and the bound active window identity
+and bounds. Screen coordinates are scaled in the current display orientation;
+rotation is a freshness guard rather than a second coordinate transform. The
+service rejects a changed display or bound window, checks the active/focused
+Accessibility window and every higher-layer intersection, then maps model
+coordinates before `dispatchGesture`. A rotation, multi-window change, or
+overlay therefore requires a new observation. A screenshot may also be
+rejected by a secure window or revoked permission; inspect the task failure
+reason and pair a new identity after the page is stable.
