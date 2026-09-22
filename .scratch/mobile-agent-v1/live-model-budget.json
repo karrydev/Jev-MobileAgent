@@ -1,0 +1,146 @@
+{
+  "currency": "CNY",
+  "paid_budget_limit": 10,
+  "provider": "Alibaba Cloud Bailian",
+  "model": "gui-plus-2026-02-26",
+  "input_price_per_million": 1.5,
+  "output_price_per_million": 4.5,
+  "billing_basis": "Public list price estimate; account free quota and actual invoice not verified",
+  "attempts": [
+    {
+      "id": "access-tls-01",
+      "result": "TLS verification failed before HTTP request",
+      "provider_usage": null,
+      "model_inference_started": false
+    },
+    {
+      "id": "access-01",
+      "result": "HTTP 200, Chinese two-image response correct",
+      "prompt_tokens": 156,
+      "completion_tokens": 4,
+      "estimated_list_price_cny": 0.000252,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-01-mobile_tool_call",
+      "result": "HTTP 200; fixture/validator under correction, not acceptance",
+      "prompt_tokens": 1064,
+      "completion_tokens": 142,
+      "estimated_list_price_cny": 0.002235,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-01-manager",
+      "result": "HTTP 200; fixture/validator under correction, not acceptance",
+      "prompt_tokens": 734,
+      "completion_tokens": 116,
+      "estimated_list_price_cny": 0.001623,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-01-executor",
+      "result": "HTTP 200; fixture/validator under correction, not acceptance",
+      "prompt_tokens": 744,
+      "completion_tokens": 98,
+      "estimated_list_price_cny": 0.001557,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-01-action_reflector",
+      "result": "HTTP 200; fixture/validator under correction, not acceptance",
+      "prompt_tokens": 487,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.00078,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-01-notetaker",
+      "result": "HTTP 200; fixture/validator under correction, not acceptance",
+      "prompt_tokens": 241,
+      "completion_tokens": 10,
+      "estimated_list_price_cny": 0.0004065,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-02-mobile_tool_call",
+      "result": "compatible",
+      "prompt_tokens": 1064,
+      "completion_tokens": 81,
+      "estimated_list_price_cny": 0.0019605,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-02-manager",
+      "result": "compatible",
+      "prompt_tokens": 318,
+      "completion_tokens": 114,
+      "estimated_list_price_cny": 0.00099,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-02-executor",
+      "result": "role_incompatible",
+      "prompt_tokens": 740,
+      "completion_tokens": 109,
+      "estimated_list_price_cny": 0.0016005,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-02-action_reflector",
+      "result": "compatible",
+      "prompt_tokens": 487,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.00078,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-02-notetaker",
+      "result": "compatible",
+      "prompt_tokens": 238,
+      "completion_tokens": 10,
+      "estimated_list_price_cny": 0.000402,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-03-mobile_tool_call",
+      "result": "compatible",
+      "prompt_tokens": 1064,
+      "completion_tokens": 83,
+      "estimated_list_price_cny": 0.0019695,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-03-manager",
+      "result": "compatible",
+      "prompt_tokens": 449,
+      "completion_tokens": 132,
+      "estimated_list_price_cny": 0.0012675,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-03-executor",
+      "result": "compatible",
+      "prompt_tokens": 871,
+      "completion_tokens": 113,
+      "estimated_list_price_cny": 0.001815,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-03-action_reflector",
+      "result": "compatible",
+      "prompt_tokens": 618,
+      "completion_tokens": 42,
+      "estimated_list_price_cny": 0.001116,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "suite-03-notetaker",
+      "result": "compatible",
+      "prompt_tokens": 369,
+      "completion_tokens": 10,
+      "estimated_list_price_cny": 0.0005985,
+      "actual_billed_cny": null
+    }
+  ],
+  "estimated_list_price_total_cny": 0.019353
+}

@@ -36,3 +36,5 @@ Gate: 分别运行原真机与四角色最小基线
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-23：15 验证期间完成无模型调用的环境预备：已安装 API 33 Google APIs ARM64 系统镜像，建立独立 Pixel 6 AVD `JevAndroidWorldApi33`（console 5556 / gRPC 8554），实际启动到 sys.boot_completed=1；没有修改现有 AVD 或物理手机。隔离 Python venv 已安装 android_env 1.2.3、dm_env 1.6、protobuf 5.29.5、numpy 1.26.3 等，android_world.env.env_launcher 可导入。依赖快照保留本机 `/tmp/jev-androidworld-environment.txt`。这只是环境预备，任务、应用初始化和真实四角色基线未运行，本票保持 pending。启动验证后已正常关闭本轮专用模拟器，避免后台空转。
