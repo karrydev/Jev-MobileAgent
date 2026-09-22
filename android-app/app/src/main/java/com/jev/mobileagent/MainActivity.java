@@ -26,6 +26,10 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
     private static final String DEFAULT_NODE_GOAL = "在中文输入框中输入“手机验收，中文”";
     private static final String DEFAULT_CLICK_GOAL = "点击“切换受控状态”按钮";
+    private static final String DEFAULT_LONG_PRESS_GOAL = "长按“切换受控状态”按钮";
+    private static final String DEFAULT_SWIPE_GOAL = "滑动视觉目标";
+    private static final String DEFAULT_COORDINATE_GOAL = "点击坐标(540,1200)";
+    private static final String DEFAULT_BACK_GOAL = "系统返回";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     /** Short task-control requests are serialized; polling runs separately. */
     private final ExecutorService taskExecutor = Executors.newSingleThreadExecutor();
@@ -187,6 +191,22 @@ public class MainActivity extends Activity {
         clickGoal.setContentDescription("Fill deterministic click goal");
         clickGoal.setOnClickListener(v -> goalInput.setText(DEFAULT_CLICK_GOAL));
         root.addView(clickGoal, widthMatchWrap());
+        Button longPressGoal = new Button(this);
+        longPressGoal.setText("Fill visual long-press goal");
+        longPressGoal.setOnClickListener(v -> goalInput.setText(DEFAULT_LONG_PRESS_GOAL));
+        root.addView(longPressGoal, widthMatchWrap());
+        Button swipeGoal = new Button(this);
+        swipeGoal.setText("Fill visual swipe goal");
+        swipeGoal.setOnClickListener(v -> goalInput.setText(DEFAULT_SWIPE_GOAL));
+        root.addView(swipeGoal, widthMatchWrap());
+        Button coordinateGoal = new Button(this);
+        coordinateGoal.setText("Fill visual coordinate goal");
+        coordinateGoal.setOnClickListener(v -> goalInput.setText(DEFAULT_COORDINATE_GOAL));
+        root.addView(coordinateGoal, widthMatchWrap());
+        Button backGoal = new Button(this);
+        backGoal.setText("Fill system Back goal");
+        backGoal.setOnClickListener(v -> goalInput.setText(DEFAULT_BACK_GOAL));
+        root.addView(backGoal, widthMatchWrap());
         startTaskButton = new Button(this);
         startTaskButton.setText("Start node task");
         startTaskButton.setOnClickListener(v -> submitNodeTask());
@@ -437,7 +457,7 @@ public class MainActivity extends Activity {
         // The start-button accessibility event can schedule an automatic
         // capture while submit is in flight. Reserve the stream and publish
         // one explicit fresh before frame first.
-        ObservationAccessibilityService.beginTaskCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+        beginTaskCaptureForGoal(config, goal, new ObservationAccessibilityService.CaptureCallback() {
             @Override
             public void onSuccess(JSONObject acknowledgement) {
                 taskExecutor.execute(() -> submitNodeTaskAfterCapture(config, goal, runEpoch));
@@ -452,6 +472,49 @@ public class MainActivity extends Activity {
                     taskStatus.setText("Task: fresh observation failed — " + message);
                     setTaskButtons(false, "FAILED");
                 });
+            }
+        });
+    }
+
+    private boolean requiresVisualTask(String goal) {
+        String value = goal == null ? "" : goal.trim();
+        return value.contains("长按") || value.contains("滑动") || value.contains("坐标")
+                || value.contains("点击屏幕") || value.startsWith("点击(") || value.startsWith("点击（")
+                || value.equals("返回") || value.contains("系统返回")
+                || value.equalsIgnoreCase("back") || value.equalsIgnoreCase("system back");
+    }
+
+    private void beginTaskCaptureForGoal(
+            final BridgeConfig config,
+            final String goal,
+            final ObservationAccessibilityService.CaptureCallback callback) {
+        if (!requiresVisualTask(goal)) {
+            ObservationAccessibilityService.beginTaskCapture(config, callback);
+            return;
+        }
+        ObservationAccessibilityService.beginTaskCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+            @Override
+            public void onSuccess(JSONObject acknowledgement) {
+                ObservationAccessibilityService.requestScreenshot(
+                        config,
+                        acknowledgement,
+                        "BEFORE",
+                        new ObservationAccessibilityService.ScreenshotCallback() {
+                            @Override
+                            public void onSuccess(JSONObject screenshotAcknowledgement) {
+                                callback.onSuccess(acknowledgement);
+                            }
+
+                            @Override
+                            public void onError(String code, String message) {
+                                callback.onError("before_screenshot_missing", message);
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(String code, String message) {
+                callback.onError(code, message);
             }
         });
     }
@@ -566,14 +629,36 @@ public class MainActivity extends Activity {
                 requestPostActionCapture(config, new ObservationAccessibilityService.CaptureCallback() {
                     @Override
                     public void onSuccess(JSONObject acknowledgement) {
-                        pendingReceipt = buildReceipt(action, true, null, null, acknowledgement);
+                        if (requiresVisualAction(action)) {
+                            ObservationAccessibilityService.requestScreenshot(
+                                    config,
+                                    acknowledgement,
+                                    "AFTER",
+                                    new ObservationAccessibilityService.ScreenshotCallback() {
+                                        @Override
+                                        public void onSuccess(JSONObject screenshotAcknowledgement) {
+                                            pendingReceipt = buildReceipt(
+                                                    action, true, null, null, acknowledgement,
+                                                    screenshotAcknowledgement, null);
+                                        }
+
+                                        @Override
+                                        public void onError(String code, String message) {
+                                            pendingReceipt = buildReceipt(
+                                                    action, true, null, null, acknowledgement,
+                                                    null, code + ": " + message);
+                                        }
+                                    });
+                        } else {
+                            pendingReceipt = buildReceipt(action, true, null, null, acknowledgement);
+                        }
                     }
 
                     @Override
                     public void onError(String code, String message) {
                         // Keep the receipt truthful about execution; the
                         // fallback capture after receipt remains available.
-                        pendingReceipt = buildReceipt(action, true, null, null, null);
+                        pendingReceipt = buildReceipt(action, true, null, null, null, null, code + ": " + message);
                     }
                 });
             }
@@ -612,12 +697,31 @@ public class MainActivity extends Activity {
         return buildReceipt(action, accepted, errorCode, errorMessage, null);
     }
 
+    private boolean requiresVisualAction(JSONObject action) {
+        return action != null && (action.optBoolean("requires_screenshot", false)
+                || "long_press".equals(action.optString("kind"))
+                || "swipe".equals(action.optString("kind"))
+                || "coordinate_tap".equals(action.optString("kind"))
+                || "system_back".equals(action.optString("kind")));
+    }
+
     private JSONObject buildReceipt(
             JSONObject action,
             boolean accepted,
             String errorCode,
             String errorMessage,
             JSONObject afterObservation) {
+        return buildReceipt(action, accepted, errorCode, errorMessage, afterObservation, null, null);
+    }
+
+    private JSONObject buildReceipt(
+            JSONObject action,
+            boolean accepted,
+            String errorCode,
+            String errorMessage,
+            JSONObject afterObservation,
+            JSONObject afterScreenshot,
+            String afterScreenshotMissingReason) {
         try {
             JSONObject receipt = new JSONObject();
             receipt.put("schema_version", "1.0");
@@ -640,6 +744,15 @@ public class MainActivity extends Activity {
                     receipt.put("after_observation_id", afterId);
                     receipt.put("after_observation_version", afterVersion);
                 }
+            }
+            if (afterScreenshot != null) {
+                String screenshotId = afterScreenshot.optString("screenshot_id", "");
+                if (!screenshotId.isEmpty()) {
+                    receipt.put("after_screenshot_id", screenshotId);
+                }
+            }
+            if (afterScreenshotMissingReason != null) {
+                receipt.put("after_screenshot_missing_reason", afterScreenshotMissingReason);
             }
             receipt.put("deduplicated", false);
             return receipt;

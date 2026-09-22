@@ -49,6 +49,12 @@ public final class ObservationPayload {
         observation.put("observation_version", version);
         observation.put("captured_at", Instant.now().toString());
         observation.put("screen", screen(context));
+        observation.put("visual", new JSONObject()
+                .put("capture_state", "NOT_REQUESTED")
+                .put("capture_count", 0)
+                .put("upload_count", 0)
+                .put("missing_reason", JSONObject.NULL)
+                .put("screenshot_id", JSONObject.NULL));
         observation.put("capabilities", new JSONArray()
                 .put("accessibility_tree")
                 .put("windows")
@@ -56,19 +62,44 @@ public final class ObservationPayload {
                 .put("node_text")
                 .put("node_state")
                 .put("tap")
-                .put("set_text"));
+                .put("set_text")
+                .put("long_press")
+                .put("swipe")
+                .put("coordinate_tap")
+                .put("system_back")
+                .put("screenshot"));
         return observation;
     }
 
     public static JSONObject screen(Context context) throws JSONException {
+        return screen(context, null);
+    }
+
+    public static JSONObject screen(Context context, Rect contentBounds) throws JSONException {
         WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         Display display = windowManager.getDefaultDisplay();
         android.util.DisplayMetrics metrics = new android.util.DisplayMetrics();
         display.getRealMetrics(metrics);
+        Rect content = contentBounds == null
+                ? new Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
+                : new Rect(contentBounds);
+        int leftInset = Math.max(0, content.left);
+        int topInset = Math.max(0, content.top);
+        int rightInset = Math.max(0, metrics.widthPixels - content.right);
+        int bottomInset = Math.max(0, metrics.heightPixels - content.bottom);
         return new JSONObject()
                 .put("width_px", metrics.widthPixels)
                 .put("height_px", metrics.heightPixels)
-                .put("rotation", display.getRotation());
+                .put("rotation", display.getRotation())
+                // The observation frame is in physical display coordinates.
+                // A window/content frame adds its own offset when a task is
+                // planned; zero here is the full-screen default.
+                .put("system_bar_insets", new JSONObject()
+                        .put("left", leftInset).put("top", topInset)
+                        .put("right", rightInset).put("bottom", bottomInset))
+                .put("window_offset", new JSONObject().put("x", content.left).put("y", content.top))
+                .put("content_width_px", Math.max(1, content.width()))
+                .put("content_height_px", Math.max(1, content.height()));
     }
 
     public static JSONObject bounds(Rect bounds) throws JSONException {
