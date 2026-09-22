@@ -6,6 +6,7 @@ offline tests; a future Android app can replace it with the app's transport.
 """
 
 from .device import SimulatedDevice, create_device_server
+from .model import LiveModel, ModelError, ReplayModel, build_model_request, minimal_probe
 from .service import SimulationService, create_service_server
 
 __all__ = [
@@ -13,4 +14,9 @@ __all__ = [
     "SimulationService",
     "create_device_server",
     "create_service_server",
+    "LiveModel",
+    "ModelError",
+    "ReplayModel",
+    "build_model_request",
+    "minimal_probe",
 ]

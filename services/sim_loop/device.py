@@ -68,10 +68,32 @@ class SimulatedDevice:
         self._lock = threading.Lock()
         self._action_in_flight = False
         self._observation_counts: dict[str, int] = {}
+        self._latest_observation_id: dict[str, str] = {}
+        self._receipts: dict[tuple[str, str], dict[str, Any]] = {}
+        self._actions: dict[tuple[str, str], dict[str, Any]] = {}
+        self._session_by_task: dict[str, str] = {}
+        self._next_sequence: dict[tuple[str, str | None], int] = {}
         self.action_count = 0
 
-    def observe(self, task_id: str) -> dict[str, Any]:
+    def bind_session(self, task_id: str, session_id: str) -> None:
+        if not isinstance(session_id, str) or not session_id:
+            raise DeviceRequestError("invalid_session", "a non-empty session id is required", status=400)
         with self._lock:
+            known_session = self._session_by_task.get(task_id)
+            if known_session is not None and session_id != known_session:
+                raise DeviceRequestError("stale_session", "session belongs to an obsolete device session", status=409)
+            if known_session is None:
+                self._session_by_task[task_id] = session_id
+
+    def has_bound_session(self, task_id: str) -> bool:
+        with self._lock:
+            return task_id in self._session_by_task
+
+    def observe(self, task_id: str, *, session_id: str | None = None) -> dict[str, Any]:
+        if session_id is not None:
+            self.bind_session(task_id, session_id)
+        with self._lock:
+            known_session = self._session_by_task.get(task_id)
             count = self._observation_counts.get(task_id, 0)
             self._observation_counts[task_id] = count + 1
             suffix = "before" if count == 0 else "after" if count == 1 else f"after-{count}"
@@ -79,6 +101,7 @@ class SimulatedDevice:
                 "schema_version": SCHEMA_VERSION,
                 "task_id": task_id,
                 "observation_id": f"obs-{task_id}-{suffix}",
+                "observation_version": f"obs-{task_id}-{suffix}",
                 "device_id": self.device_id,
                 "captured_at": self.clock(),
                 "page_state": self.page_state,
@@ -92,6 +115,9 @@ class SimulatedDevice:
                 ],
                 "capabilities": ["observe", "tap"],
             }
+            if known_session is not None:
+                observation["session_id"] = known_session
+            self._latest_observation_id[task_id] = observation["observation_id"]
         assert_valid(observation, "observation")
         return observation
 
@@ -101,9 +127,34 @@ class SimulatedDevice:
         except SchemaValidationError as exc:
             raise DeviceRequestError("invalid_action", str(exc)) from exc
         task_id = action["task_id"]
+        action_id = action["action_id"]
+        session_id = action.get("session_id")
+        sequence = action.get("sequence")
+        if action.get("device_id") is not None and action["device_id"] != self.device_id:
+            raise DeviceRequestError("device_identity_mismatch", "action device identity is not recognized", status=403)
         with self._lock:
+            known_session = self._session_by_task.get(task_id)
+            if known_session is not None and session_id != known_session:
+                raise DeviceRequestError("stale_session", "action belongs to an obsolete device session", status=409)
+            prior = self._receipts.get((task_id, action_id))
+            if prior is not None:
+                original = self._actions[(task_id, action_id)]
+                for field in ("task_id", "observation_id", "kind", "target_node_id", "expected_page_state", "session_id", "sequence"):
+                    if action.get(field) != original.get(field):
+                        raise DeviceRequestError("action_id_conflict", "action_id was reused with different action fields", status=409)
+                duplicate = dict(prior)
+                duplicate["deduplicated"] = True
+                return duplicate
             if self._action_in_flight:
                 raise DeviceRequestError("action_in_flight", "the device already has an action in flight", status=409)
+            sequence_key = (task_id, session_id)
+            expected_sequence = self._next_sequence.get(sequence_key, 1)
+            if sequence is not None and sequence != expected_sequence:
+                raise DeviceRequestError(
+                    "action_out_of_order",
+                    f"expected action sequence {expected_sequence}, received {sequence}",
+                    status=409,
+                )
             self._action_in_flight = True
         try:
             if self.action_delay:
@@ -112,15 +163,27 @@ class SimulatedDevice:
                 current_observation_count = self._observation_counts.get(task_id, 0)
                 if current_observation_count < 1:
                     raise DeviceRequestError("observation_required", "an observation is required before an action")
-                expected_observation_id = f"obs-{task_id}-before"
+                expected_observation_id = self._latest_observation_id.get(task_id)
                 if action["observation_id"] != expected_observation_id:
                     raise DeviceRequestError("stale_observation", "action is bound to an obsolete observation", status=409)
+                if action.get("observation_version") not in (None, expected_observation_id):
+                    raise DeviceRequestError("stale_observation", "action observation version is obsolete", status=409)
+                if action["kind"] != "tap":
+                    raise DeviceRequestError("unsupported_action", "the simulated device does not support this action", status=422)
+                if action["target_node_id"] != "start-button":
+                    raise DeviceRequestError("target_node_not_found", "the action target is not present", status=409)
+                if action.get("target_node_role") not in (None, "button"):
+                    raise DeviceRequestError("target_node_mismatch", "the action target role does not match the observation", status=409)
+                if action.get("target_node_label") not in (None, "Start"):
+                    raise DeviceRequestError("target_node_mismatch", "the action target label does not match the observation", status=409)
                 if self.page_state != "landing":
                     raise DeviceRequestError(
                         "action_not_applicable",
                         "the simulated start button is not enabled on the current page",
                         status=409,
                     )
+                if session_id is not None:
+                    self._session_by_task[task_id] = session_id
                 self.action_count += 1
                 if self.behavior == "apply_effect":
                     self.page_state = "done"
@@ -133,7 +196,16 @@ class SimulatedDevice:
                     "accepted": True,
                     "outcome": "EXECUTED",
                     "received_at": self.clock(),
+                    "deduplicated": False,
                 }
+                if session_id is not None:
+                    receipt["session_id"] = session_id
+                if sequence is not None:
+                    receipt["sequence"] = sequence
+                self._actions[(task_id, action_id)] = dict(action)
+                self._receipts[(task_id, action_id)] = dict(receipt)
+                if sequence is not None:
+                    self._next_sequence[(task_id, session_id)] = sequence + 1
             assert_valid(receipt, "receipt")
             return receipt
         finally:
@@ -160,8 +232,19 @@ def create_device_server(device: SimulatedDevice, host: str = "127.0.0.1", port:
                 task_ids = query.get("task_id", [])
                 if len(task_ids) != 1 or not task_ids[0]:
                     raise RequestRejected(400, "invalid_task_id", "task_id query parameter is required")
+                session_id = self.headers.get("X-JEV-Session-Id")
+                if session_id:
+                    device.bind_session(task_ids[0], session_id)
+                elif device.has_bound_session(task_ids[0]):
+                    raise DeviceRequestError(
+                        "stale_session",
+                        "an established task session must be declared for every observation",
+                        status=409,
+                    )
                 send_json(self, 200, device.observe(task_ids[0]))
             except RequestRejected as exc:
+                send_json(self, exc.status, error_payload(exc.code, exc.message))
+            except DeviceRequestError as exc:
                 send_json(self, exc.status, error_payload(exc.code, exc.message))
             except Exception:
                 send_json(self, 500, error_payload("device_internal_error", "simulated device failed"))

@@ -29,8 +29,12 @@ def load_schema() -> dict[str, Any]:
 
 
 def _resolve_ref(ref: str, schema: dict[str, Any]) -> dict[str, Any]:
-    if ref == "#/$defs/node":
-        return schema["$defs"]["node"]
+    if ref.startswith("#/$defs/"):
+        name = ref.removeprefix("#/$defs/")
+        try:
+            return schema["$defs"][name]
+        except KeyError as exc:
+            raise ValueError(f"unsupported schema reference: {ref}") from exc
     raise ValueError(f"unsupported schema reference: {ref}")
 
 
@@ -95,10 +99,9 @@ def _validate(value: Any, definition: dict[str, Any], schema: dict[str, Any], pa
 
 def validate_document(document: Any, kind: str) -> list[str]:
     schema = load_schema()
-    try:
-        definition = schema["definitions"][kind]
-    except KeyError as exc:
-        raise ValueError(f"unknown contract definition: {kind}") from exc
+    definition = schema.get("definitions", {}).get(kind) or schema.get("$defs", {}).get(kind)
+    if definition is None:
+        raise ValueError(f"unknown contract definition: {kind}")
     errors: list[str] = []
     _validate(document, definition, schema, "$", errors)
     return errors

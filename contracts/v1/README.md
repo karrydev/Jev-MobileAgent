@@ -1,4 +1,4 @@
-# Task 01 contract v1
+# Simulated loop contract v1
 
 `schema.json` is the versioned source for the first simulated loop. The
 Python validator in `services.sim_loop.schema` intentionally supports only the
@@ -16,4 +16,38 @@ not silently accept an unknown version.
 
 The receipt records that the device accepted and executed the command. The
 independent verification record reads the post-action page state and can be
-`FAILURE` even when the receipt is successful.
+`FAILURE` even when the receipt is successful. Actions carry an observation
+binding and may carry a session and monotonic sequence. The simulated device
+deduplicates a repeated `action_id`, rejects a stale session or sequence, and
+never treats a receipt as proof of the postcondition.
+
+The task submission accepts an optional `model` object. `mode: "replay"`
+drives the same request boundary used by the live adapter; each attempt
+preserves the task id, Chinese prompt, image list, response/error and usage.
+`mode: "live"` requires an explicit complete OpenAI-compatible
+chat-completions `endpoint`, `model`, and `credential_env`. The isolated
+adapter is verified only against a local HTTP fixture and does not claim
+compatibility with any particular supplier. Missing configuration and
+credentials are explicit failures; there is no replay fallback.
+
+Task control is exposed at:
+
+```text
+POST /v1/tasks/{task_id}/pause
+POST /v1/tasks/{task_id}/cancel
+```
+
+Controls are idempotent. A paused task remains the single active task and
+does not resume automatically. Cancellation is terminal. If a physical
+action was already in flight, the eventual receipt may be recorded, while
+postcondition verification remains `UNKNOWN`. A request timeout after
+dispatch leaves the execution result itself unknown and keeps the device
+session reserved even after a later cancel request; no second task is
+admitted until the reconciliation slice closes that action. A cancellation
+with a confirmed receipt but an unknown postcondition has ended the in-flight
+delivery, so it can release the reservation while still reporting
+verification `UNKNOWN`. A trusted device rejection such as
+`409 stale_observation` proves that the action was refused before execution,
+so it fails the task and releases the reservation. Arbitrary proxy 5xx
+responses do not prove refusal and remain `UNKNOWN`. A pause or cancellation
+before dispatch prevents the action from being sent.

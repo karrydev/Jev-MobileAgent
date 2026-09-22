@@ -41,6 +41,12 @@
             "apply_effect",
             "receipt_without_effect"
           ]
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/model_config"
         }
       }
     },
@@ -116,6 +122,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "observation_version": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
         }
       }
     },
@@ -148,23 +160,44 @@
           "type": "string"
         },
         "kind": {
-          "type": "string",
-          "const": "tap"
+          "type": "string"
         },
         "target_node_id": {
-          "type": "string",
-          "const": "start-button"
+          "type": "string"
         },
         "expected_page_state": {
-          "type": "string",
-          "const": "done"
+          "type": "string"
         },
         "source": {
-          "type": "string",
-          "const": "simulated-planner"
+          "type": "string"
         },
         "created_at": {
           "type": "string"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "command_id": {
+          "type": "string"
+        },
+        "observation_version": {
+          "type": "string"
+        },
+        "target_node_role": {
+          "type": "string"
+        },
+        "target_node_label": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
         }
       }
     },
@@ -208,6 +241,16 @@
         },
         "received_at": {
           "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deduplicated": {
+          "type": "boolean"
         }
       }
     },
@@ -309,7 +352,13 @@
             "receipt.received",
             "verification.recorded",
             "task.completed",
-            "task.failed"
+            "task.failed",
+            "task.paused",
+            "task.cancelled",
+            "model.requested",
+            "model.responded",
+            "model.failed",
+            "action.deduplicated"
           ]
         },
         "entity_id": {
@@ -406,6 +455,135 @@
         },
         "enabled": {
           "type": "boolean"
+        }
+      }
+    },
+    "model_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "replay",
+            "live"
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "images": {
+          "type": "array"
+        },
+        "responses": {
+          "type": "array"
+        },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retry_limit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delay_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "credential_env": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "model_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "attempt_id",
+        "role",
+        "prompt",
+        "images",
+        "created_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "attempt_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "images": {
+          "type": "array"
+        },
+        "created_at": {
+          "type": "string"
+        }
+      }
+    },
+    "model_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "attempt_id",
+        "kind"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "attempt_id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "action",
+            "error",
+            "malformed"
+          ]
+        },
+        "action": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "usage": {
+          "type": [
+            "object",
+            "null"
+          ]
         }
       }
     }

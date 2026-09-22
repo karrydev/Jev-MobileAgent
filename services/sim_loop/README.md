@@ -15,6 +15,8 @@ The public service endpoints are:
 ```text
 POST /v1/tasks
 GET  /v1/tasks/{task_id}
+POST /v1/tasks/{task_id}/pause
+POST /v1/tasks/{task_id}/cancel
 ```
 
 Every request needs `Authorization: Bearer <token>` and
@@ -59,6 +61,67 @@ python3 -m services.sim_loop schema-check
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
+Controls are safe to send from a second HTTP connection while the submit
+request is waiting on a model or simulated device. Pause leaves the task as
+the one active task and suppresses future dispatch. Cancel is terminal. An
+action already in flight is not claimed to be undone: a returned receipt can
+be retained, while its verification is `UNKNOWN` until a later reconciliation
+slice supplies a new observation. A transport timeout after dispatch retains
+the task reservation even after cancel because the execution result itself is
+unknown; a confirmed receipt ends the in-flight delivery even if its
+postcondition remains unknown. A trusted device `409 stale_observation` is a
+known refusal with no action side effect: the task is failed and the active
+reservation is released. Other unknown transport responses, including proxy
+5xx responses, retain the `UNKNOWN` result and reservation.
+
+Run the deterministic replay demo with a Chinese prompt and two image
+references:
+
+```bash
+JEV_SIM_AUTH_TOKEN=local-demo-token \
+  python3 -m services.sim_loop replay \
+  --task-id task-replay-001 \
+  --prompt '请点击开始按钮' \
+  --image screen-before --image screen-context
+```
+
+The result includes the model request, every bounded attempt, provider error
+classification and usage. Replay is synthetic evidence for the adapter and
+does not claim compatibility with a provider. To inspect the live boundary
+without making any request:
+
+```bash
+python3 -m services.sim_loop probe \
+  --endpoint http://127.0.0.1:9000/v1/chat/completions \
+  --model fixture-model \
+  --credential-env JEV_VLM_API_KEY
+```
+
+The probe requires an explicit complete chat-completions `--endpoint`, a
+`--model`, and the name of an environment variable containing the credential.
+It reports `ready: false` and exits with status 2 when any item is missing. It
+never silently falls back to replay. The request body is the small
+OpenAI-compatible shape used by this slice: one Chinese text prompt and two
+image references. This proves only the local adapter wire and error handling;
+it does not claim compatibility with a real supplier.
+
+Only an explicit `--execute` sends the probe. For a local HTTP fixture whose
+credential is `fixture-token`:
+
+```bash
+JEV_VLM_API_KEY=fixture-token \
+  python3 -m services.sim_loop probe \
+  --endpoint http://127.0.0.1:9000/v1/chat/completions \
+  --model fixture-model \
+  --credential-env JEV_VLM_API_KEY \
+  --timeout 5 \
+  --execute
+```
+
+The timeout is bounded to 30 seconds. HTTP errors, malformed responses, and
+provider `usage` are retained in the probe result and task attempt. Never put
+a real credential in source, fixtures, or task traces.
+
 For a long-running local endpoint, use `serve`; it starts both listeners and
 prints their loopback URLs:
 
@@ -67,6 +130,7 @@ JEV_SIM_AUTH_TOKEN=local-demo-token \
   python3 -m services.sim_loop serve --service-port 8765 --device-port 8766
 ```
 
-The first slice intentionally does not implement pause, restart recovery,
-command deduplication, persistent checkpoints, real Android Accessibility, or
-real accounts/devices. Those are later behavior slices.
+This slice intentionally does not implement restart recovery, persistent
+checkpoints, real Android Accessibility, or real accounts/devices. A paused
+task has no automatic resume path; the explicit reconciliation and resume
+boundary is a later behavior slice.
