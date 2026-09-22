@@ -6,7 +6,7 @@ Blocked by: 01, 16
 
 Status: ready-for-agent
 
-Execution: in-progress
+Execution: done
 Owner: luna-role-extraction
 Branch: codex/v1-role-extraction
 Evidence: 真实 API、参考设备后端
@@ -20,10 +20,10 @@ Gate: 提取角色后在参考设备后端保持任务行为
 
 ## Acceptance criteria
 
-- [ ] 只提取生产需要的 Manager、Executor、ActionReflector、Notetaker 与状态，解耦 AndroidWorld、固定尺寸和任务特例。
-- [ ] 从统一观察到动作的边界运行原有生成式策略；本票不启用 Jev、树核验或按需规划。
-- [ ] 先并存新旧实现再对照，任何迁移批次保持原入口可运行；记录来源、变更及许可证。
-- [ ] 相同任务配置的实际行为对照通过冻结规则；不能只以导入成功判定提取完成。
+- [x] 只提取生产需要的 Manager、Executor、ActionReflector、Notetaker 与状态，解耦 AndroidWorld、固定尺寸和任务特例。
+- [x] 从统一观察到动作的边界运行原有生成式策略；本票不启用 Jev、树核验或按需规划。
+- [x] 先并存新旧实现再对照，任何迁移批次保持原入口可运行；记录来源、变更及许可证。
+- [x] 相同任务配置的实际行为对照通过冻结规则；不能只以导入成功判定提取完成。
 
 ## 范围与协调
 
@@ -38,3 +38,7 @@ Gate: 提取角色后在参考设备后端保持任务行为
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-23：01/16 已完成，从 `8dfc3ea` 领取最小角色提取。范围限必要角色/InfoPool/生成式调度、已有契约的适配、参考环境运行接口、测试与来源说明；不新增策略/框架，不删除原入口。冻结对照：复用 task16 SystemBrightnessMax、同一 API33 AVD、GUI-Plus 配置、0–1000 适配、1次/5步/最多25请求/1024输出/¥1上限；记录每次真实结果。原版基线终局0分，迁移不得将其改报成功或宣称性能提升。离线对同一原响应/状态核对角色提示词、解析和调度关键分支；真实参考运行须有初始0分、有效最终独立判分、真实动作与完整费用，不能只用导入/回放验收。
+
+2026-09-23 实际参考对照 extracted01：同一 API33 Pixel 6、SystemBrightnessMax、GUI-Plus、5步/最多25请求/1024输出/¥1条件下完成一次运行；实际15次API，初始0分、最终0分、任务未完成。轨迹为打开设置→滑动→显示→亮度→滑动亮度条；最终界面显示100%，但上游严格系统值255判据仍为0，保持失败，不以视觉标签改判或宣称收益。费用估算 ¥0.0988485，累计 ¥0.254085，actual bill未知；[脱敏报告](../evidence/extracted-baseline-androidworld01.json)记录生产源码hash、逐次usage和配置。AVD已关闭，物理手机始终Dozing。剩余门槛为原循环关键分支成对测试、定向确认与合入。
+
+2026-09-23 验收完成并合入：实现 `6f92f93`；Luna 提取与定向修复、Terra 风险审查 PASS。完整离线测试138项通过（后续仅补成对测试与invalid/Finished记录修复），最终角色测试18/18、diff-check通过。成对调用真实原版角色/循环，覆盖提示词、解析、invalid、连续失败重规划、Finished、answer、notetaker；比较action_pool/error_descriptions等模型可见状态。真实运行后只修复未触发的invalid与Finished状态记录，因此报告保留当时源码hash，不改写为最终hash，也不重复付费跑未受影响的有效动作路径。原入口及许可证保留；生产默认拒绝现有App契约不支持的原动作，仅reference adapter启用旧映射。此票完成不代表亮度任务成功或App+VLM已接通。

@@ -1,0 +1,486 @@
+{
+  "status": "completed",
+  "success": false,
+  "entrypoint": "extracted_roles_androidworld_reference",
+  "baseline_variant": "extracted_roles_with_contract_observation_adapter",
+  "source_files": {
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3.py": {
+      "sha256": "79c067d3f4bbf526c52c5434771d109e6c117e8e8c32591c93cc48e913f8f38a"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3_agent.py": {
+      "sha256": "00a1b656ada4a100b85b6b1347f6a983f2a4547230a8058aeca92ac2d26352be"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/infer_ma3.py": {
+      "sha256": "6d42e0ab94909fee6003e6463fba2f7268fcd5a4390dd45c94f55b896db4d79f"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/task_evals/single/system.py": {
+      "sha256": "3eff14c200e762e1fe68285f35d5e7e6fd16354741e8a0ea71e0d0d440548c90"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/episode_runner.py": {
+      "sha256": "779117bbc340a5b0d2022e32ad64171359ee0788809e3c945b0bfd1dfcb34215"
+    },
+    "Mobile-Agent-v3.5/android_world_v3.5/android_world/env/env_launcher.py": {
+      "sha256": "45ea45b3c7fbae44af20786f7bc05904bf23cfab6e0ef4f8f86ab45c0c6b1c32"
+    },
+    "agent_core/vlm/roles.py": {
+      "sha256": "2413580bde1fa58535675704aba907865be820e9792368280e3eca7848493274"
+    },
+    "agent_core/vlm/orchestration.py": {
+      "sha256": "6beb0a79ae4393c9048d1ea7e134ce6d4f8075b5aaac084550c37205a7064828"
+    },
+    "services/original_baselines/extracted_androidworld.py": {
+      "sha256": "3553d05eb1b4d90f177013d166b751d4aa80771d71bb7e9c2afa2466e062902a"
+    }
+  },
+  "task": {
+    "name": "SystemBrightnessMax",
+    "goal": "Turn brightness to the max value.",
+    "judge": "SystemBrightnessMax.is_successful",
+    "initial_score": 0.0,
+    "initial_expected_score": 0.0,
+    "initial_state": "initialized_low",
+    "initial_success": true,
+    "final_score": 0.0,
+    "system_brightness_max_score": 0.0,
+    "independent_score": 0.0,
+    "independent_success": false,
+    "final_expected_score": 1.0
+  },
+  "episode": {
+    "done": false,
+    "step_count": 5
+  },
+  "budget": {
+    "max_requests": 25,
+    "requests_attempted": 15,
+    "reserved_cny": 0.25343999999999994,
+    "budget_cny": 1.0,
+    "estimated_spend_cny": 0.09884849999999999,
+    "usage_missing": false,
+    "stop_reason": null,
+    "per_request_upper_bound_cny": 0.016896
+  },
+  "baseline_result": "real_candidate",
+  "evidence_mode": "real_environment",
+  "run_at": "2026-09-22T18:37:15.159517+00:00",
+  "harness_sha256": "b3a6a834cd7aa727eab360dfde09c7090f776da55e5e9532894ced69468883d0",
+  "run_id": "extracted01",
+  "source_base_sha": "94fb54a768a47dcd34f3b2231252c44b9de82e6a",
+  "config": {
+    "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "model": "gui-plus-2026-02-26",
+    "console_port": 5556,
+    "grpc_port": 8554,
+    "device_id": "android-world-pixel6-api33",
+    "task": "SystemBrightnessMax",
+    "goal": "Turn brightness to the max value.",
+    "max_steps": 5,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "budget_cny": 1.0,
+    "timeout_seconds": 30.0,
+    "coordinate_adaptation": true,
+    "freeze_datetime": false,
+    "execution_mode": "real_environment",
+    "role_implementation_mode": "extracted_roles_reference_adapter",
+    "role_sources": {
+      "roles": "agent_core/vlm/roles.py",
+      "orchestration": "agent_core/vlm/orchestration.py",
+      "reference_adapter": "services/original_baselines/extracted_androidworld.py"
+    },
+    "source_hash_mode": "explicit_extracted_and_original"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 0,
+      "prompt_sha256": "3900d24af078d680115599868ba986f3a18bfd2bab01635762367b54bc8e7f4b",
+      "request_sha256": "c59b0ae5105a633c1bbd66a2db2fa8fd6215767a75159f686795c53e6d5e0970",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 2829,
+        "completion_tokens": 159,
+        "total_tokens": 2988,
+        "completion_tokens_details": {
+          "text_tokens": 159
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 277
+        }
+      },
+      "estimated_cost_cny": 0.004959,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 2,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 0,
+      "prompt_sha256": "366bf0f3039834a56a1bf38eae62dd49b40cf971d42fbdc439d623ff026e3116",
+      "request_sha256": "76c26d82df1a64a7cf5583f74605eefc58d6a2cb67721eae3af38579f5ab2f73",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3730,
+        "completion_tokens": 79,
+        "total_tokens": 3809,
+        "completion_tokens_details": {
+          "text_tokens": 79
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1178
+        }
+      },
+      "estimated_cost_cny": 0.0059505,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 3,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 0,
+      "prompt_sha256": "1d29a81c1fb72cc2f13c3bc8738f199e9d1bdc3de0afa5aaf008a54686b189a5",
+      "request_sha256": "5fc74990081bf7b463e7e5fadf9bca37cf68fe3f93426348d29794f52a696ea8",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5474,
+        "completion_tokens": 11,
+        "total_tokens": 5485,
+        "completion_tokens_details": {
+          "text_tokens": 11
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 370
+        }
+      },
+      "estimated_cost_cny": 0.0082605,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 4,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 1,
+      "prompt_sha256": "fd7737cb628a492af76291f3d8358d36d0b64cedaad58312a8a71bf021bc470a",
+      "request_sha256": "d540b22b68ce331c99c749a63f91c5f416f368ff996309f06745f4b2eeb6c9d0",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3216,
+        "completion_tokens": 123,
+        "total_tokens": 3339,
+        "completion_tokens_details": {
+          "text_tokens": 123
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 664
+        }
+      },
+      "estimated_cost_cny": 0.0053775,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 5,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 1,
+      "prompt_sha256": "e4f39b7284d5003c10df02d77eab3f8eafb6c383bf78be593912145f54951b02",
+      "request_sha256": "9f8e2046520e2102eed6ba6cf9128b2a9abf6959a6c6e7794150e140f5966fce",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3749,
+        "completion_tokens": 96,
+        "total_tokens": 3845,
+        "completion_tokens_details": {
+          "text_tokens": 96
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1197
+        }
+      },
+      "estimated_cost_cny": 0.0060555,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 6,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 1,
+      "prompt_sha256": "c5aa04b7bc5dd3ef3f11be6dc4fac2f13a1236926955cd0e0016c3db4629d555",
+      "request_sha256": "4c3617bb6d6360d405dbd7d1773d616b9abe7ca7292d2e7a25afc42a2d31c94a",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5505,
+        "completion_tokens": 11,
+        "total_tokens": 5516,
+        "completion_tokens_details": {
+          "text_tokens": 11
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 401
+        }
+      },
+      "estimated_cost_cny": 0.008307,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 7,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 2,
+      "prompt_sha256": "9a4774633476bd46a19c3d483426119c89d3da9b16dc6ddac1df47eec3e4bb44",
+      "request_sha256": "44f8ae1b32c6e8c1f925ef594163828efcc5feb1d78cd16aa85f1c739a6fb898",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3257,
+        "completion_tokens": 117,
+        "total_tokens": 3374,
+        "completion_tokens_details": {
+          "text_tokens": 117
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 705
+        }
+      },
+      "estimated_cost_cny": 0.005412,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 8,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 2,
+      "prompt_sha256": "b4b53dadb18e26f92ed8286c3ee5ccc6add0c4c863744f47314ca5c3e308a5c1",
+      "request_sha256": "b24df9c7ef1ecac71368ec764b71aa44d659c5fd5124bed6c98c0aaad4b5a158",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3786,
+        "completion_tokens": 101,
+        "total_tokens": 3887,
+        "completion_tokens_details": {
+          "text_tokens": 101
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1234
+        }
+      },
+      "estimated_cost_cny": 0.0061335,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 9,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 2,
+      "prompt_sha256": "76b1025600f914d8c1f50de03761bf5595a0dc45c20183cdd907b5d8c041386d",
+      "request_sha256": "2770aa1c35f7445c8acd70ea7cbb2a503e76cccda1ade7d00710d8e5a0fe5f62",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5506,
+        "completion_tokens": 11,
+        "total_tokens": 5517,
+        "completion_tokens_details": {
+          "text_tokens": 11
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 402
+        }
+      },
+      "estimated_cost_cny": 0.0083085,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 10,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 3,
+      "prompt_sha256": "ae27a1dba9881fbfca7cb231da4bb8222bd352c9f8272891c387c33db2b43698",
+      "request_sha256": "a4bc2fa0f690cbb3f467cb7f265187c1f4806a679fcf9c8e2d114e896914f66e",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3241,
+        "completion_tokens": 131,
+        "total_tokens": 3372,
+        "completion_tokens_details": {
+          "text_tokens": 131
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 689
+        }
+      },
+      "estimated_cost_cny": 0.005451,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 11,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 3,
+      "prompt_sha256": "8df16456ab3f2e7bf4d1389a207e20849e76bcfc21d3db8497ffe8909f4e3185",
+      "request_sha256": "acb510dc09e0c89afdf8fc169494e7fa4e0f42779895aac52aabad954f1b121d",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3832,
+        "completion_tokens": 106,
+        "total_tokens": 3938,
+        "completion_tokens_details": {
+          "text_tokens": 106
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1280
+        }
+      },
+      "estimated_cost_cny": 0.006225,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 12,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 3,
+      "prompt_sha256": "7474a2ed9b401f04cfe6b6959e9db00ad334afc93c16b815eb5e9257ea830494",
+      "request_sha256": "40e2e62ecfbec7c7614305c50d5c949f731fde5d5d0e974bd9b4cd824e5e3d45",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5499,
+        "completion_tokens": 11,
+        "total_tokens": 5510,
+        "completion_tokens_details": {
+          "text_tokens": 11
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 395
+        }
+      },
+      "estimated_cost_cny": 0.008298,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 13,
+      "reserved_cny": 0.016896,
+      "role": "manager",
+      "step": 4,
+      "prompt_sha256": "d6de5774504a01aeeae607faf52d62fc07bb3f3d0b806938c26a620b76648b6a",
+      "request_sha256": "89947537474a45eba89b74004b86b915219b2a7f0eadf8d1ec08d9aca3739132",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3226,
+        "completion_tokens": 145,
+        "total_tokens": 3371,
+        "completion_tokens_details": {
+          "text_tokens": 145
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 674
+        }
+      },
+      "estimated_cost_cny": 0.0054915,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 14,
+      "reserved_cny": 0.016896,
+      "role": "executor",
+      "step": 4,
+      "prompt_sha256": "aca28352b46eea767911d555702d82a056e863f7f3c5b5f44dde6919e3968722",
+      "request_sha256": "e1b43aae661c3b7b8912d74c39e657dbf5c8f3fe05e7b8d36b0ba068fd71ab0c",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3838,
+        "completion_tokens": 119,
+        "total_tokens": 3957,
+        "completion_tokens_details": {
+          "text_tokens": 119
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 1286
+        }
+      },
+      "estimated_cost_cny": 0.0062925,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 15,
+      "reserved_cny": 0.016896,
+      "role": "action_reflector",
+      "step": 4,
+      "prompt_sha256": "e49db1a21bebfe7649e85316c419fce98861af8dec9e6ab30ea8c3d3fabc17ca",
+      "request_sha256": "ecb0b09cb07556bc51263a4e3f5f470b9695aca612b62834cd8a71cf984bca15",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 5518,
+        "completion_tokens": 11,
+        "total_tokens": 5529,
+        "completion_tokens_details": {
+          "text_tokens": 11
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 414
+        }
+      },
+      "estimated_cost_cny": 0.0083265,
+      "transport_error": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "comparison": {
+    "original_run_id": "androidworld01",
+    "original_final_score": 0.0,
+    "extracted_final_score": 0.0,
+    "action_summary": [
+      "open Settings",
+      "scroll settings",
+      "tap Display",
+      "tap Brightness level",
+      "swipe brightness slider"
+    ],
+    "final_screenshot_display": "Brightness level 100%",
+    "strict_judge": "screen_brightness must equal 255; actual final score remained 0.0",
+    "interpretation": "Five-step run did not meet strict completion criteria; no success-rate or optimization claim."
+  },
+  "raw_evidence_policy": "Raw screenshots and provider payloads retained locally, not published."
+}

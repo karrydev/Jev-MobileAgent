@@ -313,7 +313,142 @@
       "completion_tokens": 109,
       "estimated_list_price_cny": 0.009762,
       "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-1",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 2829,
+      "completion_tokens": 159,
+      "estimated_list_price_cny": 0.004959,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-2",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3730,
+      "completion_tokens": 79,
+      "estimated_list_price_cny": 0.0059505,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-3",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5474,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.0082605,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-4",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3216,
+      "completion_tokens": 123,
+      "estimated_list_price_cny": 0.0053775,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-5",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3749,
+      "completion_tokens": 96,
+      "estimated_list_price_cny": 0.0060555,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-6",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5505,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.008307,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-7",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3257,
+      "completion_tokens": 117,
+      "estimated_list_price_cny": 0.005412,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-8",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3786,
+      "completion_tokens": 101,
+      "estimated_list_price_cny": 0.0061335,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-9",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5506,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.0083085,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-10",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3241,
+      "completion_tokens": 131,
+      "estimated_list_price_cny": 0.005451,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-11",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3832,
+      "completion_tokens": 106,
+      "estimated_list_price_cny": 0.006225,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-12",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5499,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.008298,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-13",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "manager",
+      "prompt_tokens": 3226,
+      "completion_tokens": 145,
+      "estimated_list_price_cny": 0.0054915,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-14",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "executor",
+      "prompt_tokens": 3838,
+      "completion_tokens": 119,
+      "estimated_list_price_cny": 0.0062925,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-extracted01-15",
+      "result": "extracted reference: strict task score 0 after 5 steps; HTTP 200",
+      "role": "action_reflector",
+      "prompt_tokens": 5518,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.0083265,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 0.1552365
+  "estimated_list_price_total_cny": 0.254085
 }

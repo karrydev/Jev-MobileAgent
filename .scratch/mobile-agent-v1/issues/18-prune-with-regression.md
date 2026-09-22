@@ -6,9 +6,9 @@ Blocked by: 17
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-prune-repository
+Branch: codex/v1-prune-repository
 Evidence: 参考任务实测
 Gate: 裁剪后仍能复现已建立的对照
 
@@ -35,3 +35,5 @@ Gate: 裁剪后仍能复现已建立的对照
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-23：17已合入，领取行为保持的裁剪。优先整目录移除确认无生产/对照依赖的旧版本、PC与无关研究/演示；保留当前v3.5原入口、实际所需AndroidWorld参考环境与许可证，不新增外置依赖下载框架。必须列出真实引用核查与保留/删除清单。冻结复验：同API33/GUI-Plus/SystemBrightnessMax/0–1000，裁剪后提取入口1次、5步、最多25请求、1024输出、¥1上限；保留所有结果、独立判分和usage，严格失败不得改报成功。纯裁剪代码提交与功能改动分开。
