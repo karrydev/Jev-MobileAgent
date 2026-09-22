@@ -6,9 +6,9 @@ Blocked by: 09, 13
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-live-vlm
+Branch: codex/v1-live-vlm
 Evidence: 真实模型 API
 Gate: 真实 VLM 能完成所需角色协议请求
 
@@ -31,3 +31,5 @@ Gate: 真实 VLM 能完成所需角色协议请求
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-23：09/13 前置已满足，领取真实协议探针。允许范围 services/live_vlm/、直接测试及说明，必要时小范围修复现有探针；保留原版角色源码与基线，不提前提取/裁剪。真实请求由主协调者串行发起、统计预算；子 Agent 仅离线开发测试，不读取凭据、不调用付费模型。现有最小探针图像仍为夹具占位，已确认不能直接用作真实视觉验收，需有效合成图与明确输出上限。
