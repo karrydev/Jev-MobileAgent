@@ -1,0 +1,413 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "jev-mobile-agent://contracts/v1/schema.json",
+  "title": "Jev-MobileAgent simulated loop contract v1",
+  "definitions": {
+    "task_submit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "device_id",
+        "mode",
+        "goal",
+        "scenario"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "task_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        },
+        "mode": {
+          "type": "string",
+          "const": "simulated"
+        },
+        "goal": {
+          "type": "string",
+          "const": "advance_to_done"
+        },
+        "scenario": {
+          "type": "string",
+          "enum": [
+            "apply_effect",
+            "receipt_without_effect"
+          ]
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "role",
+        "label",
+        "enabled"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "observation_id",
+        "device_id",
+        "captured_at",
+        "page_state",
+        "nodes",
+        "capabilities"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "observation_id": {
+          "type": "string"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "captured_at": {
+          "type": "string"
+        },
+        "page_state": {
+          "type": "string",
+          "enum": [
+            "landing",
+            "done"
+          ]
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "action_id",
+        "observation_id",
+        "kind",
+        "target_node_id",
+        "expected_page_state",
+        "source",
+        "created_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "action_id": {
+          "type": "string"
+        },
+        "observation_id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "tap"
+        },
+        "target_node_id": {
+          "type": "string",
+          "const": "start-button"
+        },
+        "expected_page_state": {
+          "type": "string",
+          "const": "done"
+        },
+        "source": {
+          "type": "string",
+          "const": "simulated-planner"
+        },
+        "created_at": {
+          "type": "string"
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "receipt_id",
+        "action_id",
+        "device_id",
+        "accepted",
+        "outcome",
+        "received_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "receipt_id": {
+          "type": "string"
+        },
+        "action_id": {
+          "type": "string"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "accepted": {
+          "type": "boolean",
+          "const": true
+        },
+        "outcome": {
+          "type": "string",
+          "const": "EXECUTED"
+        },
+        "received_at": {
+          "type": "string"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "task_id",
+        "verification_id",
+        "action_id",
+        "before_observation_id",
+        "after_observation_id",
+        "status",
+        "expected_page_state",
+        "actual_page_state",
+        "reason",
+        "verified_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "verification_id": {
+          "type": "string"
+        },
+        "action_id": {
+          "type": "string"
+        },
+        "before_observation_id": {
+          "type": "string"
+        },
+        "after_observation_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "SUCCESS",
+            "FAILURE",
+            "PENDING",
+            "UNKNOWN"
+          ]
+        },
+        "expected_page_state": {
+          "type": "string"
+        },
+        "actual_page_state": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "verified_at": {
+          "type": "string"
+        }
+      }
+    },
+    "trace_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "event_id",
+        "task_id",
+        "sequence",
+        "kind",
+        "entity_id",
+        "entity_kind",
+        "previous_event_id",
+        "links",
+        "recorded_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "task.submitted",
+            "observation.captured",
+            "action.dispatched",
+            "receipt.received",
+            "verification.recorded",
+            "task.completed",
+            "task.failed"
+          ]
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "entity_kind": {
+          "type": "string"
+        },
+        "previous_event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "links": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "task_id"
+          ],
+          "properties": {
+            "task_id": {
+              "type": "string"
+            },
+            "observation_id": {
+              "type": "string"
+            },
+            "action_id": {
+              "type": "string"
+            },
+            "receipt_id": {
+              "type": "string"
+            },
+            "verification_id": {
+              "type": "string"
+            }
+          }
+        },
+        "recorded_at": {
+          "type": "string"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "error"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "role",
+        "label",
+        "enabled"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

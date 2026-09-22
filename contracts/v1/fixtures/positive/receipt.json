@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "task_id": "task-fixture-001",
+  "receipt_id": "receipt-task-fixture-001",
+  "action_id": "act-task-fixture-001",
+  "device_id": "sim-device-01",
+  "accepted": true,
+  "outcome": "EXECUTED",
+  "received_at": "2026-09-22T00:00:00Z"
+}

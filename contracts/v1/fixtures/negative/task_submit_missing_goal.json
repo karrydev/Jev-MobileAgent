@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "task_id": "task-fixture-invalid-001",
+  "device_id": "sim-device-01",
+  "mode": "simulated",
+  "scenario": "apply_effect"
+}
