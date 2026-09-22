@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "task_id": "task-fixture-001",
+  "observation_id": "obs-task-fixture-001-before",
+  "device_id": "sim-device-01",
+  "captured_at": "2026-09-22T00:00:00Z",
+  "page_state": "landing",
+  "nodes": [
+    {
+      "node_id": "start-button",
+      "role": "button",
+      "label": "Start",
+      "enabled": true
+    }
+  ],
+  "capabilities": [
+    "observe",
+    "tap"
+  ]
+}

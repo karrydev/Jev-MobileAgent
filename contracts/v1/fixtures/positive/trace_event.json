@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "event_id": "evt-task-fixture-001-2",
+  "task_id": "task-fixture-001",
+  "sequence": 2,
+  "kind": "observation.captured",
+  "entity_id": "obs-task-fixture-001-before",
+  "entity_kind": "observation",
+  "previous_event_id": "evt-task-fixture-001-1",
+  "links": {
+    "task_id": "task-fixture-001",
+    "observation_id": "obs-task-fixture-001-before"
+  },
+  "recorded_at": "2026-09-22T00:00:00Z"
+}
