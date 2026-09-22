@@ -19,6 +19,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from services.live_vlm.images import synthetic_probe_images
+
 from .schema import SCHEMA_VERSION, SchemaValidationError, assert_valid
 
 Clock = Callable[[], str]
@@ -380,10 +382,7 @@ def minimal_probe(
         task_id="probe-task",
         attempt_id="probe-attempt-1",
         prompt="请返回一个结构化 tap action。",
-        images=[
-            {"image_id": "probe-image-1", "media_type": "image/png", "data": "fixture-image-1"},
-            {"image_id": "probe-image-2", "media_type": "image/png", "data": "fixture-image-2"},
-        ],
+        images=synthetic_probe_images(),
         clock=clock,
     )
     configured = bool(os.environ.get(credential_env))
