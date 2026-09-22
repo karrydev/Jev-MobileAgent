@@ -55,6 +55,9 @@ ANDROID_INFER_SOURCE = REPO_ROOT / "Mobile-Agent-v3.5/android_world_v3.5/android
 ANDROID_TASK_SOURCE = REPO_ROOT / "Mobile-Agent-v3.5/android_world_v3.5/android_world/task_evals/single/system.py"
 ANDROID_EPISODE_RUNNER_SOURCE = REPO_ROOT / "Mobile-Agent-v3.5/android_world_v3.5/android_world/episode_runner.py"
 ANDROID_ENV_LAUNCHER_SOURCE = REPO_ROOT / "Mobile-Agent-v3.5/android_world_v3.5/android_world/env/env_launcher.py"
+EXTRACTED_ROLE_SOURCE = REPO_ROOT / "agent_core/vlm/roles.py"
+EXTRACTED_ORCHESTRATION_SOURCE = REPO_ROOT / "agent_core/vlm/orchestration.py"
+EXTRACTED_REFERENCE_ADAPTER_SOURCE = REPO_ROOT / "services/original_baselines/extracted_androidworld.py"
 
 MAX_STEPS = 5
 MAX_REQUESTS_PER_RUN = 25
@@ -1387,3 +1390,108 @@ def run_androidworld_baseline(
         })
     report["evidence_report"] = evidence.write_report(_redact(report, [credential]))
     return _redact(report, [credential])
+
+
+def run_androidworld_extracted_baseline(
+    *,
+    adb_path: str,
+    console_port: int = DEFAULT_ANDROID_CONSOLE_PORT,
+    grpc_port: int = DEFAULT_ANDROID_GRPC_PORT,
+    endpoint: str = DEFAULT_ENDPOINT,
+    model: str = DEFAULT_MODEL,
+    credential_env: str = DEFAULT_CREDENTIAL_ENV,
+    max_steps: int = MAX_STEPS,
+    max_requests: int = MAX_REQUESTS_PER_RUN,
+    max_tokens: int = MAX_TOKENS,
+    budget_cny: float = ENTRY_BUDGET_CNY,
+    timeout: float = DEFAULT_TIMEOUT_SECONDS,
+    evidence_dir: str | Path | None = None,
+    request_fn: Callable[[str, str, dict[str, Any], float], tuple[int | None, Any, str, str | None]] | None = None,
+    env_factory: Callable[[], Any] | None = None,
+    task_factory: Callable[[], Any] | None = None,
+    episode_runner: Callable[..., Any] | None = None,
+    coordinate_adaptation: bool = True,
+    freeze_datetime: bool = False,
+) -> dict[str, Any]:
+    """Run the extracted roles through the same bounded AndroidWorld lifecycle.
+
+    The existing task-16 function remains the original reference entry.  This
+    thin wrapper changes only the agent factory and annotates the report with
+    the extracted source hashes and execution mode; transport, budget,
+    evidence, task initialization, independent judge, and episode runner are
+    shared with the original baseline.
+    """
+
+    from services.original_baselines.extracted_androidworld import ExtractedAndroidWorldAgent
+
+    credential = os.environ.get(credential_env)
+    injected = any(value is not None for value in (request_fn, env_factory, task_factory, episode_runner))
+
+    def extracted_factory(env: Any, transport: Any, output_path: str) -> Any:
+        return ExtractedAndroidWorldAgent(
+            env,
+            transport,
+            output_path,
+            device_id=DEFAULT_ANDROID_DEVICE_ID,
+        )
+
+    report = run_androidworld_baseline(
+        adb_path=adb_path,
+        console_port=console_port,
+        grpc_port=grpc_port,
+        endpoint=endpoint,
+        model=model,
+        credential_env=credential_env,
+        max_steps=max_steps,
+        max_requests=max_requests,
+        max_tokens=max_tokens,
+        budget_cny=budget_cny,
+        timeout=timeout,
+        evidence_dir=evidence_dir,
+        request_fn=request_fn,
+        env_factory=env_factory,
+        task_factory=task_factory,
+        agent_factory=extracted_factory,
+        episode_runner=episode_runner,
+        coordinate_adaptation=coordinate_adaptation,
+        freeze_datetime=freeze_datetime,
+    )
+
+    # ``run_androidworld_baseline`` treats any injected factory as offline so
+    # its original entry cannot accidentally be called a real baseline.  The
+    # extracted wrapper injects only the agent factory for a real run, so
+    # restore the explicit mode here while retaining the same safety rule for
+    # test fixtures that inject an environment or episode runner.
+    report["entrypoint"] = "extracted_roles_androidworld_reference"
+    report["baseline_variant"] = "extracted_roles_with_contract_observation_adapter"
+    report["config"]["role_implementation_mode"] = "extracted_roles_reference_adapter"
+    report["config"]["role_sources"] = {
+        "roles": str(EXTRACTED_ROLE_SOURCE.relative_to(REPO_ROOT)),
+        "orchestration": str(EXTRACTED_ORCHESTRATION_SOURCE.relative_to(REPO_ROOT)),
+        "reference_adapter": str(EXTRACTED_REFERENCE_ADAPTER_SOURCE.relative_to(REPO_ROOT)),
+    }
+    report.setdefault("source_files", {}).update(
+        _source_hashes(
+            [EXTRACTED_ROLE_SOURCE, EXTRACTED_ORCHESTRATION_SOURCE, EXTRACTED_REFERENCE_ADAPTER_SOURCE]
+        )
+    )
+    real_candidate = not injected and report.get("status") not in {
+        "credentials_required",
+        "invalid_configuration",
+    }
+    report["execution_mode"] = "injected_offline" if injected else "real_environment"
+    report["baseline_eligible"] = real_candidate
+    report["evidence_mode"] = "injected_offline" if injected else "real_environment"
+    report["baseline_result"] = (
+        "offline_injected_only" if injected else ("real_candidate" if real_candidate else "not_run")
+    )
+    report["config"]["execution_mode"] = report["execution_mode"]
+    report["config"]["source_hash_mode"] = "explicit_extracted_and_original"
+
+    evidence_report = report.get("evidence_report")
+    if isinstance(evidence_report, str):
+        Path(evidence_report).write_text(
+            json.dumps(_redact(report, [credential or ""]), ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    return _redact(report, [credential or ""])
