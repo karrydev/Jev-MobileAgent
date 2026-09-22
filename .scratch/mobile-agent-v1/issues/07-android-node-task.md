@@ -41,3 +41,5 @@ Gate: 从 App 发起中文输入任务并控制执行
 物理手机验收：OnePlus 8T / Android 14；最终 APK SHA-256 `d24a96bcda54cb0d36e309cc7ddb33c511973a7ffeaa27dfa7227265348ea821` 与设备一致。相同执行逻辑版本两次点击（obs908→909、922→923）与两次完整中文输入（932→933、955→956）均 SUCCEEDED；最终 UI 修正版重新验证点击。快速暂停/取消均保持页面 ready，暂停后可从 App 取消。故障注入前三次回执上传返回 503、同一 action 共 6 次状态返回，最终仅保留一次执行回执与正确页面效果。动作已执行、回执迟到时：取消保持 CANCELLED/CANCELLED，暂停保持 PAUSED/PAUSED 且第二任务 409 task_active，随后 UI 取消释放占用。没有把取消解释为撤销已发生动作。
 
 原始 JSON、截图和故障注入脚本保留本机 `/tmp/jev-result-*`、`/tmp/jev-post-*`、`/tmp/jev-phone-fault-bridge.py`；仅操作项目受控页面。旧节点、未知目标、中文保真、显式前后观察关联由协议负例及设备端身份/当前窗口检查覆盖。当前是确定性测试策略、USB 调试传输，不代表真实 VLM、多 ROM 或脱离 ADB 验收。
+
+2026-09-22：主树 `bde8ffe` 集成基准：`python3 -B -m unittest discover -s tests` 94/94，`python3 -B -m unittest discover -s eval/tests` 8/8，共 102 项通过。任务 08 后仅需重验相关 Android 集成面，除非发现新的跨模块影响。
