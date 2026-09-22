@@ -28,4 +28,6 @@ python3 -m services.live_vlm \
 
 `--output` 只写本地报告；不要把报告或命令中的凭据提交。图片夹具是程序生成的有效 64×64 红/蓝 PNG，报告包含尺寸和 SHA-256。手机原版解析器保持严格行为：它要求 `<tool_call>\n` 和原始 JSON 结构；解析失败会报告为该角色不兼容，不会用宽松解析补救。
 
+原版 `mobile_tool_call` prompt 明确声明屏幕分辨率为 1000×1000；四角色的原始 prompt 不包含这个坐标范围约束。默认探针保留四角色 prompt 原样。如需在探针中显式测试适配提示，可加入 `--coordinate-adaptation`；它只向四角色请求追加一段说明，要求两轴使用 0–1000 的 normalized 坐标，不提供目标、答案或中心坐标，手机原版请求保持不变。适配模式会在报告 `config.coordinate_adaptation` 中记录为 enabled，并把追加文本保存在对应角色的 prompt 中。
+
 `mobile_tool_call` 或 `executor` 返回点击动作时，探针把 0–1000 坐标映射到已有 `services.sim_loop.device.SimulatedDevice` 的 `start-button`，先获取观察，再交给模拟设备执行，最后重新观察并查询动作历史。只有真实设备回执为 `EXECUTED` 且页面状态变为 `done` 才算独立确认。这只是离线动作映射/后置条件证据，不是 Android 真机证据。真实模型失败、角色解析失败、HTTP 错误或 usage 缺失都会保留在报告中；因此“请求成功”不等于四角色兼容通过。

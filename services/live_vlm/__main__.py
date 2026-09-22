@@ -20,6 +20,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
     parser.add_argument("--budget-cny", type=float, default=DEFAULT_BUDGET_CNY)
     parser.add_argument("--execute", action="store_true", help="send at most the bounded five-role request suite")
+    parser.add_argument(
+        "--coordinate-adaptation",
+        action="store_true",
+        help="append an explicit normalized 0..1000 coordinate instruction to the four role prompts only",
+    )
     parser.add_argument("--output", help="also write the JSON report to this local path")
     return parser
 
@@ -35,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         max_requests=args.max_requests,
         max_tokens=args.max_tokens,
         budget_cny=args.budget_cny,
+        coordinate_adaptation=args.coordinate_adaptation,
     )
     encoded = json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2)
     print(encoded)

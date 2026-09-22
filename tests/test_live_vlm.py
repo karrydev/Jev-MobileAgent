@@ -11,7 +11,14 @@ from unittest.mock import patch
 from PIL import Image
 
 from services.live_vlm.images import synthetic_probe_images
-from services.live_vlm.probe import _build_requests, _parse_phone, _parse_role, _simulate_click, run_probe
+from services.live_vlm.probe import (
+    COORDINATE_ADAPTATION_INSTRUCTION,
+    _build_requests,
+    _parse_phone,
+    _parse_role,
+    _simulate_click,
+    run_probe,
+)
 
 
 PHONE_OUTPUT = 'Action: click\n<tool_call>\n{"name":"mobile_use","arguments":{"action":"click","coordinate":[500,500]}}\n</tool_call>'
@@ -99,6 +106,27 @@ class LiveVlmProbeTests(unittest.TestCase):
         self.assertEqual(report["max_tokens"], 1024)
         self.assertEqual(len(report["images"]), 2)
         self.assertTrue(all(image["valid_png"] for image in report["images"]))
+        self.assertFalse(report["config"]["coordinate_adaptation"]["enabled"])
+        self.assertEqual(report["config"]["coordinate_adaptation"]["mode"], "original_prompts")
+
+    def test_coordinate_adaptation_wraps_only_four_role_prompts(self) -> None:
+        original, _ = _build_requests()
+        adapted, _ = _build_requests(coordinate_adaptation=True)
+        original_by_name = {request.name: request for request in original}
+        adapted_by_name = {request.name: request for request in adapted}
+
+        phone_original = original_by_name["mobile_tool_call"]
+        phone_adapted = adapted_by_name["mobile_tool_call"]
+        self.assertEqual(phone_adapted.prompt, phone_original.prompt)
+        self.assertEqual(phone_adapted.messages, phone_original.messages)
+
+        for name in ("manager", "executor", "action_reflector", "notetaker"):
+            prompt = adapted_by_name[name].prompt
+            self.assertNotEqual(prompt, original_by_name[name].prompt)
+            self.assertIn("### Probe Coordinate Adaptation (enabled) ###", prompt)
+            self.assertIn(COORDINATE_ADAPTATION_INSTRUCTION, prompt)
+            self.assertIn("0..1000", prompt)
+            self.assertNotIn("[440, 1143]", prompt)
 
     def test_execute_runs_each_original_parser_and_device_confirms_click(self) -> None:
         fixture = FixtureServer()
@@ -130,6 +158,25 @@ class LiveVlmProbeTests(unittest.TestCase):
         self.assertTrue(executor["simulation"]["independent_confirmation"])
         self.assertEqual(report["budget"]["estimated_spend_cny"], 0.00126)
 
+    def test_coordinate_adaptation_does_not_accept_out_of_range_executor_coordinates(self) -> None:
+        fixture = FixtureServer()
+        fixture.outputs[2] = '### Thought ###\nThe red button is visible.\n### Action ###\n{"action":"click","coordinate":[440,1143]}\n### Description ###\nClick the red button.'
+        try:
+            with patch.dict(os.environ, {"JEV_LIVE_TEST_KEY": "fixture-secret"}, clear=False):
+                report = run_probe(
+                    endpoint=fixture.endpoint,
+                    model="fixture-model",
+                    credential_env="JEV_LIVE_TEST_KEY",
+                    execute=True,
+                    coordinate_adaptation=True,
+                )
+        finally:
+            fixture.close()
+        self.assertTrue(report["config"]["coordinate_adaptation"]["enabled"])
+        executor = report["checks"][2]
+        self.assertEqual(executor["status"], "role_incompatible")
+        self.assertFalse(executor["simulation"]["independent_confirmation"])
+        self.assertEqual(executor["simulation"]["status"], "postcondition_failed")
 
     def test_errors_usage_missing_and_no_retry_are_recorded(self) -> None:
         fixture = FixtureServer(statuses=[429, 200, 200, 200, 200], usage=[None, None, {"prompt_tokens": 10, "completion_tokens": 2}, {"prompt_tokens": 10, "completion_tokens": 2}, {"prompt_tokens": 10, "completion_tokens": 2}])

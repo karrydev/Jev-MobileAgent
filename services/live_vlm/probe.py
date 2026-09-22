@@ -51,6 +51,16 @@ INPUT_PRICE_PER_MILLION = 1.5
 OUTPUT_PRICE_PER_MILLION = 4.5
 DEFAULT_BUDGET_CNY = 0.2
 
+COORDINATE_ADAPTATION_INSTRUCTION = (
+    "Probe coordinate adaptation is enabled for this four-role request. "
+    "When an action contains coordinate or coordinate2, emit normalized coordinates "
+    "on a 0..1000 frame for both axes: x=0 is the left edge, x=1000 is the right "
+    "edge, y=0 is the top edge, and y=1000 is the bottom edge. Keep every coordinate "
+    "component within 0..1000. This supplies the coordinate frame only; it does not "
+    "supply target, answer, or center coordinates. Infer action parameters from the "
+    "screenshot and keep the original action schema."
+)
+
 Clock = Callable[[], str]
 
 
@@ -263,7 +273,16 @@ def _make_info_pool(module: types.ModuleType) -> Any:
     )
 
 
-def _build_requests() -> tuple[list[ProbeRequest], dict[str, Any]]:
+def _adapt_role_prompt(prompt: str) -> str:
+    return (
+        f"{prompt.rstrip()}\n\n"
+        "---\n"
+        "### Probe Coordinate Adaptation (enabled) ###\n"
+        f"{COORDINATE_ADAPTATION_INSTRUCTION}\n"
+    )
+
+
+def _build_requests(*, coordinate_adaptation: bool = False) -> tuple[list[ProbeRequest], dict[str, Any]]:
     images = synthetic_probe_images()
     roles = _load_roles()
     utility, phone = _load_phone_modules()
@@ -307,6 +326,8 @@ def _build_requests() -> tuple[list[ProbeRequest], dict[str, Any]]:
     for name, role_class, role_info, role_images, requirements in role_specs:
         role = role_class()
         prompt = role.get_prompt(role_info)
+        if coordinate_adaptation:
+            prompt = _adapt_role_prompt(prompt)
         requests.append(
             ProbeRequest(
                 name=name,
@@ -650,6 +671,7 @@ def run_probe(
     max_requests: int = DEFAULT_MAX_REQUESTS,
     max_tokens: int = DEFAULT_MAX_TOKENS,
     budget_cny: float = DEFAULT_BUDGET_CNY,
+    coordinate_adaptation: bool = False,
 ) -> dict[str, Any]:
     """Build the suite and optionally execute at most six single requests."""
 
@@ -668,6 +690,14 @@ def run_probe(
         "endpoint": _redact_value(endpoint, [os.environ.get(credential_env, "")]),
         "model": model,
         "credential_env": credential_env,
+        "config": {
+            "coordinate_adaptation": {
+                "enabled": coordinate_adaptation,
+                "scope": "four_role_requests_only",
+                "mode": "normalized_0_1000_both_axes" if coordinate_adaptation else "original_prompts",
+                "instruction": COORDINATE_ADAPTATION_INSTRUCTION if coordinate_adaptation else None,
+            }
+        },
         "credentials_present": bool(os.environ.get(credential_env)),
         "max_requests": max_requests,
         "max_tokens": max_tokens,
@@ -687,7 +717,7 @@ def run_probe(
         return base
     if not execute:
         try:
-            requests, metadata = _build_requests()
+            requests, metadata = _build_requests(coordinate_adaptation=coordinate_adaptation)
         except Exception as exc:
             base["status"] = "source_load_failed"
             base["error"] = f"{type(exc).__name__}: {exc}"
@@ -716,7 +746,7 @@ def run_probe(
         base["status"] = "credentials_required"
         return base
     try:
-        requests, metadata = _build_requests()
+        requests, metadata = _build_requests(coordinate_adaptation=coordinate_adaptation)
     except Exception as exc:
         base["status"] = "source_load_failed"
         base["error"] = f"{type(exc).__name__}: {exc}"
