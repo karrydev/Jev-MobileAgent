@@ -6,9 +6,9 @@ Blocked by: 02, 14, 15
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-original-baselines
+Branch: codex/v1-original-baselines
 Evidence: 真实 API、AndroidWorld、物理手机
 Gate: 分别运行原真机与四角色最小基线
 
@@ -38,3 +38,5 @@ Gate: 分别运行原真机与四角色最小基线
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-23：15 验证期间完成无模型调用的环境预备：已安装 API 33 Google APIs ARM64 系统镜像，建立独立 Pixel 6 AVD `JevAndroidWorldApi33`（console 5556 / gRPC 8554），实际启动到 sys.boot_completed=1；没有修改现有 AVD 或物理手机。隔离 Python venv 已安装 android_env 1.2.3、dm_env 1.6、protobuf 5.29.5、numpy 1.26.3 等，android_world.env.env_launcher 可导入。依赖快照保留本机 `/tmp/jev-androidworld-environment.txt`。这只是环境预备，任务、应用初始化和真实四角色基线未运行，本票保持 pending。启动验证后已正常关闭本轮专用模拟器，避免后台空转。
+
+2026-09-23：14/15 已关闭，按 [冻结方案](../baseline-plan.md) 领取双入口运行工作。模型调用与物理设备由协调者串行控制；Luna 只开发最小有界运行适配与离线验证，保留上游入口，必要修复单独记录。
