@@ -140,7 +140,180 @@
       "completion_tokens": 10,
       "estimated_list_price_cny": 0.0005985,
       "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-mobile01-preflight",
+      "result": "invalid_observation",
+      "reason": "observer_before_error:RuntimeError",
+      "model_requests": 0,
+      "model_inference_started": false,
+      "estimated_list_price_cny": 0,
+      "actual_billed_cny": 0
+    },
+    {
+      "id": "baseline-mobile02-preflight",
+      "result": "stopped",
+      "reason": {
+        "type": "UnsafePhoneAction",
+        "message": "active_package_not_allowed:unknown"
+      },
+      "model_requests": 0,
+      "model_inference_started": false,
+      "estimated_list_price_cny": 0,
+      "actual_billed_cny": 0
+    },
+    {
+      "id": "baseline-androidworld01-1",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 2829,
+      "completion_tokens": 159,
+      "estimated_list_price_cny": 0.004959,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-2",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 3768,
+      "completion_tokens": 83,
+      "estimated_list_price_cny": 0.0060255,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-3",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 5474,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.0082605,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-4",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 3215,
+      "completion_tokens": 123,
+      "estimated_list_price_cny": 0.005376,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-5",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 3787,
+      "completion_tokens": 113,
+      "estimated_list_price_cny": 0.006189,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-6",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 5509,
+      "completion_tokens": 73,
+      "estimated_list_price_cny": 0.008592,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-7",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 3260,
+      "completion_tokens": 164,
+      "estimated_list_price_cny": 0.005628,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-8",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 3927,
+      "completion_tokens": 118,
+      "estimated_list_price_cny": 0.0064215,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-9",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 5533,
+      "completion_tokens": 118,
+      "estimated_list_price_cny": 0.0088305,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-10",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 3609,
+      "completion_tokens": 170,
+      "estimated_list_price_cny": 0.0061785,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-11",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 4130,
+      "completion_tokens": 134,
+      "estimated_list_price_cny": 0.006798,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-12",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 5522,
+      "completion_tokens": 106,
+      "estimated_list_price_cny": 0.00876,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-13",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 3649,
+      "completion_tokens": 196,
+      "estimated_list_price_cny": 0.0063555,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-14",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 4337,
+      "completion_tokens": 117,
+      "estimated_list_price_cny": 0.007032,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-androidworld01-15",
+      "result": "task failed after 5 steps; HTTP 200",
+      "prompt_tokens": 5523,
+      "completion_tokens": 114,
+      "estimated_list_price_cny": 0.0087975,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-mobile03-1",
+      "result": "physical postcondition success; harness rejects original answer terminal",
+      "prompt_tokens": 3548,
+      "completion_tokens": 134,
+      "estimated_list_price_cny": 0.005925,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-mobile03-2",
+      "result": "physical postcondition success; harness rejects original answer terminal",
+      "prompt_tokens": 6181,
+      "completion_tokens": 177,
+      "estimated_list_price_cny": 0.010068,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-mobile04-1",
+      "result": "physical baseline success",
+      "prompt_tokens": 3548,
+      "completion_tokens": 134,
+      "estimated_list_price_cny": 0.005925,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "baseline-mobile04-2",
+      "result": "physical baseline success",
+      "prompt_tokens": 6181,
+      "completion_tokens": 109,
+      "estimated_list_price_cny": 0.009762,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 0.019353
+  "estimated_list_price_total_cny": 0.1552365
 }

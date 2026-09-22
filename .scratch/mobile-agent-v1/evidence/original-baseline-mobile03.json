@@ -1,0 +1,114 @@
+{
+  "status": "stopped",
+  "success": false,
+  "source_files": {
+    "Mobile-Agent-v3.5/mobile_use/run_gui_owl_1_5_for_mobile.py": {
+      "sha256": "f796a792bd9eb041b8e8daf178c1bf23e350d335d22da05a73801e5f4c0bae5f"
+    },
+    "Mobile-Agent-v3.5/mobile_use/utils.py": {
+      "sha256": "1cd5414943f379ddd6a46e279fd11b4cf6317e7e568cf1e94cb7749fc5732e3d"
+    }
+  },
+  "budget": {
+    "max_requests": 25,
+    "requests_attempted": 2,
+    "reserved_cny": 0.033792,
+    "budget_cny": 1.0,
+    "estimated_spend_cny": 0.015993,
+    "usage_missing": false,
+    "stop_reason": null,
+    "per_request_upper_bound_cny": 0.016896
+  },
+  "error": {
+    "type": "UnsafePhoneAction",
+    "message": "action_not_allowed:answer"
+  },
+  "independent_judge": {
+    "status": "success",
+    "success": true,
+    "reason": "live_before_after_exact_state",
+    "device_id": "android-phone-01",
+    "before_observation_id": "android-phone-01-obs-2686-64d49e9e01c64554b8a7c3e961d81bd1",
+    "after_observation_id": "android-phone-01-obs-2690-ee5f309a2411471e9d33996f03d82336",
+    "before_captured_at": "2026-09-22T18:03:57.135549Z",
+    "after_captured_at": "2026-09-22T18:04:06.216285Z",
+    "initial_state": "Controlled action state: ready",
+    "expected_text": "Controlled action state: completed"
+  },
+  "run_at": "2026-09-22T18:04:09.526269+00:00",
+  "harness_sha256": "114b8b6a275daa38cad6833d9b6d444297bd98c150f93a1357f12a852b6679e5",
+  "run_id": "mobile03",
+  "config": {
+    "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "model": "gui-plus-2026-02-26",
+    "allowed_package": "com.jev.mobileagent",
+    "allowed_tap_bounds": [
+      60,
+      682,
+      1020,
+      826
+    ],
+    "instruction": "点击 Toggle controlled state，使状态变为 completed",
+    "max_steps": 5,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "budget_cny": 1.0,
+    "timeout_seconds": 30.0,
+    "coordinate_adaptation": "original_phone_prompt_unchanged"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "reserved_cny": 0.016896,
+      "role": "mobile_tool_call",
+      "step": null,
+      "prompt_sha256": "81aec9174c68085f8f7168b82325d272b0580d3e0754931ec33d83c1c17ba02d",
+      "request_sha256": "6295cedffc00066464476d4145272efa57968fc5e0fbcc6d7125a1a0e5db3a5c",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 3548,
+        "completion_tokens": 134,
+        "total_tokens": 3682,
+        "completion_tokens_details": {
+          "reasoning_tokens": 60,
+          "text_tokens": 74
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 2552,
+          "text_tokens": 996
+        }
+      },
+      "estimated_cost_cny": 0.005925,
+      "transport_error": null,
+      "finish_reason": "stop"
+    },
+    {
+      "attempt": 2,
+      "reserved_cny": 0.016896,
+      "role": "mobile_tool_call",
+      "step": null,
+      "prompt_sha256": "946557c091bad6060b67b097e7870b7e40406d507e43c071ec4343465bbf2696",
+      "request_sha256": "c98c3196815db0d4f16defbee5d081f2784c7b59ffc53a5806e9e45d880b3179",
+      "http_status": 200,
+      "usage_present": true,
+      "usage": {
+        "prompt_tokens": 6181,
+        "completion_tokens": 177,
+        "total_tokens": 6358,
+        "completion_tokens_details": {
+          "reasoning_tokens": 71,
+          "text_tokens": 106
+        },
+        "prompt_tokens_details": {
+          "image_tokens": 5104,
+          "text_tokens": 1077
+        }
+      },
+      "estimated_cost_cny": 0.010068,
+      "transport_error": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "raw_evidence_policy": "Raw screenshots, provider payloads and device identifiers are retained locally, not published."
+}
