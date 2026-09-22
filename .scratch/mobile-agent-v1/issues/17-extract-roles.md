@@ -6,9 +6,9 @@ Blocked by: 01, 16
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-role-extraction
+Branch: codex/v1-role-extraction
 Evidence: 真实 API、参考设备后端
 Gate: 提取角色后在参考设备后端保持任务行为
 
@@ -36,3 +36,5 @@ Gate: 提取角色后在参考设备后端保持任务行为
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-23：01/16 已完成，从 `8dfc3ea` 领取最小角色提取。范围限必要角色/InfoPool/生成式调度、已有契约的适配、参考环境运行接口、测试与来源说明；不新增策略/框架，不删除原入口。冻结对照：复用 task16 SystemBrightnessMax、同一 API33 AVD、GUI-Plus 配置、0–1000 适配、1次/5步/最多25请求/1024输出/¥1上限；记录每次真实结果。原版基线终局0分，迁移不得将其改报成功或宣称性能提升。离线对同一原响应/状态核对角色提示词、解析和调度关键分支；真实参考运行须有初始0分、有效最终独立判分、真实动作与完整费用，不能只用导入/回放验收。
