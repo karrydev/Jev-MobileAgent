@@ -33,3 +33,5 @@ Gate: 旧目标与重复命令不会产生额外动作
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-22：01/02 已验收合入；协调者领取本批。范围：services/sim_loop/、contracts/v1/、tests/test_sim_loop.py 与新的 runtime 测试；同一运行链合批，实现暂停/取消后再接回放。 按 code-this 由新 Luna-max 实现，主 Agent 负责 Git，Terra-max 审查。
+
+2026-09-22：Terra 经 localhost HTTP 复现：明确 stale_observation 拒绝后占用未释放；旧 session 可在首个当前动作前抢占。已交新 Luna 修复并补公共边界回归，本票保持 in-progress。

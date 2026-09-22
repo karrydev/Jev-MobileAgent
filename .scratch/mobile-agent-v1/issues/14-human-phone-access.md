@@ -6,8 +6,8 @@ Blocked by: none
 
 Status: ready-for-human
 
-Execution: pending
-Owner: unassigned
+Execution: in-progress
+Owner: user-and-coordinator
 Branch: unassigned
 Evidence: 用户访问条件
 Gate: 提供物理手机与首轮任务授权
@@ -37,3 +37,5 @@ Gate: 提供物理手机与首轮任务授权
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：用户主动连接物理手机并要求后续通过真机测试。ADB 已确认 OnePlus 8T（KB2000）、Android 14 / API 34，USB 调试已授权。后续 App 验证切换到该真机的项目受控页面，所有设备命令明确指定目标；不操作私人应用数据。现有模拟器证据独立保留。App/无障碍权限及首轮真实模型任务、预算和判分口径仍需在对应关口核实，本票未完成。设备序列号仅留本地工具调用，不进入公开文档。

@@ -34,3 +34,5 @@ Gate: 在模拟器中连接 App 并查看当前观察
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-22：01/02 已验收合入；协调者领取本批。范围：android-app/、独立 services/android_bridge/、contracts/android/、tests/test_android_bridge.py；不改 sim_loop、contracts/v1、根构建或其他工作线。共享最小封套语义需复用，Android 扩展独立版本化。 按 code-this 由新 Luna-max 实现，主 Agent 负责 Git，Terra-max 审查。
+
+2026-09-22：Android App assembleDebug 成功；Pixel_5_API_32 实际采集 2 windows / 12 nodes、1080x2340、rotation 0。撤销权限返回 PERMISSION_UNAVAILABLE 空树；断连清理旧观察。主 Agent 复跑 bridge 5 项测试通过，Terra 正在审查。原始受控证据留本机 /tmp/jev-android-observation-final.json 与同名前缀截图；待审查通过后记录合入 SHA。
