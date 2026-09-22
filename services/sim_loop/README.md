@@ -17,6 +17,9 @@ POST /v1/tasks
 GET  /v1/tasks/{task_id}
 POST /v1/tasks/{task_id}/pause
 POST /v1/tasks/{task_id}/cancel
+POST /v1/tasks/{task_id}/reconnect
+POST /v1/tasks/{task_id}/reconcile
+POST /v1/tasks/{task_id}/resume
 ```
 
 Every request needs `Authorization: Bearer <token>` and
@@ -127,10 +130,29 @@ prints their loopback URLs:
 
 ```bash
 JEV_SIM_AUTH_TOKEN=local-demo-token \
-  python3 -m services.sim_loop serve --service-port 8765 --device-port 8766
+  python3 -m services.sim_loop serve --service-port 8765 --device-port 8766 \
+  --service-state-path .scratch/service-state.json \
+  --device-state-path .scratch/device-state.json
 ```
 
-This slice intentionally does not implement restart recovery, persistent
-checkpoints, real Android Accessibility, or real accounts/devices. A paused
-task has no automatic resume path; the explicit reconciliation and resume
-boundary is a later behavior slice.
+This slice still does not implement real Android Accessibility or real
+accounts/devices.  Its simulated recovery boundary is explicit: reconnect
+restores communication while keeping a task `PAUSED`; reconcile captures a new
+observation and classifies action history as `EXECUTED`, `NOT_EXECUTED`, or
+`UNKNOWN`; resume requires `confirmed: true`, the returned observation version,
+and a single-use `resume_token`.  Changed scenes, stale tokens, old
+observation versions, and `UNKNOWN` results keep the task paused and never
+replay an action.
+
+Inject each recovery boundary from a simulated task submission with one of:
+
+```json
+{"fault_injection": {"point": "before_dispatch"}}
+{"fault_injection": {"point": "after_execute_before_receipt"}}
+{"fault_injection": {"point": "after_receipt_before_verification"}}
+```
+
+`SimulationService(state_path=...)` and `SimulatedDevice(state_path=...)` use
+atomic local JSON checkpoints.  Rebuilding the Python objects without those
+files is only an in-memory restart and is not persistence evidence.  The
+simulated adapter still makes no physical exactly-once guarantee.

@@ -35,6 +35,9 @@ Task control is exposed at:
 ```text
 POST /v1/tasks/{task_id}/pause
 POST /v1/tasks/{task_id}/cancel
+POST /v1/tasks/{task_id}/reconnect
+POST /v1/tasks/{task_id}/reconcile
+POST /v1/tasks/{task_id}/resume
 ```
 
 Controls are idempotent. A paused task remains the single active task and
@@ -50,4 +53,11 @@ verification `UNKNOWN`. A trusted device rejection such as
 `409 stale_observation` proves that the action was refused before execution,
 so it fails the task and releases the reservation. Arbitrary proxy 5xx
 responses do not prove refusal and remain `UNKNOWN`. A pause or cancellation
-before dispatch prevents the action from being sent.
+before dispatch prevents the action from being sent. Reconnect only restores
+communication and keeps the task `PAUSED`; reconcile records a fresh
+observation plus device action history. Only an `EXECUTED` or `NOT_EXECUTED`
+result can produce an observation-bound resume token. `/resume` requires that
+token, the same stable observation version, and explicit confirmation. Unknown
+actions are never replayed, and a cancelled task is never revived. The local
+simulator can persist these checkpoints with `state_path`, but it does not
+claim physical exactly-once execution.

@@ -42,6 +42,9 @@
             "receipt_without_effect"
           ]
         },
+        "fault_injection": {
+          "$ref": "#/$defs/fault_injection"
+        },
         "session_id": {
           "type": "string"
         },
@@ -355,6 +358,9 @@
             "task.failed",
             "task.paused",
             "task.cancelled",
+            "recovery.required",
+            "recovery.reconciled",
+            "task.resumed",
             "model.requested",
             "model.responded",
             "model.failed",
@@ -505,6 +511,23 @@
         "timeout": {
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "fault_injection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "point"
+      ],
+      "properties": {
+        "point": {
+          "type": "string",
+          "enum": [
+            "before_dispatch",
+            "after_execute_before_receipt",
+            "after_receipt_before_verification"
+          ]
         }
       }
     },

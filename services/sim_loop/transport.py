@@ -139,3 +139,22 @@ class DeviceClient:
             body=action,
             timeout=self.timeout,
         )
+
+    def action_status(
+        self,
+        task_id: str,
+        action_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> dict[str, Any]:
+        encoded_task_id = urllib.parse.quote(task_id, safe="")
+        encoded_action_id = urllib.parse.quote(action_id, safe="")
+        return request_json(
+            f"{self.base_url}/v1/simulated/action-status?task_id={encoded_task_id}&action_id={encoded_action_id}",
+            method="GET",
+            token=self.token,
+            device_id=self.device_id,
+            protocol_version=self.protocol_version,
+            session_id=session_id,
+            timeout=self.timeout,
+        )
