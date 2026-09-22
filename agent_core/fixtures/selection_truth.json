@@ -1,0 +1,130 @@
+{
+  "format": "jev-offline-selection/truth-v1",
+  "dataset_id": "jev-offline-selection-independent-truth-v1",
+  "scope": "offline-fixture-only",
+  "records": [
+    {
+      "case_id": "sel-dev-zh-save",
+      "task_id": "task-sel-dev-zh-save",
+      "trajectory_id": "traj-sel-dev-zh-save",
+      "split": "dev",
+      "source": "offline_selection_page_truth/v1",
+      "environment": {"status": "READY", "reason": "synthetic_page_available"},
+      "initial_state": {"page": "editor", "saved": false},
+      "action_postcondition": {
+        "status": "SUCCESS",
+        "reason": "draft_saved",
+        "failure_class": null,
+        "evidence": {"kind": "external_page_state", "saved": true}
+      },
+      "task_completion": {
+        "status": "SUCCESS",
+        "reason": "goal_state_reached",
+        "failure_class": null,
+        "evidence": {"kind": "external_page_state", "saved": true}
+      }
+    },
+    {
+      "case_id": "sel-dev-zh-input",
+      "task_id": "task-sel-dev-zh-input",
+      "trajectory_id": "traj-sel-dev-zh-input",
+      "split": "dev",
+      "source": "offline_selection_page_truth/v1",
+      "environment": {"status": "READY", "reason": "synthetic_page_available"},
+      "initial_state": {"page": "search", "query": ""},
+      "action_postcondition": {
+        "status": "SUCCESS",
+        "reason": "query_entered",
+        "failure_class": null,
+        "evidence": {"kind": "external_page_state", "query": "蓝色杯子"}
+      },
+      "task_completion": {
+        "status": "SUCCESS",
+        "reason": "goal_state_reached",
+        "failure_class": null,
+        "evidence": {"kind": "external_page_state", "query": "蓝色杯子"}
+      }
+    },
+    {
+      "case_id": "sel-dev-missing-parameter",
+      "task_id": "task-sel-dev-missing-parameter",
+      "trajectory_id": "traj-sel-dev-missing-parameter",
+      "split": "dev",
+      "source": "offline_selection_page_truth/v1",
+      "environment": {"status": "READY", "reason": "synthetic_page_available"},
+      "initial_state": {"page": "verification", "code": ""},
+      "task_completion": {
+        "status": "FAILURE",
+        "reason": "missing_input_parameter",
+        "failure_class": "agent",
+        "evidence": {"kind": "page_state", "code": ""}
+      }
+    },
+    {
+      "case_id": "sel-dev-invalid-id",
+      "task_id": "task-sel-dev-invalid-id",
+      "trajectory_id": "traj-sel-dev-invalid-id",
+      "split": "dev",
+      "source": "offline_selection_page_truth/v1",
+      "environment": {"status": "READY", "reason": "synthetic_page_available"},
+      "initial_state": {"page": "home"},
+      "task_completion": {
+        "status": "FAILURE",
+        "reason": "invalid_replay_selection",
+        "failure_class": "agent",
+        "evidence": {"kind": "page_state", "page": "home"}
+      }
+    },
+    {
+      "case_id": "sel-dev-wrong-selection",
+      "task_id": "task-sel-dev-wrong-selection",
+      "trajectory_id": "traj-sel-dev-wrong-selection",
+      "split": "dev",
+      "source": "offline_selection_page_truth/v1",
+      "environment": {"status": "READY", "reason": "synthetic_page_available"},
+      "initial_state": {"page": "editor", "saved": false},
+      "action_postcondition": {
+        "status": "FAILURE",
+        "reason": "wrong_candidate_effect",
+        "failure_class": "agent",
+        "evidence": {"kind": "external_page_delta", "saved": false}
+      },
+      "task_completion": {
+        "status": "FAILURE",
+        "reason": "goal_not_reached",
+        "failure_class": "agent",
+        "evidence": {"kind": "external_page_state", "saved": false}
+      }
+    },
+    {
+      "case_id": "sel-holdout-expired",
+      "task_id": "task-sel-holdout-expired",
+      "trajectory_id": "traj-sel-holdout-expired",
+      "split": "holdout",
+      "source": "offline_selection_page_truth/v1",
+      "environment": {"status": "READY", "reason": "synthetic_page_available"},
+      "initial_state": {"page": "form", "submitted": false},
+      "task_completion": {
+        "status": "FAILURE",
+        "reason": "expired_observation",
+        "failure_class": "agent",
+        "evidence": {"kind": "page_state", "submitted": false}
+      }
+    },
+    {
+      "case_id": "sel-holdout-empty",
+      "task_id": "task-sel-holdout-empty",
+      "trajectory_id": "traj-sel-holdout-empty",
+      "split": "holdout",
+      "source": "offline_selection_page_truth/v1",
+      "environment": {"status": "EVIDENCE_MISSING", "reason": "no_enabled_controls"},
+      "initial_state": {"page": "blocked"},
+      "task_completion": {
+        "status": "UNKNOWN",
+        "reason": "no_candidate_evidence",
+        "failure_class": "environment",
+        "evidence": {"kind": "missing_control_tree", "page": "blocked"}
+      }
+    }
+  ]
+}

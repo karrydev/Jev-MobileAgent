@@ -1,0 +1,11 @@
+{
+  "format": "jev-offline-verification/replay-v1",
+  "scope": "offline-fixture-only",
+  "artifact_id": "jev-offline-verification-replay-v1",
+  "classifier_version": "jev-offline-verification-replay-v1",
+  "classifications": [
+    {"case_id": "ver-holdout-after-missing", "status": "SUCCESS", "reason": "replay_would_mark_confirmed"},
+    {"case_id": "ver-holdout-screenshot-missing", "status": "SUCCESS", "reason": "tree_says_enabled"},
+    {"case_id": "ver-holdout-replay-success", "status": "SUCCESS", "reason": "visual_replay_confirmed"}
+  ]
+}

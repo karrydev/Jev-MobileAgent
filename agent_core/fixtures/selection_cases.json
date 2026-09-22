@@ -1,0 +1,243 @@
+{
+  "format": "jev-offline-selection/cases-v1",
+  "dataset_id": "jev-offline-selection-synthetic-v1",
+  "scope": "offline-fixture-only",
+  "freeze_manifest": {
+    "format": "jev-offline-freeze-manifest-v1",
+    "scope": "offline-fixture-only",
+    "policy": {
+      "artifact_id": "jev-offline-selection-policy-v1",
+      "sha256": "ea01fccc24efb411559ce9993fa56302204a52ca313aca0eb6310fa1fba0354a"
+    },
+    "replay": {
+      "artifact_id": "jev-offline-selection-replay-v1",
+      "sha256": "bed96e0a22d7eae282228d269ea8051c183f10e165ac8e020a3ce70268c95496"
+    }
+  },
+  "now": 300,
+  "cases": [
+    {
+      "case_id": "sel-dev-zh-save",
+      "task_id": "task-sel-dev-zh-save",
+      "trajectory_id": "traj-sel-dev-zh-save",
+      "split": "dev",
+      "instruction": "保存草稿",
+      "observation": {
+        "observation_id": "obs-sel-save-1",
+        "version": 1,
+        "captured_at": 100,
+        "expires_at": 400,
+        "page": "editor",
+        "nodes": [
+          {
+            "node_id": "save-button",
+            "role": "button",
+            "label": "保存",
+            "enabled": true,
+            "actions": ["tap"],
+            "accepted_labels": ["保存", "Save"],
+            "languages": ["zh-CN", "en"],
+            "equivalence_group": "save"
+          }
+        ]
+      },
+      "known_parameters": {},
+      "execution": {
+        "initial_state": {"page": "editor", "saved": false},
+        "effect_rules": [
+          {"kind": "tap", "target_node_id": "save-button", "patch": {"saved": true}}
+        ],
+        "goal": {"description": "The draft is saved.", "completion_rule": "saved"}
+      }
+    },
+    {
+      "case_id": "sel-dev-zh-input",
+      "task_id": "task-sel-dev-zh-input",
+      "trajectory_id": "traj-sel-dev-zh-input",
+      "split": "dev",
+      "instruction": "搜索蓝色杯子",
+      "observation": {
+        "observation_id": "obs-sel-input-1",
+        "version": 1,
+        "captured_at": 100,
+        "expires_at": 400,
+        "page": "search",
+        "nodes": [
+          {
+            "node_id": "search-box",
+            "role": "text_field",
+            "label": "搜索",
+            "enabled": true,
+            "actions": [{"kind": "input_text", "parameter": "query"}],
+            "accepted_labels": ["搜索", "Search"],
+            "languages": ["zh-CN", "en"],
+            "equivalence_group": "search-input"
+          }
+        ]
+      },
+      "known_parameters": {"query": "蓝色杯子"},
+      "execution": {
+        "initial_state": {"page": "search", "query": ""},
+        "effect_rules": [
+          {
+            "kind": "input_text",
+            "target_node_id": "search-box",
+            "set_parameter": "text",
+            "state_path": "query"
+          }
+        ],
+        "goal": {"description": "The query is entered.", "completion_rule": "query"}
+      }
+    },
+    {
+      "case_id": "sel-dev-missing-parameter",
+      "task_id": "task-sel-dev-missing-parameter",
+      "trajectory_id": "traj-sel-dev-missing-parameter",
+      "split": "dev",
+      "instruction": "输入验证码",
+      "observation": {
+        "observation_id": "obs-sel-missing-1",
+        "version": 1,
+        "captured_at": 100,
+        "expires_at": 400,
+        "page": "verification",
+        "nodes": [
+          {
+            "node_id": "code-box",
+            "role": "text_field",
+            "label": "验证码",
+            "enabled": true,
+            "actions": [{"kind": "input_text", "parameter": "code"}]
+          }
+        ]
+      },
+      "known_parameters": {},
+      "execution": {
+        "initial_state": {"page": "verification", "code": ""},
+        "effect_rules": [],
+        "goal": {"description": "The verification code is entered.", "completion_rule": "code"}
+      }
+    },
+    {
+      "case_id": "sel-dev-invalid-id",
+      "task_id": "task-sel-dev-invalid-id",
+      "trajectory_id": "traj-sel-dev-invalid-id",
+      "split": "dev",
+      "instruction": "打开设置",
+      "observation": {
+        "observation_id": "obs-sel-invalid-1",
+        "version": 1,
+        "captured_at": 100,
+        "expires_at": 400,
+        "page": "home",
+        "nodes": [
+          {
+            "node_id": "settings-button",
+            "role": "button",
+            "label": "设置",
+            "enabled": true,
+            "actions": ["tap"]
+          }
+        ]
+      },
+      "known_parameters": {},
+      "execution": {
+        "initial_state": {"page": "home"},
+        "effect_rules": [
+          {"kind": "tap", "target_node_id": "settings-button", "patch": {"page": "settings"}}
+        ],
+        "goal": {"description": "Settings is open.", "completion_rule": "page_settings"}
+      }
+    },
+    {
+      "case_id": "sel-dev-wrong-selection",
+      "task_id": "task-sel-dev-wrong-selection",
+      "trajectory_id": "traj-sel-dev-wrong-selection",
+      "split": "dev",
+      "instruction": "保存草稿",
+      "observation": {
+        "observation_id": "obs-sel-wrong-1",
+        "version": 1,
+        "captured_at": 100,
+        "expires_at": 400,
+        "page": "editor",
+        "nodes": [
+          {
+            "node_id": "save-button",
+            "role": "button",
+            "label": "保存",
+            "enabled": true,
+            "actions": ["tap"]
+          },
+          {
+            "node_id": "cancel-button",
+            "role": "button",
+            "label": "取消",
+            "enabled": true,
+            "actions": ["tap"]
+          }
+        ]
+      },
+      "known_parameters": {},
+      "execution": {
+        "initial_state": {"page": "editor", "saved": false},
+        "effect_rules": [
+          {"kind": "tap", "target_node_id": "save-button", "patch": {"saved": true}}
+        ],
+        "goal": {"description": "The draft is saved.", "completion_rule": "saved"}
+      }
+    },
+    {
+      "case_id": "sel-holdout-expired",
+      "task_id": "task-sel-holdout-expired",
+      "trajectory_id": "traj-sel-holdout-expired",
+      "split": "holdout",
+      "instruction": "提交表单",
+      "observation": {
+        "observation_id": "obs-sel-expired-1",
+        "version": 2,
+        "captured_at": 100,
+        "expires_at": 200,
+        "page": "form",
+        "nodes": [
+          {
+            "node_id": "submit-button",
+            "role": "button",
+            "label": "提交",
+            "enabled": true,
+            "actions": ["tap"]
+          }
+        ]
+      },
+      "known_parameters": {},
+      "execution": {
+        "initial_state": {"page": "form", "submitted": false},
+        "effect_rules": [
+          {"kind": "tap", "target_node_id": "submit-button", "patch": {"submitted": true}}
+        ],
+        "goal": {"description": "The form is submitted.", "completion_rule": "submitted"}
+      }
+    },
+    {
+      "case_id": "sel-holdout-empty",
+      "task_id": "task-sel-holdout-empty",
+      "trajectory_id": "traj-sel-holdout-empty",
+      "split": "holdout",
+      "instruction": "继续",
+      "observation": {
+        "observation_id": "obs-sel-empty-1",
+        "version": 1,
+        "captured_at": 100,
+        "expires_at": 400,
+        "page": "blocked",
+        "nodes": []
+      },
+      "known_parameters": {},
+      "execution": {
+        "initial_state": {"page": "blocked"},
+        "effect_rules": [],
+        "goal": {"description": "The screen advances.", "completion_rule": "advanced"}
+      }
+    }
+  ]
+}

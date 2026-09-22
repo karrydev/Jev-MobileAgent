@@ -1,0 +1,180 @@
+{
+  "format": "jev-offline-verification/cases-v1",
+  "dataset_id": "jev-offline-verification-synthetic-v1",
+  "scope": "offline-fixture-only",
+  "freeze_manifest": {
+    "format": "jev-offline-freeze-manifest-v1",
+    "scope": "offline-fixture-only",
+    "policy": {
+      "artifact_id": "jev-offline-verification-policy-v1",
+      "sha256": "bd6858bf6ca280ea618f16cf5f6f02c7ed81aa4aecd4e14f0b8d9f1ef5d9c26d"
+    },
+    "replay": {
+      "artifact_id": "jev-offline-verification-replay-v1",
+      "sha256": "1e7b73a26aea35300fc79031072af0a207e02a46120064dd0e31c302bf88af09"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "ver-dev-success-incomplete",
+      "task_id": "task-ver-dev-success-incomplete",
+      "trajectory_id": "traj-ver-dev-success-incomplete",
+      "split": "dev",
+      "instruction": "保存并提交草稿",
+      "initial_state": {"page": "editor", "saved": false, "submitted": false},
+      "before": {
+        "observation_id": "obs-ver-success-before",
+        "tree": {"page": "editor", "saved": false, "submitted": false, "visible_controls": ["save"]},
+        "screenshot": {"available": true, "artifact": "shot-success-before"}
+      },
+      "after": {
+        "observation_id": "obs-ver-success-after",
+        "tree": {"page": "editor", "saved": true, "submitted": false, "visible_controls": ["submit"]},
+        "screenshot": {"available": true, "artifact": "shot-success-after"}
+      },
+      "action": {"kind": "tap", "target_node_id": "save", "parameters": {}},
+      "receipt": {"accepted": true, "outcome": "EXECUTED"},
+      "postcondition": {"kind": "state_equals", "path": "saved", "value": true},
+      "visual_fallback_available": true,
+      "visual_fallback_attempted": false
+    },
+    {
+      "case_id": "ver-dev-failure",
+      "task_id": "task-ver-dev-failure",
+      "trajectory_id": "traj-ver-dev-failure",
+      "split": "dev",
+      "instruction": "打开设置",
+      "initial_state": {"page": "home", "settings_open": false},
+      "before": {
+        "observation_id": "obs-ver-failure-before",
+        "tree": {"page": "home", "settings_open": false, "visible_controls": ["settings"]},
+        "screenshot": {"available": true, "artifact": "shot-failure-before"}
+      },
+      "after": {
+        "observation_id": "obs-ver-failure-after",
+        "tree": {"page": "home", "settings_open": false, "visible_controls": ["settings"]},
+        "screenshot": {"available": true, "artifact": "shot-failure-after"}
+      },
+      "action": {"kind": "tap", "target_node_id": "settings", "parameters": {}},
+      "receipt": {"accepted": true, "outcome": "EXECUTED"},
+      "postcondition": {"kind": "page_is", "page": "settings"},
+      "visual_fallback_available": true,
+      "visual_fallback_attempted": false
+    },
+    {
+      "case_id": "ver-dev-pending",
+      "task_id": "task-ver-dev-pending",
+      "trajectory_id": "traj-ver-dev-pending",
+      "split": "dev",
+      "instruction": "搜索蓝色杯子并等待结果",
+      "initial_state": {"page": "search", "loading": false},
+      "before": {
+        "observation_id": "obs-ver-pending-before",
+        "tree": {"page": "search", "loading": false, "visible_controls": ["search"]},
+        "screenshot": {"available": true, "artifact": "shot-pending-before"}
+      },
+      "after": {
+        "observation_id": "obs-ver-pending-after",
+        "loading": true,
+        "tree": {"page": "search", "loading": true, "visible_controls": []},
+        "screenshot": {"available": true, "artifact": "shot-pending-after"}
+      },
+      "action": {"kind": "tap", "target_node_id": "search", "parameters": {}},
+      "receipt": {"accepted": true, "outcome": "EXECUTED"},
+      "postcondition": {"kind": "page_is", "page": "results"},
+      "wait": {"attempt": 0, "max_attempts": 2},
+      "visual_fallback_available": true,
+      "visual_fallback_attempted": false
+    },
+    {
+      "case_id": "ver-holdout-after-missing",
+      "task_id": "task-ver-holdout-after-missing",
+      "trajectory_id": "traj-ver-holdout-after-missing",
+      "split": "holdout",
+      "instruction": "确认付款",
+      "initial_state": {"page": "payment", "confirmed": false},
+      "before": {
+        "observation_id": "obs-ver-after-missing-before",
+        "tree": {"page": "payment", "confirmed": false, "visible_controls": ["confirm"]},
+        "screenshot": {"available": true, "artifact": "shot-after-missing-before"}
+      },
+      "after": null,
+      "action": {"kind": "tap", "target_node_id": "confirm", "parameters": {}},
+      "receipt": {"accepted": true, "outcome": "EXECUTED"},
+      "postcondition": {"kind": "state_equals", "path": "confirmed", "value": true},
+      "visual_fallback_available": true,
+      "visual_fallback_attempted": false
+    },
+    {
+      "case_id": "ver-holdout-screenshot-missing",
+      "task_id": "task-ver-holdout-screenshot-missing",
+      "trajectory_id": "traj-ver-holdout-screenshot-missing",
+      "split": "holdout",
+      "instruction": "启用通知",
+      "initial_state": {"page": "settings", "enabled": false},
+      "before": {
+        "observation_id": "obs-ver-screenshot-missing-before",
+        "tree": {"page": "settings", "enabled": false, "visible_controls": ["toggle"]},
+        "screenshot": {"available": true, "artifact": "shot-screenshot-missing-before"}
+      },
+      "after": {
+        "observation_id": "obs-ver-screenshot-missing-after",
+        "tree": {"page": "settings", "enabled": true, "visible_controls": []},
+        "screenshot": {"available": false}
+      },
+      "action": {"kind": "tap", "target_node_id": "toggle", "parameters": {}},
+      "receipt": {"accepted": true, "outcome": "EXECUTED"},
+      "postcondition": {"kind": "state_equals", "path": "enabled", "value": true},
+      "visual_fallback_available": false,
+      "visual_fallback_attempted": false
+    },
+    {
+      "case_id": "ver-holdout-replay-success",
+      "task_id": "task-ver-holdout-replay-success",
+      "trajectory_id": "traj-ver-holdout-replay-success",
+      "split": "holdout",
+      "instruction": "完成自绘页面确认",
+      "initial_state": {"page": "canvas", "confirmed": false},
+      "before": {
+        "observation_id": "obs-ver-replay-before",
+        "tree": {"page": "canvas", "confirmed": false, "visible_controls": ["canvas"]},
+        "screenshot": {"available": true, "artifact": "shot-replay-before"}
+      },
+      "after": {
+        "observation_id": "obs-ver-replay-after",
+        "tree": {"page": "canvas", "confirmed": true, "visible_controls": []},
+        "screenshot": {"available": true, "artifact": "shot-replay-after"}
+      },
+      "action": {"kind": "tap", "target_node_id": "canvas", "parameters": {}},
+      "receipt": {"accepted": true, "outcome": "EXECUTED"},
+      "postcondition": {"kind": "opaque_visual_check"},
+      "visual_fallback_available": true,
+      "visual_fallback_attempted": false
+    },
+    {
+      "case_id": "ver-holdout-wait-limit",
+      "task_id": "task-ver-holdout-wait-limit",
+      "trajectory_id": "traj-ver-holdout-wait-limit",
+      "split": "holdout",
+      "instruction": "等待同步完成",
+      "initial_state": {"page": "sync", "loading": true},
+      "before": {
+        "observation_id": "obs-ver-wait-limit-before",
+        "tree": {"page": "sync", "loading": false, "visible_controls": ["sync"]},
+        "screenshot": {"available": true, "artifact": "shot-wait-limit-before"}
+      },
+      "after": {
+        "observation_id": "obs-ver-wait-limit-after",
+        "loading": true,
+        "tree": {"page": "sync", "loading": true, "visible_controls": []},
+        "screenshot": {"available": true, "artifact": "shot-wait-limit-after"}
+      },
+      "action": {"kind": "tap", "target_node_id": "sync", "parameters": {}},
+      "receipt": {"accepted": true, "outcome": "EXECUTED"},
+      "postcondition": {"kind": "page_is", "page": "synced"},
+      "wait": {"attempt": 2, "max_attempts": 2},
+      "visual_fallback_available": false,
+      "visual_fallback_attempted": false
+    }
+  ]
+}

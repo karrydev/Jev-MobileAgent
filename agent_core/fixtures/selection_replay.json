@@ -1,0 +1,15 @@
+{
+  "format": "jev-offline-selection/replay-v1",
+  "scope": "offline-fixture-only",
+  "artifact_id": "jev-offline-selection-replay-v1",
+  "policy_version": "jev-offline-selection-policy-v1",
+  "selections": [
+    {"case_id": "sel-dev-zh-save", "candidate_id": "candidate-tap-save-button-6a6f6c8e1e03"},
+    {"case_id": "sel-dev-zh-input", "candidate_id": "candidate-input_text-search-box-fa0f12d67a62"},
+    {"case_id": "sel-dev-missing-parameter", "candidate_id": null},
+    {"case_id": "sel-dev-invalid-id", "candidate_id": "candidate-does-not-exist"},
+    {"case_id": "sel-dev-wrong-selection", "candidate_id": "candidate-tap-cancel-button-f6f13c0d2fbd"},
+    {"case_id": "sel-holdout-expired", "candidate_id": "candidate-tap-submit-button-c2d202953613"},
+    {"case_id": "sel-holdout-empty", "candidate_id": null}
+  ]
+}
