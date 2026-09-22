@@ -13,6 +13,7 @@
 
 - [模拟任务闭环](../services/sim_loop/README.md)：本地 HTTP 模拟设备、任务状态和协议样例；未代表 Android 通道已实现。
 - [独立离线判分](../eval/README.md)：合成任务、逐步与终局判分、开发/留出划分和实验模板。
+- [任务轨迹与消耗报告](../services/task_evidence/README.md)：运行与回放、独立判分、公开脱敏和费用未知标记；当前为离线证据。
 
 - [离线候选选择与四态核验](../agent_core/README.md)：冻结合成样本、回放分类和独立判分；真实 Jev 尚未验证。
 
