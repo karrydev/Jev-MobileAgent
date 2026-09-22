@@ -6,9 +6,9 @@ Blocked by: none
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-sim-loop
+Branch: codex/v1-sim-loop
 Evidence: 离线行为
 Gate: 一个模拟任务从提交到独立判定完成
 
@@ -36,3 +36,5 @@ Gate: 一个模拟任务从提交到独立判定完成
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：协调者登记首批领取。允许修改范围：services/、contracts/、tests/ 与任务 01 专属说明；根构建与依赖新增由本任务唯一负责。 开发按 code-this；提交、合入与关闭由主 Agent 负责。

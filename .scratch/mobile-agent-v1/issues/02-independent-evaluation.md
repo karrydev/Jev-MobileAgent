@@ -6,9 +6,9 @@ Blocked by: none
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-independent-eval
+Branch: codex/v1-independent-eval
 Evidence: 离线行为
 Gate: 给成功、失败和未知任务生成独立判分报告
 
@@ -36,3 +36,5 @@ Gate: 给成功、失败和未知任务生成独立判分报告
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：协调者登记首批领取。允许修改范围：eval/ 内全部实现、样例、测试和说明；不修改根构建、运行协议或任务 01 文件。 开发按 code-this；提交、合入与关闭由主 Agent 负责。
