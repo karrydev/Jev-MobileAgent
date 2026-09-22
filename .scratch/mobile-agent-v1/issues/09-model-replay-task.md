@@ -6,7 +6,7 @@ Blocked by: 01
 
 Status: ready-for-agent
 
-Execution: in-progress
+Execution: done
 Owner: luna-runtime-controls
 Branch: codex/v1-runtime-controls
 Evidence: 离线行为
@@ -20,10 +20,10 @@ Gate: 回放模型响应驱动任务并处理服务错误
 
 ## Acceptance criteria
 
-- [ ] 实现模型边界与回放入口，角色请求/响应、错误、尝试和 usage 可关联到任务。
-- [ ] 非法格式与缺参不执行；限流、超时和重试有边界，暂停/取消后响应不得派发。
-- [ ] 真实探针的启动方式、无密钥配置样例与最小请求已就绪；合成结果不表述为供应商协议已兼容。
-- [ ] 只新增隔离适配与测试材料，不在原版实际基线前提取或改写上游角色行为。
+- [x] 实现模型边界与回放入口，角色请求/响应、错误、尝试和 usage 可关联到任务。
+- [x] 非法格式与缺参不执行；限流、超时和重试有边界，暂停/取消后响应不得派发。
+- [x] 真实探针的启动方式、无密钥配置样例与最小请求已就绪；合成结果不表述为供应商协议已兼容。
+- [x] 只新增隔离适配与测试材料，不在原版实际基线前提取或改写上游角色行为。
 
 ## 交付证据
 
@@ -36,3 +36,5 @@ Gate: 回放模型响应驱动任务并处理服务错误
 2026-09-22：01/02 已验收合入；协调者领取本批。范围：services/sim_loop/、contracts/v1/、tests/test_sim_loop.py 与新的 runtime 测试；同一运行链合批，实现暂停/取消后再接回放。 按 code-this 由新 Luna-max 实现，主 Agent 负责 Git，Terra-max 审查。
 
 2026-09-22：回放多图、中文和错误分支测试通过；Terra 确认现有 probe 仅检查凭据而没有真实请求实现，不能关闭本票。正在补齐显式调用的最小探针，并用本地协议服务验证；尚未调用真实供应商。
+
+2026-09-22：实现 `2bc92fb` 经 Terra 定向复审 PASS 后合入 main。Python 3.11 / schema 1.0；`python3 -B -m unittest tests.test_runtime_controls tests.test_sim_loop` 32 项通过；主树 schema-check 正例 6 / 反例 3，中文双图 replay 成功。控制前禁止下发、在途结果保守核对；可信设备明确拒绝释放占用，超时/代理 5xx 保留 UNKNOWN，观察阶段绑定 session 防旧命令抢占。真实模型探针已提供 endpoint/model/credential_env 配置和显式 `--execute` 请求入口，本地 HTTP fixture 验证请求、usage、429；未读取真实凭据或调用供应商，不表示真实 API 兼容。恢复持久化留给 04。

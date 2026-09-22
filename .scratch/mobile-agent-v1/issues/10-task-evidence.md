@@ -6,9 +6,9 @@ Blocked by: 02, 09
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-task-evidence
+Branch: codex/v1-task-evidence
 Evidence: 离线行为
 Gate: 运行一次任务即可获得轨迹、判分和费用报告
 
@@ -32,3 +32,5 @@ Gate: 运行一次任务即可获得轨迹、判分和费用报告
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：前置已验收，协调者领取。新 Luna-max 实现、Terra-max 风险审查。04 唯一拥有 sim_loop 运行状态/恢复及 contracts/v1；10 只新增独立任务报告适配器与测试，以运行入口读取现有轨迹，不修改 sim_loop、eval 引擎或共享契约。主 Agent 统一合入与 Git。
