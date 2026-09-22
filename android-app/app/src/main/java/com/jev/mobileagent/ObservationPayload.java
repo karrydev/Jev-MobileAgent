@@ -54,7 +54,9 @@ public final class ObservationPayload {
                 .put("windows")
                 .put("screen_metrics")
                 .put("node_text")
-                .put("node_state"));
+                .put("node_state")
+                .put("tap")
+                .put("set_text"));
         return observation;
     }
 
