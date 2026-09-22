@@ -6,10 +6,10 @@ Blocked by: 03, 05, 06
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
-Evidence: Android 模拟器
+Execution: in-progress
+Owner: luna-android-node-task
+Branch: codex/v1-android-node-task
+Evidence: 物理手机受控页面
 Gate: 从 App 发起中文输入任务并控制执行
 
 ## 前置与规格
@@ -31,3 +31,5 @@ Gate: 从 App 发起中文输入任务并控制执行
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-22：03/05/06 已验收；按用户最新要求，后续优先在已授权 OnePlus 8T 真机的项目受控页面测试。领取范围 android-app/、services/android_bridge/、contracts/android/ 和独立 Android 测试；不得修改 04 独占的 sim_loop/contracts/v1。复用公开运行/控制语义，新增真实 App 执行适配。独占真机，所有 ADB 指定设备；系统授权可由 Agent UI 操作，密码等不可代办步骤才请求用户。
