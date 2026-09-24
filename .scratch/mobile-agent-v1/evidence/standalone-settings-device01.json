@@ -1,0 +1,39 @@
+{
+  "schema_version": "standalone-settings-device-v1",
+  "date": "2026-09-25",
+  "ticket": "26",
+  "status": "settings_checks_passed_runtime_gate_pending",
+  "device": "OnePlus 8T / Android 14",
+  "implementation_base": "7e50ff1",
+  "apk_sha256": "28f8af4b985b57a7e6512fc865c85336371fb23293ffbf1520042ed0c785e299",
+  "source_sha256": {
+    "ModelProfileStore.java": "a429442e3154f312cd56ef396bee3b47e646b3c2deb6b710cbffbba77610475d",
+    "VlmApiClient.java": "d3c87950f43394bf985b20085fc0c6ae367d636552f56fed58ea08dbac6336bd",
+    "MainActivity.java": "78bf453fc6c53dd9ef5374415dd48b6724a2ffa14e4a7f267c5c36ee786b362c"
+  },
+  "checks": {
+    "legacy_vlm_migrated_and_loaded_without_key_reentry": true,
+    "legacy_plaintext_model_key_removed": true,
+    "vlm_and_jev_profiles_saved_separately": true,
+    "jev_endpoint_model_saved_and_reloaded": true,
+    "keys_not_displayed_after_save": true,
+    "profile_files_do_not_contain_either_test_key_in_plaintext": true,
+    "jev_clear_removed_profile": true,
+    "jev_clear_preserved_vlm_record_unchanged": true
+  },
+  "model_requests": 0,
+  "final_device_state": "locked / Dozing; Jev profile cleared; VLM profile retained",
+  "limits": [
+    "Activity recreation verified; this report does not claim process-restart recovery.",
+    "Keystore save/load and migration only; model authentication and task runtime tested separately.",
+    "Initial scripted form navigation missed a field after keyboard scrolling; corrected before final save/reload verification.",
+    "APK predates terminal-goal and unknown-action cancellation fixes; it is not the task-runtime acceptance artifact."
+  ],
+  "commands": [
+    "adb -s DEVICE install -r APK",
+    "adb -s DEVICE shell am start -f 0x10008000 -n com.jev.mobileagent/.MainActivity",
+    "App UI: save Jev profile, recreate activity, clear Jev profile",
+    "Private SharedPreferences parsed in memory; only boolean comparisons exported",
+    "adb -s DEVICE shell input keyevent 223"
+  ]
+}

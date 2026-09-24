@@ -762,8 +762,26 @@
       "reservation_note": "Conservative CNY budget hold, not an exchange-rate conversion; invalid-request actual billing not verified",
       "price_source": "https://docs.typesafe.ai/models",
       "price_verified_date": "2026-09-25"
+    },
+    {
+      "id": "standalone-input01",
+      "result": "App-local direct VLM Chinese input reached exact target; USB-attached integration only",
+      "requests": 10,
+      "estimated_list_price_cny": 0.06159150000000001,
+      "actual_billed_cny": null,
+      "prompt_tokens": 38508,
+      "completion_tokens": 851
+    },
+    {
+      "id": "standalone-visual01",
+      "result": "App-local visual tap reached expected screen state; pre-review-fix USB integration, not accepted baseline",
+      "requests": 4,
+      "estimated_list_price_cny": 0.024205499999999998,
+      "actual_billed_cny": null,
+      "prompt_tokens": 15180,
+      "completion_tokens": 319
     }
   ],
-  "estimated_list_price_total_cny": 0.5010885,
+  "estimated_list_price_total_cny": 0.5868855,
   "unknown_usage_request_count": 1
 }

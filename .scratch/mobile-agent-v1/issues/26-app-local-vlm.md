@@ -7,7 +7,7 @@ Blocked by: 19, 20
 Status: ready-for-agent
 
 Execution: in-progress
-Owner: luna-standalone-runtime
+Owner: luna-fix-standalone-runtime
 Branch: codex/v1-standalone-runtime
 Evidence: 独立 APK、真实 VLM、物理手机
 Gate: 安装 App 并填写 Key 后完成手机内 VLM 任务
@@ -44,3 +44,7 @@ Gate: 安装 App 并填写 Key 后完成手机内 VLM 任务
 2026-09-25：根据用户明确的独立 App 边界改写。旧任务标题与要求已被上文替代，编号保留；当前验收条件重新从 pending 开始。
 
 2026-09-25：清理其余文档旧边界后领取；按 code-this 推进。主 Agent 独占真实模型请求、凭据、设备、集成证据与 Git；实现者不提交或推送。
+
+2026-09-25：手机内初版已构建，27 项相关 JVM 测试通过。[真机设置检查](../evidence/standalone-settings-device01.json)验证 Keystore 保存/重载、旧明文迁移与 Jev 独立清除；[中文输入](../evidence/standalone-input01.json)和[视觉点击](../evidence/standalone-visual01.json)取得真实模型与页面副作用证据，合计标价估算 ¥0.085797，已计入总台账。两轮均为 USB 连接下的联调，未关闭独立运行门槛。
+
+2026-09-25：Sol 审查发现当前动作未传给反思、复合目标可能提前成功、同窗口变化后的旧坐标未失效、核验结果覆盖执行回执，以及视觉受控页判据过宽。现由新的 Luna 在同分支集中修复；上述联调保留为修复前尝试，待修复后重新取得正式基线。客户端/配置安全问题已集中修复并通过 Sol 定向复审。任务保持 in-progress，尚未合入或放行 22/27。
