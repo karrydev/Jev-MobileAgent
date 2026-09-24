@@ -1,0 +1,304 @@
+{
+  "schema_version": "standalone-vlm-device-v1",
+  "attempt": "standalone-permission01",
+  "ticket": "26",
+  "apk_sha256": "800dc859a29f9a8990ded0c28abbfd4dd2fe0f8fedb514f671ed168956e8ac7e",
+  "device": "OnePlus 8T / Android 14",
+  "model": "gui-plus-2026-02-26",
+  "task_id": "f97ce1c3-0b2a-4c4e-b125-647a347eac82",
+  "goal": "点击受控页面中蓝色的视觉手势目标",
+  "task_state": "SUCCEEDED",
+  "task_state_reason": "overall_goal_verified_after_manager_finished",
+  "step_count": 2,
+  "estimated_list_price_cny": 0.030723,
+  "actual_billed_cny": null,
+  "execution_boundary": {
+    "model_called_by": "Android LocalVlmTaskService via VlmApiClient",
+    "jev_profile_present": false,
+    "adb_reverse_present": false,
+    "usb_connected": true,
+    "host_actions_during_task": "read-only polling of private task journal; no host-generated model decisions or device actions",
+    "standalone_disconnected_gate_passed": false
+  },
+  "final_device_state": "locked / Dozing",
+  "source_commit": "373da447425df954f14f4364127f6672f3894f9f",
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2833,
+        "output_tokens": 106,
+        "total_tokens": 2939
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0047265,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-572c7bf3216e4c1cb361342479bf8e21"
+      ]
+    },
+    {
+      "attempt": 2,
+      "role": "executor",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3690,
+        "output_tokens": 110,
+        "total_tokens": 3800
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.00603,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-572c7bf3216e4c1cb361342479bf8e21"
+      ]
+    },
+    {
+      "attempt": 3,
+      "role": "executor",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3738,
+        "output_tokens": 151,
+        "total_tokens": 3889
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0062865,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-1a4d0deb42b3414c9d95db6778b32684"
+      ]
+    },
+    {
+      "attempt": 4,
+      "role": "action_reflector",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 5501,
+        "output_tokens": 11,
+        "total_tokens": 5512
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.008301,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 2,
+      "screenshot_ids": [
+        "local-shot-1a4d0deb42b3414c9d95db6778b32684",
+        "local-shot-aab0e0729e774dd7a1fa774d6c92a99b"
+      ]
+    },
+    {
+      "attempt": 5,
+      "role": "manager",
+      "step": 3,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3211,
+        "output_tokens": 125,
+        "total_tokens": 3336
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.005379,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-b24db8aac3564c45a9b481c61c59d8fb"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "local-vlm-action-f97ce1c3-0b2a-4c4e-b125-647a347eac82-1",
+      "phase": "not_dispatched",
+      "action": {
+        "schema_version": "1.0",
+        "android_schema_version": "1.0",
+        "task_id": "f97ce1c3-0b2a-4c4e-b125-647a347eac82",
+        "device_id": "standalone-device",
+        "action_id": "local-vlm-action-f97ce1c3-0b2a-4c4e-b125-647a347eac82-1",
+        "observation_id": "standalone-device-obs-3125-83b56aec68f64c34946d890b8b5b5825",
+        "observation_version": 3125,
+        "sequence": 1,
+        "kind": "coordinate_tap",
+        "target_node_id": "",
+        "target_node_label": "",
+        "target_node_role": "visual_surface",
+        "expected_page_state": "coordinate_tap_requested",
+        "parameters": {
+          "x": 540,
+          "y": 991
+        },
+        "coordinate_frame": {
+          "width_px": 1080,
+          "height_px": 2400,
+          "rotation": 0,
+          "system_bar_insets": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "window_offset": {
+            "x": 0,
+            "y": 0
+          },
+          "content_width_px": 1080,
+          "content_height_px": 2400,
+          "active_window_id": 1171,
+          "active_window_bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "screen_width_px": 1080,
+          "screen_height_px": 2400,
+          "model_width_px": 1080,
+          "model_height_px": 2400,
+          "coordinate_space": "screen"
+        },
+        "requires_screenshot": true,
+        "before_screenshot_id": "local-shot-572c7bf3216e4c1cb361342479bf8e21",
+        "source": "mobileagent-v3.5-vlm-role",
+        "created_at": "2026-09-24T18:56:13.347092Z"
+      },
+      "result": {
+        "success": false,
+        "error_code": "stale_observation",
+        "message": "本地操作失败"
+      },
+      "created_at": "2026-09-24T18:56:13.348121Z",
+      "completed_at": "2026-09-24T18:56:13.445654Z"
+    },
+    {
+      "action_id": "local-vlm-action-f97ce1c3-0b2a-4c4e-b125-647a347eac82-2",
+      "phase": "verified",
+      "action": {
+        "schema_version": "1.0",
+        "android_schema_version": "1.0",
+        "task_id": "f97ce1c3-0b2a-4c4e-b125-647a347eac82",
+        "device_id": "standalone-device",
+        "action_id": "local-vlm-action-f97ce1c3-0b2a-4c4e-b125-647a347eac82-2",
+        "observation_id": "standalone-device-obs-3127-8ddf2fe9ef084c47aa4187696c05352e",
+        "observation_version": 3127,
+        "sequence": 2,
+        "kind": "coordinate_tap",
+        "target_node_id": "",
+        "target_node_label": "",
+        "target_node_role": "visual_surface",
+        "expected_page_state": "coordinate_tap_requested",
+        "parameters": {
+          "x": 540,
+          "y": 991
+        },
+        "coordinate_frame": {
+          "width_px": 1080,
+          "height_px": 2400,
+          "rotation": 0,
+          "system_bar_insets": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "window_offset": {
+            "x": 0,
+            "y": 0
+          },
+          "content_width_px": 1080,
+          "content_height_px": 2400,
+          "active_window_id": 1171,
+          "active_window_bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "screen_width_px": 1080,
+          "screen_height_px": 2400,
+          "model_width_px": 1080,
+          "model_height_px": 2400,
+          "coordinate_space": "screen"
+        },
+        "requires_screenshot": true,
+        "before_screenshot_id": "local-shot-1a4d0deb42b3414c9d95db6778b32684",
+        "source": "mobileagent-v3.5-vlm-role",
+        "created_at": "2026-09-24T18:56:16.630103Z"
+      },
+      "result": {
+        "success": true,
+        "error_code": null,
+        "message": null
+      },
+      "created_at": "2026-09-24T18:56:16.632469Z",
+      "completed_at": "2026-09-24T18:56:16.769810Z",
+      "reflection": {
+        "outcome": "A",
+        "error_description": "None",
+        "recorded_at": "2026-09-24T18:56:18.578145Z"
+      },
+      "reflection_recorded_at": "2026-09-24T18:56:18.578226Z"
+    }
+  ],
+  "independent_observation": {
+    "permission_revoked": false,
+    "revocation_method": "shell settings write rejected",
+    "not_a_permission_failure_test": true,
+    "final_screen_sha256": "19b2f2d013237149cc1f174f191a683d904f26a5a1f107e699f8531c5e0e7328"
+  },
+  "limitations": [
+    "USB-attached integration; disconnected acceptance pending."
+  ],
+  "history": {
+    "instruction": "点击受控页面中蓝色的视觉手势目标",
+    "plan": "Finished",
+    "completed_plan": "- Tap the rectangular area with the blue border labeled \"自绘目标·坐标/长按/滑动\" on the screen.",
+    "progress_status": "No completed subgoal.",
+    "last_answer": "",
+    "important_notes": "",
+    "last_summary": "Tap the rectangular area with the blue border labeled \"自绘目标·坐标/长按/滑动\" on the screen.",
+    "last_action_thought": "The user requests to click the blue visual gesture target on the controlled page. The current screen displays a rectangular area with a blue border labeled \"自绘目标·坐标/长按/滑动\", which should be the target. Although the previous tap action failed, it is still necessary to attempt tapping this area again, as it is the only element matching the description of the blue visual gesture target. Therefore, the next step is to perform a tap action on this area.",
+    "finish_thought": "The user requested clicking the blue visual gesture target on the controlled page. The screenshot shows a rectangular area with a blue border labeled \"自绘目标·坐标/长按/滑动\", which matches the description of the target. The last action was to tap this area, and the feedback indicates \"Visual gesture state: coordinate tap completed\", confirming the action was successful. Since the task is complete, no further actions are needed.",
+    "error_flag_plan": false,
+    "note_requested": false,
+    "action_history": [
+      "{\"action\":\"invalid\"}",
+      "{\"action\":\"click\",\"coordinate\":[500,413]}",
+      "{\"action\":\"done\",\"reason\":\"finished_by_manager_and_page_goal_verified\"}"
+    ],
+    "summary_history": [
+      "Tap the rectangular area with the blue border labeled \"自绘目标·坐标/长按/滑动\"",
+      "Tap the rectangular area with the blue border labeled \"自绘目标·坐标/长按/滑动\" on the screen.",
+      "finished_by_manager_and_page_goal_verified"
+    ],
+    "action_outcomes": [
+      "C",
+      "A",
+      "A"
+    ],
+    "error_descriptions": [
+      "本地操作失败",
+      "None",
+      "None"
+    ]
+  }
+}

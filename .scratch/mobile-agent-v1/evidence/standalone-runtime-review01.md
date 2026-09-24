@@ -31,3 +31,17 @@
 `7e83965` 已修复上述五项及根 URL 测试、反思分类严格解析；Sol 定向复审无剩余阻塞，受影响的七个测试类共 28 项通过并构建 APK。既有客户端和凭据证据按未变更范围沿用。
 
 随后 [input02](standalone-input02.json) 实际输入精确中文，但模型按提示词选择 `answer` 后，Android 解析器拒绝该动作，最终因五步上限暂停。这是新实测暴露的移植缺陷，不能把物理输入成功当作任务闭环成功。已交新的 Luna 修复回答动作语义，仍要求独立终局核验，不提高步数掩盖问题。本轮 10 次调用标价估算 ¥0.062508，已结算台账；手机已锁屏。
+
+## 回答动作修复与放行范围
+
+`373da44` 接受非空字符串 `answer`，保存用户答复与角色历史后进入已有新观察终局核验；它不产生设备动作。上游 `agent_core/vlm/orchestration.py` 的 answer 分支返回 done=True，App 同样将其作为终止候选，而不是直接成功。五项角色定向测试、APK 构建和 Sol 四文件复审通过。
+
+修复版 APK SHA-256：`800dc859a29f9a8990ded0c28abbfd4dd2fe0f8fedb514f671ed168956e8ac7e`。
+
+- [input04](standalone-input04.json)：精确中文输入、答复持久化、全新页面核验后 SUCCEEDED，9 次请求 / 4 步，¥0.056103。
+- [visual02](standalone-visual02.json)：落点 (545,991) 在实际蓝框内，受控页报告 coordinate tap completed，5 次请求 / 2 步后 SUCCEEDED，¥0.030294。
+- [pause01](standalone-pause01.json)、[cancel01](standalone-cancel01.json)：第一模型请求进行中控制；各 12 秒观察期内无动作派发；缺失 usage 各保留 ¥0.016896，不能记作免费。
+- [permission02](standalone-permission02.json)：系统 UI 撤销无障碍后动作 not_dispatched，任务以 permission_unavailable 暂停；权限随后恢复，未自动续跑。
+- [input03](standalone-input03.json) 为宿主日志读竞争导致的无效正向尝试，[permission01](standalone-permission01.json) 为 ROM 拒绝 shell 修改设置的无效权限测试；费用均保留，未当作通过。
+
+以上为 USB 联调；项目 Python 运行进程未发现、8765/18771 无监听、ADB reverse 为空、无线调试为 0。尚需用户物理拔线并在手机发起冻结任务，才能关闭任务 26。测试完成后均已锁屏；当前恢复权限并准备空白受控页。

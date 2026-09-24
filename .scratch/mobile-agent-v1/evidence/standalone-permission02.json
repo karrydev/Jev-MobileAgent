@@ -1,0 +1,167 @@
+{
+  "schema_version": "standalone-vlm-device-v1",
+  "attempt": "standalone-permission02",
+  "ticket": "26",
+  "apk_sha256": "800dc859a29f9a8990ded0c28abbfd4dd2fe0f8fedb514f671ed168956e8ac7e",
+  "device": "OnePlus 8T / Android 14",
+  "model": "gui-plus-2026-02-26",
+  "task_id": "7f15cd37-5fd7-4c3f-a8ff-f3b68690fe06",
+  "goal": "点击受控页面中蓝色的视觉手势目标",
+  "task_state": "PAUSED",
+  "task_state_reason": "permission_unavailable",
+  "step_count": 1,
+  "estimated_list_price_cny": 0.010756500000000002,
+  "actual_billed_cny": null,
+  "execution_boundary": {
+    "model_called_by": "Android LocalVlmTaskService via VlmApiClient",
+    "jev_profile_present": false,
+    "adb_reverse_present": false,
+    "usb_connected": true,
+    "host_actions_during_task": "read-only polling of private task journal; no host-generated model decisions or device actions",
+    "standalone_disconnected_gate_passed": false
+  },
+  "final_device_state": "locked / Dozing",
+  "source_commit": "373da447425df954f14f4364127f6672f3894f9f",
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2833,
+        "output_tokens": 106,
+        "total_tokens": 2939
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0047265,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-0024ccbe2240442883be87660067c2c2"
+      ]
+    },
+    {
+      "attempt": 2,
+      "role": "executor",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3690,
+        "output_tokens": 110,
+        "total_tokens": 3800
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.00603,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-0024ccbe2240442883be87660067c2c2"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "local-vlm-action-7f15cd37-5fd7-4c3f-a8ff-f3b68690fe06-1",
+      "phase": "not_dispatched",
+      "action": {
+        "schema_version": "1.0",
+        "android_schema_version": "1.0",
+        "task_id": "7f15cd37-5fd7-4c3f-a8ff-f3b68690fe06",
+        "device_id": "standalone-device",
+        "action_id": "local-vlm-action-7f15cd37-5fd7-4c3f-a8ff-f3b68690fe06-1",
+        "observation_id": "standalone-device-obs-3132-7b9d06ddf9db43a79f45a9b71bcc8db5",
+        "observation_version": 3132,
+        "sequence": 1,
+        "kind": "coordinate_tap",
+        "target_node_id": "",
+        "target_node_label": "",
+        "target_node_role": "visual_surface",
+        "expected_page_state": "coordinate_tap_requested",
+        "parameters": {
+          "x": 540,
+          "y": 991
+        },
+        "coordinate_frame": {
+          "width_px": 1080,
+          "height_px": 2400,
+          "rotation": 0,
+          "system_bar_insets": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "window_offset": {
+            "x": 0,
+            "y": 0
+          },
+          "content_width_px": 1080,
+          "content_height_px": 2400,
+          "active_window_id": 1176,
+          "active_window_bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "screen_width_px": 1080,
+          "screen_height_px": 2400,
+          "model_width_px": 1080,
+          "model_height_px": 2400,
+          "coordinate_space": "screen"
+        },
+        "requires_screenshot": true,
+        "before_screenshot_id": "local-shot-0024ccbe2240442883be87660067c2c2",
+        "source": "mobileagent-v3.5-vlm-role",
+        "created_at": "2026-09-24T18:57:26.363752Z"
+      },
+      "result": {
+        "success": false,
+        "error_code": "permission_unavailable",
+        "message": "无障碍权限不可用"
+      },
+      "created_at": "2026-09-24T18:57:26.364758Z",
+      "completed_at": "2026-09-24T18:57:26.390831Z"
+    }
+  ],
+  "independent_observation": {
+    "permission_revoked": true,
+    "permission_restored_after_test": true,
+    "device_actions_dispatched": 0,
+    "state_reason": "permission_unavailable",
+    "final_screen_sha256": "e372b08be869eaba8f52f19ccf3ad256307c870b727b5e0cfd6c7d3c2547bb01"
+  },
+  "limitations": [
+    "USB-attached integration; disconnected acceptance pending."
+  ],
+  "history": {
+    "instruction": "点击受控页面中蓝色的视觉手势目标",
+    "plan": "1. Tap the rectangular area with the blue border labeled \"自绘目标·坐标/长按/滑动\" to click the blue visual gesture target.",
+    "completed_plan": "No completed subgoal.",
+    "progress_status": "",
+    "last_answer": "",
+    "important_notes": "",
+    "last_summary": "Tap the rectangular area with the blue border labeled \"自绘目标·坐标/长按/滑动\"",
+    "last_action_thought": "The user wants to click the blue visual gesture target on the controlled page. The screen shows a rectangular area with a blue border labeled \"自绘目标·坐标/长按/滑动\", which matches the description of the target. I need to tap this area to complete the task.",
+    "finish_thought": "",
+    "error_flag_plan": false,
+    "note_requested": false,
+    "action_history": [
+      "{\"action\":\"invalid\"}"
+    ],
+    "summary_history": [
+      "Tap the rectangular area with the blue border labeled \"自绘目标·坐标/长按/滑动\""
+    ],
+    "action_outcomes": [
+      "C"
+    ],
+    "error_descriptions": [
+      "无障碍权限不可用"
+    ]
+  }
+}

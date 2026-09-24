@@ -1,0 +1,56 @@
+{
+  "schema_version": "standalone-vlm-device-v1",
+  "attempt": "standalone-pause01",
+  "ticket": "26",
+  "apk_sha256": "800dc859a29f9a8990ded0c28abbfd4dd2fe0f8fedb514f671ed168956e8ac7e",
+  "device": "OnePlus 8T / Android 14",
+  "model": "gui-plus-2026-02-26",
+  "task_id": "08788844-11ac-431f-9245-949b151bedb0",
+  "goal": "点击受控页面中蓝色的视觉手势目标",
+  "task_state": "PAUSED",
+  "task_state_reason": "paused_by_user",
+  "step_count": 0,
+  "estimated_list_price_cny": null,
+  "actual_billed_cny": null,
+  "execution_boundary": {
+    "model_called_by": "Android LocalVlmTaskService via VlmApiClient",
+    "jev_profile_present": false,
+    "adb_reverse_present": false,
+    "usb_connected": true,
+    "host_actions_during_task": "read-only polling of private task journal; no host-generated model decisions or device actions",
+    "standalone_disconnected_gate_passed": false
+  },
+  "final_device_state": "locked / Dozing",
+  "source_commit": "373da447425df954f14f4364127f6672f3894f9f",
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_unknown",
+      "usage": null,
+      "usage_present": false,
+      "estimated_cost_cny": null,
+      "reserved_cost_cny": 0.016896,
+      "http_status": null,
+      "error_code": "cancelled",
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-796df3f085d04d24b09ddab89c5bd53f"
+      ]
+    }
+  ],
+  "actions": [],
+  "independent_observation": {
+    "observed_input_text": "",
+    "observed_visual_state": "ready",
+    "device_actions": 0,
+    "post_control_observation_seconds": 12,
+    "final_screen_sha256": "49701338aa9cf13b600f0eb5094c0c40ac3434a2a9917aba75f248af6a2ad089"
+  },
+  "limitations": [
+    "USB-attached integration; disconnected acceptance pending."
+  ],
+  "history": {},
+  "unknown_usage_reserved_cny": 0.016896
+}
