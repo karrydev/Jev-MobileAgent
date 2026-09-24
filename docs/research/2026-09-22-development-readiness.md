@@ -1,8 +1,10 @@
 # 开发前准备：仓库、模型账号与设备环境
 
+> 2026-09-25 运行边界修订：产品以 [ADR-0003](../adr/0003-standalone-android-runtime.md) 和[当前路线](../development-roadmap.md)为准。原版框架、外部工具与核查时的事实保留；旧桥接阶段不代表独立 App 已交付。
+
 核查日期：2026-09-22。本文为准备清单；公开 Fork 与工程初始化已完成。本次尚未购买额度、安装模型运行依赖或调用付费模型。当前选型为 v3.5、公开 Fork 后裁剪、按需整版升级或择取补丁，完整决定见[项目方向](../project-direction.md)。
 
-实际请求时机以[已确认任务](../../.scratch/mobile-agent-v1/index.md)为准：先推进离线与模拟器，VLM/手机在首次真实联调前请求，Jev 在仅 VLM 闭环后请求，服务器在真实恢复和本地部署准备通过后请求。下列账号信息是核查时的参考，使用前由实施任务重新验证，不要求用户现在办理。
+实际请求时机以[已确认任务](../../.scratch/mobile-agent-v1/index.md)为准：先推进离线与模拟器，VLM/手机在首次真实联调前请求，Jev 在仅 VLM 闭环后请求，当前已撤销服务器准备要求；21 使用已提供 Jev 凭据，26/27 实现手机内运行。下列账号信息是核查时的参考，使用前由实施任务重新验证，不要求用户现在办理。
 
 ## 1. 仓库起步方式
 
@@ -10,15 +12,15 @@
 
 开发基于 `Mobile-Agent-v3.5`：`mobile_use` 提供真机截图/动作示例，完整四角色位于 `android_world_v3.5`。先建立选定入口的基线，提取需要的角色与状态代码，再移除无依赖的旧版、PC、浏览器和其它无关目录；AndroidWorld 中需要的代码尚未提取前不能整目录删除。目录整理与功能改造分别提交，整理后重跑基线。
 
-本地 `Jev-MobileAgent` 已完整克隆公开 fork，原有 14 份研究与方向文档已保留并纳入版本管理。`origin` 指向 `karrydev/Jev-MobileAgent`，`upstream` 指向 `X-PLUG/MobileAgent`；实际采用的上游起点为 `11cea575561fb7800b5fb6b6cafa56f7a91de11f`。基线运行和账号、设备验收仍未完成，实施顺序见[开发路线](../development-roadmap.md)。
+本地 `Jev-MobileAgent` 已完整克隆公开 fork，原有 14 份研究与方向文档已保留并纳入版本管理。`origin` 指向 `karrydev/Jev-MobileAgent`，`upstream` 指向 `X-PLUG/MobileAgent`；实际采用的上游起点为 `11cea575561fb7800b5fb6b6cafa56f7a91de11f`。此处原指研究时状态；当前基线和设备阶段结果见任务 01–20，独立 App 待 26/27 验收，实施顺序见[开发路线](../development-roadmap.md)。
 
-建议裁剪后的职责划分（仅为示意，目录尚未创建，提取范围待依赖检查）：
+当前职责划分（Python 目录仅作开发参考，实际状态见工程入口）：
 
 ```text
 Jev-MobileAgent/
-  agent-core/      # 从 v3.5 提取的角色、状态、调度和模型适配
-  android-app/     # Kotlin App：树、截图、动作、任务控制
-  services/        # 手机连接、任务会话、Jev client、候选与验证适配
+  agent_core/      # 已提取的 Python 角色与行为参考
+  android-app/     # 现有 Android 工程；设备能力及待迁入的本地编排
+  services/        # 开发参考、旧设备桥和模型访问探针
   eval/            # 必要评测适配、用例、统计和外部环境版本记录
   docs/            # 已有研究、设计、上游来源与移植记录
 ```
@@ -72,7 +74,7 @@ API Key: 北京地域的 DASHSCOPE_API_KEY
 
 `WorkspaceId` 来自业务空间。SDK 的 base_url 不追加 `/chat/completions`。[官方模型 API](https://help.aliyun.com/zh/model-studio/gui-plus-interface-interaction-model)
 
-Jev 使用 `POST https://api.typesafe.ai/v1/systemone`。API key 保存在服务端环境配置；App 使用设备会话凭据连接自己的服务。仓库只放不含 key 的配置样例。
+Jev 使用 `POST https://api.typesafe.ai/v1/systemone`。用户在 App 输入并加密保存模型 Key，App 直接调用模型端点。开发探针统一从用户指定的 `jev-test.env` 读取 `JEV_API_KEY` / `JEV_VLM_API_KEY`；env 不随 APK 交付。仓库只放不含 key 的配置样例。
 
 ### 首项开发检查：模型兼容性
 
@@ -88,15 +90,15 @@ Jev 使用 `POST https://api.typesafe.ai/v1/systemone`。API key 保存在服务
 |---|---|---|
 | Android 11+ 手机与 USB 数据线 | 安装包就绪、首次真实基线前 | 安装 App、跑原 ADB 基线、采集真实树；Accessibility 截图 API 从 API 30 提供，截图仍受窗口和系统限制 |
 | 手机开发者选项、USB 调试；后续手动启用本 App 的无障碍服务 | 原版基线及 App 联调 | 初期 ADB 用于安装/调试和对照；正式设备观察与执行逐步迁移到 App |
-| Android Studio、SDK/Platform Tools、配套 JDK | App 开发 | 编译 Kotlin App、设备日志、模拟器；纯无障碍方案无需预先配置 root 或 Shizuku |
+| Android Studio、SDK/Platform Tools、配套 JDK | App 开发 | 编译现有 Android App、设备日志、模拟器；纯无障碍方案无需预先配置 root 或 Shizuku |
 | Python 隔离环境与 Git | 开始阶段 | 运行 MobileAgent、模型接口和设备桥；先在现有开发机运行服务即可 |
 | 目标 App 与测试账号、具体任务和完成条件 | 首次真机采集前 | 区分模型问题、设备问题和登录/初始状态问题；提供中文任务样本 |
 | AndroidWorld 模拟器 | 基线评测阶段 | 独立初始化和成功判定，与真实手机用例分开 |
 | Linux/KVM/Docker 环境 | 后续使用完整 MobileWorld 时 | 当前 MobileWorld 的完整环境要求；不用一开始就部署所有评测基准 |
-| 普通云服务器与手机可访问的 HTTPS/WSS 链路 | 验证脱离开发电脑运行时 | 托管 Python 控制循环和任务状态；模型调用外部 API 时，服务端无需 GPU |
+| 手机互联网与供应商 HTTPS API | 独立 App 实测 | App 内编排直连模型，无需用户自建服务器 |
 
 v3.5 真机示例的文本输入使用 ADB Keyboard，跑原版基线时按 README 安装配置；App 改造后优先使用节点 `ACTION_SET_TEXT`，不把 ADB 输入法作为最终方案前提。
 
 来源：[Android AccessibilityService](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService)、[Android Studio](https://developer.android.com/studio)、[原版设备准备](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/README.md)、[MobileWorld 环境要求](https://github.com/Tongyi-MAI/MobileWorld)。
 
-准备顺序：固定 v3.5 来源 → 模拟闭环、离线评测与 App 模拟器 → 按需请求 VLM 和手机 → 验证协议并建立原版基线 → 提取、裁剪与复验 → 真实 App+VLM → 按需请求 Jev → 策略对照 → 按需请求服务器。注册、支付、设备授权由用户完成；仓库整理、代码适配、环境配置与验证在正式开始开发后执行。
+准备顺序：固定 v3.5 来源 → 模拟闭环、离线评测与 App 模拟器 → 按需请求 VLM 和手机 → 验证协议并建立原版基线 → 提取、裁剪与复验 → 真实 App+VLM → 按需请求 Jev → 策略对照 → 最终独立 APK 验收。注册、支付、设备授权由用户完成；仓库整理、代码适配、环境配置与验证在正式开始开发后执行。

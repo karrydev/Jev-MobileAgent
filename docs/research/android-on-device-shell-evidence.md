@@ -1,5 +1,7 @@
 # 手机端独立运行：shell、Shizuku 与 Android CLI 的边界
 
+> 2026-09-25 运行边界修订：产品以 [ADR-0003](../adr/0003-standalone-android-runtime.md) 和[当前路线](../development-roadmap.md)为准。原版框架、外部工具与核查时的事实保留；旧桥接阶段不代表独立 App 已交付。
+
 资料核查日期：2026-09-21；方案更新：2026-09-22。本文分析 App 在手机上获取跨应用界面和执行动作的权限条件。当前项目先自用、从开始公开、不上应用商店；生产通道选用无障碍服务，Shizuku/无线 ADB 仅为需要额外系统能力时的备选。只查询官方文档和一手源码，没有进行手机连接、操作、安装或升级。前轮主机工具证据见 [Android CLI 调研](./android-cli-evidence.md)。
 
 ## 结论
@@ -11,7 +13,7 @@
 1. 用户启用 App 的 `AccessibilityService`，通过公开 Android API 读取可访问性节点并执行节点动作/手势。无需电脑、无需 ADB；适合作为普通用户产品的基础执行器。
 2. 用户在 Android 11+ 上启用无线调试并完成同机配对，以 Shizuku 或内置 ADB 客户端启动 shell 身份执行进程，再运行 UI Automator/UiAutomation 布局采集与动作执行。无需电脑和 root，但仍有调试设置、配对、重启后重新启动及机型适配成本。
 
-模型的位置与执行器权限是两个问题：本项目先由服务端运行 Python 编排和模型调用，App 负责本机观察与执行；模型输出不会解决操作系统权限。
+模型的位置与执行器权限是两个问题：本项目现按 ADR-0003 在 App 内运行任务编排并直连模型，App 负责本机观察与执行；模型输出不会解决操作系统权限。
 
 ## 为什么 `Runtime.exec("sh")` 不等于 `adb shell`
 
@@ -100,7 +102,7 @@ root 路线可以作为自有测试设备或特定用户的可选部署方式，
 
 ## 对本项目的建议与待验收项
 
-采用统一的设备观察与动作接口，首期实现 AccessibilityService 后端；只有出现确切系统能力缺口时，再评估 Shizuku/UiAutomation。App 自行采集与执行，不依赖 Google 桌面 CLI；服务端模型和任务编排通过设备接口保持独立。
+采用统一的设备观察与动作接口，首期实现 AccessibilityService 后端；只有出现确切系统能力缺口时，再评估 Shizuku/UiAutomation。App 自行采集与执行，不依赖 Google 桌面 CLI；手机内编排通过内部设备接口与观察/执行保持清晰边界。
 
 若产品可以接受 Shizuku/无线调试的启用门槛，也可以先做 Android 11+ 的 shell 路线原型，但应验收：首次配对、重启后恢复、Shizuku 死亡/重新授权、OEM 后台限制、UiAutomation 与已有无障碍服务共存、中文输入、UI 树缺失、动作后快照一致性。无障碍与 shell 两条路线都只能得到 App 暴露的语义，视觉回退仍是独立需求。
 
