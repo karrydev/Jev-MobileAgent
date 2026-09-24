@@ -1,0 +1,26 @@
+{
+  "case": "task20-manual02",
+  "result": "PARTIAL_manual_intervention_rejected_but_unchanged_confirmation_falsely_rejected",
+  "evidence_type": "deterministic_node_action_and_real_OnePlus_8T",
+  "model_requests": 0,
+  "apk_sha256": "e7396fb78703474233ca59f1dcd92e3778c636382fdfba0101ae2b4ab6887057",
+  "manual_change": "ready -> completed by operator after reconciliation",
+  "old_confirmation": {
+    "state": "PAUSED",
+    "eligible": false,
+    "reason": "scene_changed_since_reconciliation"
+  },
+  "second_reconciliation": "Known NOT_EXECUTED; confirming unchanged completed scene incorrectly rejects own RECONCILE enabled change",
+  "cleanup_issue": "Cancel then reconcile known NOT_EXECUTED retains RECONCILIATION_REQUIRED and local active ledger",
+  "phone_locked": true,
+  "server_stopped": true,
+  "not_acceptance": true,
+  "cleanup_retest": {
+    "state": "CANCELLED",
+    "phase": "NOT_REQUIRED",
+    "action_outcome": "NOT_EXECUTED",
+    "actual_effect": "NOT_EXECUTED",
+    "local_task_records": [],
+    "result": "PASS"
+  }
+}

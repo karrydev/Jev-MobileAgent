@@ -1,0 +1,136 @@
+{
+  "case": "task20-presend02",
+  "result": "PASS",
+  "evidence_type": "real_GUI_Plus_and_real_OnePlus_8T",
+  "apk_sha256": "e7396fb78703474233ca59f1dcd92e3778c636382fdfba0101ae2b4ab6887057",
+  "interruption": "HTTP503 before dispatch response, then bridge process stopped/restarted",
+  "at_interruption": {
+    "receipt": null,
+    "command_intent": null,
+    "physical_scene": "ready"
+  },
+  "restored_state": "PAUSED",
+  "automatic_resume": false,
+  "reconciled": {
+    "action_outcome": "NOT_EXECUTED",
+    "eligible": true,
+    "reason": "durable_client_order_proves_action_was_not_dispatched"
+  },
+  "explicit_App_confirmation": true,
+  "final_state": "SUCCEEDED",
+  "final_physical_scene": "completed",
+  "actual_effect": {
+    "action_id": "vlm-action-jev20-presend02-2",
+    "reason": "controlled_page_completed",
+    "receipt_id": "android-receipt-vlm-action-jev20-presend02-2",
+    "status": "EXECUTED"
+  },
+  "independent_result": {
+    "reason": "controlled_page_completed",
+    "status": "SUCCESS",
+    "success": true
+  },
+  "usage": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "estimated_cost_cny": 0.0046425,
+        "http_status": 200,
+        "role": "manager",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 88,
+          "prompt_tokens": 2831
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 2,
+        "estimated_cost_cny": 0.0059115,
+        "http_status": 200,
+        "role": "executor",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 97,
+          "prompt_tokens": 3650
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 3,
+        "estimated_cost_cny": 0.004674,
+        "http_status": 200,
+        "role": "manager",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 95,
+          "prompt_tokens": 2831
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 4,
+        "estimated_cost_cny": 0.006015,
+        "http_status": 200,
+        "role": "executor",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 120,
+          "prompt_tokens": 3650
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 5,
+        "estimated_cost_cny": 0.0060765,
+        "http_status": 200,
+        "role": "executor",
+        "step": 1,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 118,
+          "prompt_tokens": 3697
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 6,
+        "estimated_cost_cny": 0.008292,
+        "http_status": 200,
+        "role": "action_reflector",
+        "step": 1,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 11,
+          "prompt_tokens": 5495
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 7,
+        "estimated_cost_cny": 0.005193,
+        "http_status": 200,
+        "role": "manager",
+        "step": 2,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 92,
+          "prompt_tokens": 3186
+        },
+        "usage_present": true
+      }
+    ],
+    "estimated_cost_cny": 0.0408045,
+    "halted_reason": null,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "requests": 7,
+    "usage_missing": false
+  },
+  "phone_locked": true,
+  "server_stopped": true
+}

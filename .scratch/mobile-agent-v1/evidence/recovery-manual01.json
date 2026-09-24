@@ -1,0 +1,25 @@
+{
+  "case": "task20-manual01",
+  "result": "FAIL_confirmation_did_not_refresh_scene_and_node_model_payload",
+  "evidence_type": "deterministic_node_action_and_real_OnePlus_8T",
+  "model_requests": 0,
+  "before_manual": {
+    "action_outcome": "NOT_EXECUTED",
+    "eligible": true,
+    "physical_scene": "ready"
+  },
+  "manual_intervention": "Main operator tapped Toggle; physical scene changed to completed",
+  "after_confirmation": {
+    "state": "PAUSED",
+    "server_eligibility_still_true": true,
+    "App_message": "deterministic task recovery does not accept model credentials",
+    "server_scene": "old pre-intervention observation"
+  },
+  "defects": [
+    "Confirm only checks server recovery, without fresh capture after manual intervention",
+    "BridgeClient resume always includes model payload for node tasks"
+  ],
+  "phone_locked": true,
+  "server_stopped": true,
+  "not_acceptance": true
+}

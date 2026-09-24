@@ -1,0 +1,18 @@
+{
+  "case": "task20-pre-review-integration",
+  "command": "python3 -m unittest discover -s tests -p 'test_*.py'",
+  "result": "PASS",
+  "tests": 163,
+  "duration_seconds": 69.681,
+  "scope": "offline Python integration before review fixes",
+  "source_sha256": {
+    "services/android_bridge/bridge.py": "fd17acc858465c42700d47a5ac63c8774a8dba9a03f14f543ba0e6fb6c10526b",
+    "services/android_bridge/schema.py": "dd64843b68ed672b251c5df031449f4e739cf905d4672d3e107653111602d2c4",
+    "contracts/android/schema.json": "b2c5f26591ca6143f50fa02c2265676f7876ae5df5c676b14f5f34760ddadf19"
+  },
+  "open_review_findings": [
+    "Android rejects successful terminal resume",
+    "Prove durable intent-before-effect capability before permitting pre-dispatch recovery"
+  ],
+  "real_model_requests": 0
+}

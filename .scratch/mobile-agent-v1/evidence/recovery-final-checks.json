@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "command": "PYTHONPATH=tests python3 -B -m unittest tests.test_android_recovery tests.test_android_bridge tests.test_android_vlm_loop",
+  "tests": 40,
+  "duration_seconds": 9.97,
+  "apk_sha256": "e7396fb78703474233ca59f1dcd92e3778c636382fdfba0101ae2b4ab6887057",
+  "review": "Sol risk review and concrete-defect scoped re-reviews passed",
+  "file_sha256": {
+    "services/android_bridge/bridge.py": "c7fd00b263beefc1987922163189dc94dae1af7e4323be2a568c5ca35ed20d8e",
+    "tests/test_android_recovery.py": "a43d8fa081a541a81e27316f4e7c38ccabada2b3ebe2a5972597383c78c14a1d",
+    "android-app/app/src/main/java/com/jev/mobileagent/MainActivity.java": "9eb932deff9a4155f440e61f7bcfe6b716dc01189a846f8314a5a74acde572bf",
+    "android-app/app/src/main/java/com/jev/mobileagent/ControlledPageActivity.java": "973833acdc5f9f509c703d7a8ab59aa02e6a57e3562afc05de3001ef8cf6e29e",
+    "android-app/app/src/main/java/com/jev/mobileagent/BridgeClient.java": "48b188406531cbcce67d43b5bca409044ee00e755b2ebe86624ff0f8d3715e17"
+  },
+  "implementation_commit": "34fb858",
+  "integrated_source_commit": "5ea6545885bdb769d3134a2137138136d2594518"
+}

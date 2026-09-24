@@ -1,0 +1,85 @@
+{
+  "case": "task20-local-deployment",
+  "date": "2026-09-24",
+  "evidence_type": "local_fixture_no_phone_no_model",
+  "result": "PASS",
+  "sequence": [
+    {
+      "command": "start",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "health",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "restart",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "health",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "switch",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "health",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "rollback",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "health",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": "PAUSED"
+    },
+    {
+      "command": "stop",
+      "exit": 0,
+      "state_preserved": true,
+      "task_state": null
+    }
+  ],
+  "reconciliation_pending": 1,
+  "restart_bug": "Preflight bind reused address to avoid TIME_WAIT false conflict; a live external listener remains rejected.",
+  "rollback_scope": "temporary source snapshot of same implementation; lifecycle rollback only",
+  "source_sha256": {
+    "deployment/local_service.py": "8f4f40e7fd6321f52f909c6b69b037ae2f5d770f8f6399dcd9f070122056c10a",
+    "deployment/local-service.json": "a913a573902e513ee051b0569e00370fc887a100fc6e85370341d5284b655de8",
+    "services/android_bridge/__main__.py": "2dd77650ef515ddd4db11fb5b961fd9aae39b3346fcb1bd7728370d68379fe2d",
+    "services/android_bridge/bridge.py": "e559d634ee8e91f03b5a6ed929b600e6bd28483c76905b7b1e2c76811d4cbdf0"
+  },
+  "limitations": [
+    "Local lifecycle and fixture checkpoint only; no physical recovery, remote TLS, or no-ADB claim."
+  ],
+  "review": {
+    "model": "gpt-6-sol",
+    "result": "One finding fixed: require persistence enabled",
+    "focused_fix_checks": [
+      "enabled health accepted",
+      "disabled health rejected",
+      "Python compilation passed"
+    ],
+    "final_controller_sha256": "f4873d699a5fa5808c24ffeb8b2227cf6e7a90ff8c6f6be4875e995e68c5fbbf",
+    "lifecycle_evidence_reused": "Field validation-only fix; successful enabled-state lifecycle unchanged"
+  }
+}

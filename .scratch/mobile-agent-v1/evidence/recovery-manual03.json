@@ -1,0 +1,28 @@
+{
+  "case": "task20-manual03",
+  "result": "PASS",
+  "evidence_type": "deterministic_node_action_and_real_OnePlus_8T",
+  "model_requests": 0,
+  "apk_sha256": "e7396fb78703474233ca59f1dcd92e3778c636382fdfba0101ae2b4ab6887057",
+  "manual_change": "operator changed controlled target from ready to completed after reconciliation",
+  "stale_confirmation": {
+    "state": "PAUSED",
+    "eligible": false,
+    "reason": "scene_changed_since_reconciliation"
+  },
+  "explicit_second_reconciliation_and_confirmation": true,
+  "final_state": "SUCCEEDED",
+  "actual_effect": {
+    "action_id": "android-action-jev20-manual03",
+    "reason": "goal_already_complete_without_agent_action",
+    "status": "NOT_EXECUTED"
+  },
+  "independent_result": {
+    "reason": "controlled_page_completed",
+    "status": "SUCCESS",
+    "success": true
+  },
+  "local_task_records": [],
+  "phone_locked": true,
+  "server_stopped": true
+}

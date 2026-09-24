@@ -718,7 +718,36 @@
       "completion_tokens": 101,
       "estimated_list_price_cny": 0.0052335,
       "actual_billed_cny": null
+    },
+    {
+      "id": "recovery-presend01-before-restart",
+      "result": "Real GUI-Plus responses; injected interruption before action delivery; physical page remained ready",
+      "requests": 3,
+      "prompt_tokens": 10192,
+      "completion_tokens": 346,
+      "estimated_list_price_cny": 0.016845,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "recovery-presend01-resume-failed",
+      "result": "Old action exposed during resumed manager call; phone rejected stale observation; validation process stopped while manager usage unsettled",
+      "requests": 1,
+      "provider_usage": null,
+      "usage_missing": true,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null,
+      "conservative_remaining_task_budget_reserved_cny": 0.983155
+    },
+    {
+      "id": "recovery-presend02",
+      "result": "Real VLM before-dispatch interruption, server restart and explicit App resume succeeded",
+      "requests": 7,
+      "prompt_tokens": 25340,
+      "completion_tokens": 621,
+      "estimated_list_price_cny": 0.0408045,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 0.443439
+  "estimated_list_price_total_cny": 0.5010885,
+  "unknown_usage_request_count": 1
 }

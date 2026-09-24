@@ -1,6 +1,6 @@
 # Jev-MobileAgent：当前项目方向与决策
 
-更新日期：2026-09-22。本文记录已经确定的方向，作为后续开发的入口。文档只保留当前方案。已完成公开 Fork、合入研究文档和工程技能配置、初始化 CodeGraph；Android App 的观察、输入、节点动作、截图与手势已在受控真机验证，模型基础访问已通过；真实角色协议、原版双入口基线和角色提取对照已完成；原版与提取版亮度任务严格判分均未成功。当前正在裁剪无关目录，App+VLM闭环尚未验收。
+更新日期：2026-09-24。本文记录已经确定的方向，作为后续开发的入口。文档只保留当前方案。已完成公开 Fork、合入研究文档和工程技能配置、初始化 CodeGraph；Android App 的观察、输入、节点动作、截图与手势已在受控真机验证，模型基础访问已通过；真实角色协议、原版双入口基线和角色提取对照已完成；原版与提取版亮度任务严格判分均未成功。无关目录裁剪与复验、App+VLM 受控真机闭环已验收；中断核对与手动恢复已通过受控真机验收，下一步接入 Jev 并准备远端部署。
 
 ## 1. 已确定的方向
 
@@ -33,13 +33,13 @@ v3.5 的两个 Android 入口需要区分：
 
 来源：[真机入口](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/mobile_use/run_gui_owl_1_5_for_mobile.py)、[四角色调用入口](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3.py)、[角色与状态定义](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/android_world_v3.5/android_world/agents/mobile_agent_v3_agent.py)。
 
-当前方案是基于 v3.5 的 Android 相关代码构建衍生项目，并保留需要的多角色能力。角色现已提取至 `agent_core/vlm/`，参考适配保留在 `services/original_baselines/`；同输入分支和真实参考运行已验证，App通道集成仍待完成。上游没有可直接嵌入的独立 Android App；“保留 Android 相关代码”包含服务端编排和评测适配，不等于只留下一个现成 APK 文件夹。
+当前方案是基于 v3.5 的 Android 相关代码构建衍生项目，并保留需要的多角色能力。角色现已提取至 `agent_core/vlm/`，参考适配保留在 `services/original_baselines/`；同输入分支和真实参考运行已验证，App 通道集成已在任务 19 的受控真机任务中完成；恢复与 Jev 接入继续按依赖推进。上游没有可直接嵌入的独立 Android App；“保留 Android 相关代码”包含服务端编排和评测适配，不等于只留下一个现成 APK 文件夹。
 
 仅接入 Jev 不会自动得到布局树、手机设备桥、用户接管或断线恢复。这些需要新增；已有规划、视觉和记忆能力可以复用，但仍需要原生成式模型提供推理能力。
 
 ## 3. Fork、裁剪与上游同步
 
-按以下顺序推进；第1–2项及第3项角色提取已完成，目录裁剪与复验正在实施：
+按以下顺序推进；第1–4项已完成，保留以下顺序作为来源与复验约定：
 
 1. 公开 Fork 整个仓库并保留完整历史，记录上游地址与基线提交；将当前研究文档合入工作副本。
 2. 固定模型配置，跑通选定 v3.5 入口并保存原始轨迹、费用和判分。若需修复原示例阻塞问题，单独记录补丁，区分原始源码与修复后的可运行基线。

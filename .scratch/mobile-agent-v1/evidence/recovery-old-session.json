@@ -1,0 +1,11 @@
+{
+  "case": "task20-old-connection",
+  "result": "PASS",
+  "evidence_type": "real_paired_device_sessions_and_local_HTTP",
+  "http_status": 409,
+  "error_code": "device_session_mismatch",
+  "state_before": "PAUSED",
+  "state_after": "PAUSED",
+  "model_requests": 0,
+  "phone_stayed_locked": true
+}

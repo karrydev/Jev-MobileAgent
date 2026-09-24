@@ -1,0 +1,31 @@
+{
+  "case": "task20-receipt02",
+  "result": "PASS",
+  "evidence_type": "deterministic_node_action_and_real_OnePlus_8T",
+  "model_requests": 0,
+  "apk_sha256": "0be3393e5749d372f50b92450d1c84d696c2c2eb782f9bc545833c8722075d43",
+  "interruption": "HTTP503 before server receipt processing",
+  "server_receipt_at_interruption": null,
+  "physical_scene": "ready -> completed before receipt; remains completed after recovery",
+  "reconciliation": {
+    "action_outcome": "EXECUTED",
+    "eligible": true,
+    "reason": "durable_device_receipt_confirms_execution"
+  },
+  "explicit_App_confirmation": true,
+  "final_state": "SUCCEEDED",
+  "actual_effect": {
+    "action_id": "android-action-jev20-receipt02",
+    "reason": "fresh_independent_observation_proves_goal",
+    "receipt_id": "android-receipt-android-action-jev20-receipt02",
+    "status": "EXECUTED"
+  },
+  "independent_result": {
+    "reason": "controlled_page_completed",
+    "status": "SUCCESS",
+    "success": true
+  },
+  "local_task_records_after_confirmation": [],
+  "phone_locked": true,
+  "server_stopped": true
+}

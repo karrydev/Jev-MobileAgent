@@ -1,0 +1,30 @@
+{
+  "case": "task20-presend01",
+  "evidence_type": "real_GUI_Plus_and_OnePlus_8T",
+  "result": "FAIL_product_resume_stale_action",
+  "apk_sha256": "bdbcd599f8c48c9750225533e6a1ff36e6d49ba56035ea5030bc41f6b2c4a5ff",
+  "before_interruption": {
+    "http_calls": 3,
+    "estimated_cost_cny": 0.016845,
+    "receipt": null,
+    "intent": null,
+    "physical_state": "ready"
+  },
+  "after_restart": {
+    "state": "PAUSED",
+    "action_outcome": "NOT_EXECUTED",
+    "eligible": true,
+    "manual_confirmation": true
+  },
+  "after_confirmation": {
+    "state": "FAILED",
+    "reason": "stale_observation",
+    "physical_side_effect": "old action rejected; no click",
+    "defect": "prior-generation action exposed while resumed manager still in flight",
+    "usage_missing_requests": 1
+  },
+  "phone_locked": true,
+  "server_stopped": true,
+  "raw_evidence": "private local /tmp/jev20-presend01/",
+  "not_acceptance": true
+}
