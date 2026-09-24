@@ -184,7 +184,14 @@
         "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
         "device_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
         "client_name": {"type": "string", "minLength": 1},
-        "capabilities": {"type": "array", "items": {"type": "string"}}
+        "capabilities": {"type": "array", "items": {"type": "string"}},
+        "recovery_capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["durable_action_journal_then_server_intent_then_effect_v1"]
+          }
+        }
       }
     },
     "observation": {
@@ -295,7 +302,11 @@
         "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
         "device_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
         "goal": {"type": "string", "minLength": 1},
-        "source": {"type": "string"}
+        "source": {"type": "string"},
+        "recovery_capability": {
+          "type": "string",
+          "enum": ["durable_action_journal_then_server_intent_then_effect_v1"]
+        }
       }
     },
     "action": {
@@ -412,6 +423,118 @@
         "after_visual": {"type": ["object", "null"]},
         "action_result_unknown": {"type": "boolean"},
         "trace": {"type": "array"}
+      }
+    },
+    "command_intent_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "device_session_id"],
+      "properties": {
+        "action_id": {"type": "string", "minLength": 1},
+        "device_session_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "command_intent_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "action_id", "device_session_id", "intent_recorded", "recovery_outcome"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "action_id": {"type": "string"},
+        "device_session_id": {"type": "string"},
+        "intent_recorded": {"type": "boolean", "const": true},
+        "recovery_outcome": {"type": "string", "const": "UNKNOWN"}
+      }
+    },
+    "device_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "phase", "receipt"],
+      "properties": {
+        "action_id": {"type": "string"},
+        "phase": {"type": "string", "enum": ["PENDING", "RECEIPT_RECORDED"]},
+        "receipt": {"anyOf": [{"$ref": "#/$defs/receipt"}, {"type": "null"}]}
+      }
+    },
+    "reconcile_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_session_id", "device_record"],
+      "properties": {
+        "device_session_id": {"type": "string", "minLength": 1},
+        "device_record": {"anyOf": [{"$ref": "#/$defs/device_record"}, {"type": "null"}]}
+      }
+    },
+    "recovery_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format", "task_id", "state", "phase", "reason", "eligible", "confirmed",
+        "resume_token", "observation_version", "action_outcome", "action_id", "action_kind",
+        "actual_effect", "independent_result", "device_session_id", "usage"
+      ],
+      "properties": {
+        "format": {"type": "string", "const": "jev-android-recovery-v1"},
+        "task_id": {"type": "string"},
+        "state": {"type": "string", "enum": ["RUNNING", "PAUSED", "SUCCEEDED", "FAILED", "CANCELLED"]},
+        "phase": {"type": "string", "enum": ["NOT_REQUIRED", "RECONCILIATION_REQUIRED", "READY_TO_RESUME", "RESUMED"]},
+        "reason": {"type": ["string", "null"]},
+        "eligible": {"type": "boolean"},
+        "confirmed": {"type": "boolean"},
+        "resume_token": {"type": ["string", "null"]},
+        "observation_version": {"type": ["integer", "null"]},
+        "action_outcome": {"type": ["string", "null"], "enum": ["EXECUTED", "NOT_EXECUTED", "UNKNOWN", null]},
+        "action_id": {"type": ["string", "null"]},
+        "action_kind": {"type": ["string", "null"]},
+        "actual_effect": {"type": ["object", "null"]},
+        "independent_result": {"type": ["object", "null"]},
+        "device_session_id": {"type": ["string", "null"]},
+        "usage": {"type": ["object", "null"]}
+      }
+    },
+    "resume_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["confirmed", "resume_token", "observation_version", "device_session_id"],
+      "properties": {
+        "confirmed": {"type": "boolean", "const": true},
+        "resume_token": {"type": "string", "minLength": 1},
+        "observation_version": {"type": "integer", "minimum": 1},
+        "device_session_id": {"type": "string", "minLength": 1},
+        "model": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["provider", "endpoint", "model", "api_key", "max_steps", "max_requests", "max_tokens", "budget_cny"],
+          "properties": {
+            "provider": {"type": "string", "minLength": 1},
+            "endpoint": {"type": "string", "minLength": 1},
+            "model": {"type": "string", "minLength": 1},
+            "api_key": {"type": "string", "minLength": 1},
+            "max_steps": {"type": "integer", "minimum": 1},
+            "max_requests": {"type": "integer", "minimum": 1},
+            "max_tokens": {"type": "integer", "minimum": 1},
+            "budget_cny": {"type": "number", "exclusiveMinimum": 0}
+          }
+        }
+      }
+    },
+    "resume_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task", "recovery"],
+      "properties": {
+        "task": {"$ref": "#/$defs/task_status"},
+        "recovery": {"$ref": "#/$defs/recovery_status"}
+      }
+    },
+    "health_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service_status", "persistence_status", "pending_reconciliation_count"],
+      "properties": {
+        "service_status": {"type": "string", "enum": ["ok", "degraded"]},
+        "persistence_status": {"type": "string", "enum": ["enabled", "disabled"]},
+        "pending_reconciliation_count": {"type": "integer", "minimum": 0}
       }
     }
   }

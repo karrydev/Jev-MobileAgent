@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from numbers import Real
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,8 @@ def _type_matches(value: Any, expected: str) -> bool:
         return isinstance(value, bool)
     if expected == "integer":
         return isinstance(value, int) and not isinstance(value, bool)
+    if expected == "number":
+        return isinstance(value, Real) and not isinstance(value, bool)
     if expected == "null":
         return value is None
     raise ValueError(f"unsupported schema type: {expected}")
@@ -71,6 +74,8 @@ def _validate(value: Any, definition: dict[str, Any], schema: dict[str, Any], pa
         errors.append(f"{path}: does not match {definition['pattern']!r}")
     if "minimum" in definition and isinstance(value, (int, float)) and value < definition["minimum"]:
         errors.append(f"{path}: must be >= {definition['minimum']}")
+    if "exclusiveMinimum" in definition and isinstance(value, (int, float)) and value <= definition["exclusiveMinimum"]:
+        errors.append(f"{path}: must be > {definition['exclusiveMinimum']}")
     if "maximum" in definition and isinstance(value, (int, float)) and value > definition["maximum"]:
         errors.append(f"{path}: must be <= {definition['maximum']}")
     if "minLength" in definition and isinstance(value, str) and len(value) < definition["minLength"]:

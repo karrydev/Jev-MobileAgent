@@ -16,6 +16,9 @@ import java.nio.charset.StandardCharsets;
 
 /** Dependency-free HTTP client for the Android bridge contract. */
 public final class BridgeClient {
+    private static final String RECOVERY_CAPABILITY =
+            "durable_action_journal_then_server_intent_then_effect_v1";
+
     private BridgeClient() {
     }
 
@@ -31,6 +34,7 @@ public final class BridgeClient {
                     .put("accessibility_tree")
                     .put("windows")
                     .put("screen_metrics"));
+            body.put("recovery_capabilities", new JSONArray().put(RECOVERY_CAPABILITY));
         } catch (JSONException exception) {
             throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
         }
@@ -72,6 +76,7 @@ public final class BridgeClient {
             body.put("device_id", config.deviceId);
             body.put("goal", goal == null ? "" : goal);
             body.put("source", "android-app-user");
+            body.put("recovery_capability", RECOVERY_CAPABILITY);
         } catch (JSONException exception) {
             throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
         }
@@ -87,6 +92,7 @@ public final class BridgeClient {
             body.put("device_id", config.deviceId);
             body.put("goal", goal == null ? "" : goal);
             body.put("source", "android-app-user-vlm");
+            body.put("recovery_capability", RECOVERY_CAPABILITY);
             JSONObject model = new JSONObject();
             model.put("provider", config.modelProvider);
             model.put("endpoint", config.modelEndpoint);
@@ -124,6 +130,64 @@ public final class BridgeClient {
         return request(config, "POST", taskPath(config, "/receipt"), receipt);
     }
 
+    public static JSONObject recovery(BridgeConfig config) throws BridgeException {
+        return request(config, "GET", taskPath(config, "/recovery"), null);
+    }
+
+    public static JSONObject commandIntent(BridgeConfig config, String actionId) throws BridgeException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("action_id", actionId);
+            body.put("device_session_id", config.deviceSessionId);
+        } catch (JSONException exception) {
+            throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
+        }
+        return request(config, "POST", taskPath(config, "/command-intent"), body);
+    }
+
+    public static JSONObject reconcile(BridgeConfig config, JSONObject deviceRecord) throws BridgeException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("device_session_id", config.deviceSessionId);
+            body.put("device_record", deviceRecord == null ? JSONObject.NULL : deviceRecord);
+        } catch (JSONException exception) {
+            throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
+        }
+        return request(config, "POST", taskPath(config, "/reconcile"), body);
+    }
+
+    public static JSONObject resume(
+            BridgeConfig config,
+            boolean confirmed,
+            String resumeToken,
+            int observationVersion,
+            boolean vlm) throws BridgeException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("confirmed", confirmed);
+            body.put("resume_token", resumeToken);
+            body.put("observation_version", observationVersion);
+            body.put("device_session_id", config.deviceSessionId);
+            if (vlm) {
+                JSONObject model = new JSONObject();
+                model.put("provider", config.modelProvider);
+                model.put("endpoint", config.modelEndpoint);
+                model.put("model", config.modelName);
+                // Read the key only from BridgeConfig and keep it out of the
+                // recovery ledger, task status, and device evidence.
+                model.put("api_key", config.modelApiKey);
+                model.put("max_steps", 5);
+                model.put("max_requests", 25);
+                model.put("max_tokens", 1024);
+                model.put("budget_cny", 1.0);
+                body.put("model", model);
+            }
+        } catch (JSONException exception) {
+            throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
+        }
+        return request(config, "POST", taskPath(config, "/resume"), body);
+    }
+
     private static String taskPath(BridgeConfig config, String suffix) throws BridgeException {
         try {
             return "/v1/android/tasks/" + URLEncoder.encode(config.taskId, "UTF-8") + suffix;
@@ -137,9 +201,13 @@ public final class BridgeClient {
             String method,
             String path,
             JSONObject body) throws BridgeException {
+        boolean pairing = "POST".equals(method) && "/v1/android/pair".equals(path);
         if (config.endpoint.length() == 0 || config.token.length() == 0
                 || config.deviceId.length() == 0 || config.taskId.length() == 0) {
             throw new BridgeException(0, "invalid_configuration", "endpoint, token, device_id and task_id are required");
+        }
+        if (!pairing && config.deviceSessionId.isEmpty()) {
+            throw new BridgeException(0, "device_session_required", "pair this device before making bridge requests");
         }
         HttpURLConnection connection = null;
         try {
@@ -152,6 +220,9 @@ public final class BridgeClient {
             connection.setRequestProperty("Authorization", "Bearer " + config.token);
             connection.setRequestProperty("X-JEV-Protocol-Version", "1");
             connection.setRequestProperty("X-JEV-Device-Id", config.deviceId);
+            if (!pairing) {
+                connection.setRequestProperty("X-JEV-Device-Session-Id", config.deviceSessionId);
+            }
             if (body != null) {
                 connection.setDoOutput(true);
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
