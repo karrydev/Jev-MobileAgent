@@ -1,13 +1,14 @@
 # Jev-MobileAgent 文档索引
 
-更新日期：2026-09-24。公开 Fork、工程技能配置与 CodeGraph 已初始化，正式规格与本地任务已建立，模拟任务闭环、独立离线判分和离线选择/核验已通过验收；Android 观察已在模拟器与物理手机受控页面验证；确定性节点动作与任务控制已在真机验证；截图与手势也已在受控真机验证。真实模型基础访问已通过，原版手机协议与最小坐标适配后的四角色协议验证已通过；原版双入口基线已采集（真机成功、AndroidWorld 5 步任务未完成）；角色提取与同条件参考对照已完成（严格任务判分仍失败），无关目录裁剪与参考复验已完成，App+VLM 已通过受控真机闭环、暂停取消及权限/截图失败验证，中断核对与手动恢复已通过受控真机验收，接下来等待 Jev 与服务器访问条件。
+更新日期：2026-09-25。公开 Fork、工程技能配置与 CodeGraph 已初始化，正式规格与本地任务已建立，模拟任务闭环、独立离线判分和离线选择/核验已通过验收；Android 观察已在模拟器与物理手机受控页面验证；确定性节点动作与任务控制已在真机验证；截图与手势也已在受控真机验证。真实模型基础访问已通过，原版手机协议与最小坐标适配后的四角色协议验证已通过；原版双入口基线已采集（真机成功、AndroidWorld 5 步任务未完成）；角色提取与同条件参考对照已完成（严格任务判分仍失败），无关目录裁剪与参考复验已完成，App+VLM 已通过受控真机闭环、暂停取消及权限/截图失败验证，中断核对与手动恢复已通过受控真机验收，这些结果属于旧 App + Python 设备桥架构。用户已明确独立 App：下一步迁入手机编排；Jev 测试凭据已提供，不再要求服务器。独立 APK 尚待 26/27/28 验收。
 
 ## 开发入口
 
 1. [开发路线](development-roadmap.md)：交付范围、阶段门槛、工作线、并行波次、共享契约及证据要求。
 2. [并行协作约定](parallel-development.md)：本地任务领取、worktree、共享文件归属、合入顺序和交接。
 3. [实施任务索引](../.scratch/mobile-agent-v1/index.md)：28 项已确认任务及其依赖；从无阻塞且未领取的 Agent 任务开始；人工准备按触发时机延后。
-4. [领域词汇](../CONTEXT.md)：统一任务、观察、动作核验、任务完成、接管与恢复的含义。
+4. [独立 App 决策](adr/0003-standalone-android-runtime.md)：当前产品边界，替代旧服务端编排方案。
+5. [领域词汇](../CONTEXT.md)：统一任务、观察、动作核验、任务完成、接管与恢复的含义。
 
 ## 已验收的本地入口
 
@@ -21,12 +22,12 @@
 
 - [App + VLM 真机验证](app-vlm-validation.md)：App 配置、受控任务和任务 19 实测证据；不代表 Jev 或脱离 ADB 已验收。
 - [Android 中断恢复](android-recovery-validation.md)：核对、显式恢复、已知设备边界与任务 20 证据。
-- [本地部署演练](local-deployment.md)：启动、健康检查、重启与回退；远端部署仍待服务器条件。
+- [本地部署演练](local-deployment.md)：启动、健康检查、重启与回退；保留为旧架构开发参考，不是产品使用前提。
 
 ## 当前决策与研究依据
 
 - [项目方向与决策](project-direction.md)：选型、公开 Fork、Android App 边界、首版单手机与手动恢复。
-- [App 与编排边界](adr/0001-device-and-orchestration-boundary.md)、[单手机与手动恢复](adr/0002-single-device-and-explicit-resume.md)：已确认的关键取舍。
+- [独立 App 编排](adr/0003-standalone-android-runtime.md)、[单手机与手动恢复](adr/0002-single-device-and-explicit-resume.md)：当前取舍；[旧双端边界](adr/0001-device-and-orchestration-boundary.md)已被替代。
 - [开发前准备](research/2026-09-22-development-readiness.md)：API 账号、设备与运行环境；账号可用性仍需实测。
 - [阶段规划、评测复用与流程图](research/2026-09-22-stages-evaluation-and-flows.md)：阶段 0–5 的研究依据、评测素材与改造前后流程。
 

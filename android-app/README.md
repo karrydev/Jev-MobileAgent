@@ -1,5 +1,7 @@
 # Jev Android observation app
 
+> 2026-09-25：以下说明当前桥接式实现或其历史验收。按 [ADR-0003](../docs/adr/0003-standalone-android-runtime.md)，最终产品改为手机内编排；这些操作不作为独立 App 用户的使用前提，迁移由任务 26/27 验收。
+
 This is the minimal real device bridge for task 06. It is a plain Java
 Android app with no external runtime dependency. The app has two screens:
 

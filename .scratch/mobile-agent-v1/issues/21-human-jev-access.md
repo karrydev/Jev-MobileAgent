@@ -1,33 +1,33 @@
-# 21 — 提供 Jev 实测访问条件
+# 21 — 验证已提供的 Jev 实测访问条件
 
-**What to build:** 用户在仅 VLM 闭环与离线候选链路就绪后，提供 Jev 服务端凭据和有限实测预算，使候选策略进入真实对照。
+**What to build:** 使用用户已提供的 Jev 凭据运行已准备的最小访问探针，确认真实接口可访问并记录费用/错误，为 App 内接入提供事实依据。
 
 Blocked by: none
 
-Status: ready-for-human
+Status: ready-for-agent
 
 Execution: pending
 Owner: unassigned
 Branch: unassigned
-Evidence: 用户访问条件
-Gate: 提供 Jev 实测访问条件
+Evidence: 真实 Jev 访问探针
+Gate: 已提供 Jev 凭据可用于实测
 
 ## 前置与规格
 
-无技术前置；人工项按触发时机请求。
+无技术前置；凭据已提供，可与任务 26 并行。
 
 [首版规格](../spec.md) · [任务索引](../index.md) · [并行协作](../../../docs/parallel-development.md)
 
 ## Acceptance criteria
 
 - [x] Agent 已准备配置样例、最小中文/错误探针与报告入口。
-- [ ] 用户仅处理账号、必要支付与授权，凭据保留运行环境。
+- [x] 用户已提供包含 `JEV_API_KEY` 和 `JEV_VLM_API_KEY` 的本地测试 env，变量存在；尚未将此事实当作 API 可用。
+- [ ] 用 `services/jev_probe/` 做有限实际访问/中文探针，记录认证、响应和 usage；失败先分类，仅在确认账号/额度缺口时请求用户。
 - [ ] 本项仅关闭访问门槛，接口/质量与收益由后续真实任务验证。
 
 ## 用户参与触发条件
 
-任务 11 与 19 完成、即将启动任务 22 时触发；不阻塞原版 VLM 基线或 App 开发。
-无技术前置不表示现在请求用户；协调者仅在上述时机准备好具体材料后一次性请求。
+测试统一读取用户指定的 `/Users/liangkairui/Repo/jev-test.env`，不提交文件或打印 Key；沿用首轮总预算 ¥10，包含既有调用与未知用量预留。正常用户在 App 内输入 Key（任务 26），不需要 env 文件。仅在实际探针证明缺少账号授权或额度时，说明原因与获取方式再请求用户。
 
 ## 交付证据
 
@@ -38,3 +38,5 @@ Gate: 提供 Jev 实测访问条件
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-24：Agent访问材料已准备 services/jev_probe/（默认dry-run、显式live、中文choice与可选错误探针、JSON报告）。7项离线HTTP测试通过，Sol定向复核关闭错误配置URL凭据回显与401/429误判；尚未调用真实Jev，不将本票记为done。待20本地恢复/部署准备后尽量合并请求所需外部条件。
+
+2026-09-25：用户已提供统一测试凭据文件，改为 ready-for-agent；本轮仅修订规格，未运行真实 Jev 探针，Execution 保持 pending。

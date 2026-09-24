@@ -1,5 +1,7 @@
 # Android 中断恢复验证
 
+> 2026-09-25：以下说明当前桥接式实现或其历史验收。按 [ADR-0003](adr/0003-standalone-android-runtime.md)，最终产品改为手机内编排；这些操作不作为独立 App 用户的使用前提，迁移由任务 26/27 验收。
+
 任务与验收结果见 [任务 20](../.scratch/mobile-agent-v1/issues/20-real-device-recovery.md)。本地服务启停见 [部署演练](local-deployment.md)。本页说明操作与判据，是否通过以任务证据为准。
 
 ## App 操作

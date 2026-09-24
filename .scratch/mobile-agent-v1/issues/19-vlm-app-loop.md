@@ -1,5 +1,7 @@
 # 19 — 用户通过 App 完成仅 VLM 的真实任务
 
+> 2026-09-25 范围说明：本票 done 仅指原 App + Python 设备桥架构的验收，历史证据与复用价值保留。独立 App 的移植及恢复另由 [26](26-app-local-vlm.md)/[27](27-standalone-recovery.md) 验收，本票不证明最终产品已独立运行。
+
 **What to build:** 用户在物理手机 App 发起已确认任务，由提取后的 VLM 策略经 App 观察和执行，看到完整状态、独立结果与任务报告。
 
 Blocked by: 08, 10, 14, 18

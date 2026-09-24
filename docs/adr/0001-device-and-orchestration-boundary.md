@@ -1,7 +1,9 @@
 ---
-status: accepted
+status: superseded by ADR-0003
 ---
 # App 负责设备，服务端负责 Agent 编排
+
+2026-09-25：被 [ADR-0003](0003-standalone-android-runtime.md) 替代。以下保留旧实现的决策来源，不再作为产品交付边界。
 
 沿用既有项目方向：Android App 通过用户启用的无障碍服务提供观察、执行与任务控制，Python 编排先运行在开发电脑、后迁到普通服务器。最终使用链路为 App 与服务端连接，不依赖电脑常驻或 ADB。
 

@@ -2,8 +2,12 @@
 
 Jev-MobileAgent is an Android-focused derivation of MobileAgent v3.5. The
 current work combines the retained v3.5 model and reference entries with an
-Android app, Python services, extracted roles, explicit contracts, offline
-evaluation, and regression tests.
+Android app, Python reference services, extracted roles, explicit contracts,
+offline evaluation, and regression tests. The product target is a standalone
+APK: users configure their model keys in the App, which runs orchestration
+on the phone and calls model providers directly. No user-hosted backend or
+ADB is required for normal use. This migration is not yet implemented; see
+[the current decision](docs/adr/0003-standalone-android-runtime.md).
 
 ## Start here
 
@@ -38,7 +42,9 @@ improvement. The reports and reproduction commands are in
 [.scratch/mobile-agent-v1/evidence](.scratch/mobile-agent-v1/evidence) and
 [services/original_baselines/README.md](services/original_baselines/README.md).
 
-The App plus VLM loop, Jev selection, tree verification, server deployment,
-and physical-device recovery remain in progress. Running the real reference
+The bridge-based App plus VLM loop and physical-device recovery have passed
+their controlled-phone checks. They do not certify standalone operation.
+The on-phone runtime, Jev selection, tree verification, and final standalone
+APK acceptance remain pending (tickets 21–28). Running the real reference
 commands requires the configured VLM service and Android device or emulator;
 offline regression tests do not certify those external capabilities.
