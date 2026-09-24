@@ -780,8 +780,16 @@
       "actual_billed_cny": null,
       "prompt_tokens": 15180,
       "completion_tokens": 319
+    },
+    {
+      "id": "standalone-input02",
+      "source_commit": "7e83965c377f1c09d60118ccc12e4ff839d358a6",
+      "result": "Physical Chinese input matched; App paused at max_steps after unsupported answer action; USB integration failure",
+      "requests": 10,
+      "estimated_list_price_cny": 0.062508,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 0.5868855,
+  "estimated_list_price_total_cny": 0.6493935,
   "unknown_usage_request_count": 1
 }

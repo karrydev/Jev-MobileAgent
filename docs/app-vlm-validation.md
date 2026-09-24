@@ -6,7 +6,7 @@
 
 ## 操作步骤
 
-1. 按 [Android 安装与连接说明](../android-app/README.md) 构建、安装 App，启动 Python Android bridge，并通过独立端口的 `adb reverse` 连接手机。设备桥 Token 与模型 Key 是两项不同配置。
+1. 在历史提交 `2ed36fb` 按当时的 `android-app/README.md` 构建、安装 App（当前 README 已迁至独立 App），启动 Python Android bridge，并通过独立端口的 `adb reverse` 连接手机。设备桥 Token 与模型 Key 是两项不同配置。
 2. 在手机设置中启用 **Jev observation service**。在 App 填写桥地址、Token、设备 ID 和一个新的任务 ID；每轮使用不同任务 ID。
 3. 在 App 填写模型配置：provider 为 `GUI-Plus`，endpoint 为 `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions`，model 为 `gui-plus-2026-02-26`，API Key 使用自己的百炼 Key。Key 保存在 App 私有空间，随任务提交给自己的编排服务，不写到任务报告。这是旧桥接实现的行为；任务 26 将改为 App 加密保存凭据并直连供应商。
 4. 点击 **Connect and capture observation** 保存配置。选择 **Fill deterministic click goal**，再打开 **Open controlled observation page**，确认初始状态是 `ready`。

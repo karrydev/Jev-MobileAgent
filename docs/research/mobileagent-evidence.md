@@ -1,5 +1,7 @@
 # MobileAgent v3.5 一手证据
 
+> 2026-09-25：下文未运行的描述限定于 9 月 21 日研究时点。后续模型与真机基线见本地任务 15–20，Jev API 探针见任务 21；当前产品采用 [独立 Android App](../adr/0003-standalone-android-runtime.md)，旧研究不要求用户部署设备桥。
+
 资料核查时间：2026-09-21 01:29（Asia/Shanghai）；方案更新：2026-09-22。已在线读取 GitHub、arXiv、Hugging Face，并将仓库浅克隆到 `/tmp/mobileagent-research-20260921` 阅读源码。核查基线为 `11cea575561fb7800b5fb6b6cafa56f7a91de11f`，提交时间 `2026-07-07T17:22:18+08:00`。下列代码链接固定在该提交，没有连接手机、调用模型或复现 benchmark。
 
 ## 项目是什么
@@ -20,7 +22,7 @@ GUI-Owl-1.5 派生自 Qwen3-VL，公开集合包含 2B-Instruct、4B-Instruct、
 
 **已证实**：v3.5 真机示例要求设置 `api_key/base_url/model`，模型需理解截图并输出指定的 `<tool_call>` 包裹 JSON。脚本不预选模型规模或自动加载本地权重；可连接托管服务，也可连接自部署的兼容 API。兼容 OpenAI API 只是传输接口兼容，不等于任意模型可用。[入口与解析器](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/mobile_use/run_gui_owl_1_5_for_mobile.py#L34)
 
-**分析判断**：Jev 是已核实的文本/JSON 闭集决策模型，不能直接替换 GUI-Owl。需要新增 `App UI tree → 完整动作候选 → Jev 选择 → App 执行 → 新树核验`，同时复用 v3.5 的角色、图文历史和视觉动作逻辑。自由文本、规划、摘要和树外视觉仍由生成式模型或明确模板提供；App 设备桥、用户接管和任务会话需自行实现。本段是工程方案，不是 MobileAgent 已发布的 App 能力。
+**分析判断**：Jev 是已核实的文本/JSON 闭集决策模型，不能直接替换 GUI-Owl。需要新增 `App UI tree → 完整动作候选 → Jev 选择 → App 执行 → 新树核验`，同时复用 v3.5 的角色、图文历史和视觉动作逻辑。自由文本、规划、摘要和树外视觉仍由生成式模型或明确模板提供；App 本地设备接口、用户接管和任务会话需自行实现；产品编排位置以 ADR-0003 的独立 APK 为准。本段是工程方案，不是 MobileAgent 已发布的 App 能力。
 
 ## Benchmark：有能力证据，但不是产品可靠性保证
 
@@ -43,4 +45,4 @@ GUI-Owl-1.5 派生自 Qwen3-VL，公开集合包含 2B-Instruct、4B-Instruct、
 
 源码静态审阅发现：`build_messages` 给图片路径加 `file://`，而 `convert_messages_format_to_openaiurl` 将它原样传入 `image_to_base64 → PIL.Image.open`，未剥离 URI 前缀。正常本地文件路径在这条链路上会被当成错误文件名，应先修复并做真机冒烟验证，不能承诺 README 命令直接可跑。另有提示词声明的 `key`、`Menu/Enter` 未在主循环完整分派，以及缩放尺寸与设备原始坐标应统一的问题。[路径证据 L401–437、L504–512](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/mobile_use/utils.py#L401)、[动作分派](https://github.com/X-PLUG/MobileAgent/blob/11cea575561fb7800b5fb6b6cafa56f7a91de11f/Mobile-Agent-v3.5/mobile_use/run_gui_owl_1_5_for_mobile.py#L205)。这些是代码证据及其直接推断，本轮没有执行 demo 来确认故障栈。
 
-本项目选择 v3.5 作为底座，公开 Fork 后提取 Android 相关角色与执行逻辑，再逐步接入 App 设备桥、Jev 动作选择和树验证。原生单模型入口、四角色入口和生产改造需分别建立基线；源码可复用不等于独立手机能力已经实现。详见[当前项目方向](../project-direction.md)与[阶段验证方案](2026-09-22-stages-evaluation-and-flows.md)。
+本项目选择 v3.5 作为底座，公开 Fork 后提取 Android 相关角色与执行逻辑，再逐步接入 App 本地编排与设备能力、Jev 动作选择和树验证。原生单模型入口、四角色入口和生产改造需分别建立基线；源码可复用不等于独立手机能力已经实现。详见[当前项目方向](../project-direction.md)与[阶段验证方案](2026-09-22-stages-evaluation-and-flows.md)。
