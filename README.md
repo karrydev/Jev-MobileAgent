@@ -44,7 +44,8 @@ improvement. The reports and reproduction commands are in
 
 The bridge-based App plus VLM loop and physical-device recovery have passed
 their controlled-phone checks. They do not certify standalone operation.
-The on-phone runtime, Jev selection, tree verification, and final standalone
-APK acceptance remain pending (tickets 21–28). Running the real reference
+The Jev API access probe has passed. The on-phone runtime, Jev selection,
+tree verification, and final standalone APK acceptance remain pending
+(tickets 22–28; see individual tickets for execution status). Running the real reference
 commands requires the configured VLM service and Android device or emulator;
 offline regression tests do not certify those external capabilities.
