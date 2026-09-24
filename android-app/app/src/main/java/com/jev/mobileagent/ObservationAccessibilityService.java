@@ -47,6 +47,8 @@ public class ObservationAccessibilityService extends AccessibilityService {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private volatile long lastCapturedVersion;
+    private volatile long coordinateFingerprintVersion;
+    private volatile String coordinateFingerprint = "";
     private volatile long screenshotCaptureCount;
     private volatile long screenshotUploadCount;
     /**
@@ -113,6 +115,20 @@ public class ObservationAccessibilityService extends AccessibilityService {
         void onError(String code, String message);
     }
 
+    /** Local observation callback used by the standalone task loop; payloads never cross a bridge. */
+    public interface LocalObservationCallback {
+        void onSuccess(JSONObject observation);
+
+        void onError(String code, String message);
+    }
+
+    /** Local screenshot callback used by the VLM loop; PNG data remains app-private. */
+    public interface LocalScreenshotCallback {
+        void onSuccess(JSONObject screenshot);
+
+        void onError(String code, String message);
+    }
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
@@ -125,24 +141,17 @@ public class ObservationAccessibilityService extends AccessibilityService {
             info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK;
             setServiceInfo(info);
         }
-        if (BridgeConfig.captureEnabled(this)) {
-            mainHandler.postDelayed(autoCapture, AUTO_CAPTURE_DELAY_MS);
-        }
+        // The product runtime captures locally on demand. Older bridge capture
+        // preferences are disabled during upgrade so an old setting cannot
+        // silently resume network uploads.
+        getSharedPreferences(BridgeConfig.PREFS, MODE_PRIVATE).edit()
+                .putBoolean("capture_enabled", false).commit();
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (!BridgeConfig.captureEnabled(this) || taskCaptureHeld) {
-            return;
-        }
-        int type = event.getEventType();
-        if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                || type == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-                || type == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
-                || type == AccessibilityEvent.TYPE_VIEW_CLICKED) {
-            mainHandler.removeCallbacks(autoCapture);
-            mainHandler.postDelayed(autoCapture, AUTO_CAPTURE_DELAY_MS);
-        }
+        // Observation is requested by the app-local task service. Accessibility
+        // events never trigger bridge traffic or unsolicited screenshot capture.
     }
 
     @Override
@@ -156,16 +165,9 @@ public class ObservationAccessibilityService extends AccessibilityService {
         mainHandler.removeCallbacks(autoCapture);
         taskCaptureHeld = false;
         clearNodeBindings();
-        BridgeConfig config = BridgeConfig.load(this);
-        boolean captureWasEnabled = BridgeConfig.captureEnabled(this);
-        config.save(this, false);
-        if (captureWasEnabled) {
-            enqueueUnavailable(config, "Accessibility service was destroyed");
-        }
-        // Let the explicit unavailable observation queued above finish. Any
-        // earlier capture upload checks capture_enabled and is skipped after
-        // the flag is cleared.
-        networkExecutor.shutdown();
+        getSharedPreferences(BridgeConfig.PREFS, MODE_PRIVATE).edit()
+                .putBoolean("capture_enabled", false).commit();
+        networkExecutor.shutdownNow();
         if (instance == this) {
             instance = null;
         }
@@ -207,6 +209,182 @@ public class ObservationAccessibilityService extends AccessibilityService {
             return;
         }
         service.captureNow(config, callback);
+    }
+
+    /** Reserve local Accessibility observations for one app-local task and return a fresh tree. */
+    public static void beginLocalTaskCapture(final String taskId, final LocalObservationCallback callback) {
+        final ObservationAccessibilityService service = instance;
+        if (service == null) {
+            reportLocalObservationError(callback, "permission_unavailable", "Accessibility service is not running");
+            return;
+        }
+        service.mainHandler.post(() -> {
+            service.taskCaptureHeld = true;
+            service.mainHandler.removeCallbacks(service.autoCapture);
+            service.captureLocalObservation(taskId, callback);
+        });
+    }
+
+    /** Capture another frame inside the same local task reservation. */
+    public static void requestLocalObservation(final String taskId, final LocalObservationCallback callback) {
+        final ObservationAccessibilityService service = instance;
+        if (service == null) {
+            reportLocalObservationError(callback, "permission_unavailable", "Accessibility service is not running");
+            return;
+        }
+        service.mainHandler.post(() -> service.captureLocalObservation(taskId, callback));
+    }
+
+    /** Capture a screenshot associated with the exact local observation, without bridge upload. */
+    public static void requestLocalScreenshot(
+            final JSONObject observation,
+            final String captureType,
+            final LocalScreenshotCallback callback) {
+        final ObservationAccessibilityService service = instance;
+        if (service == null) {
+            reportLocalScreenshotError(callback, "permission_unavailable", "Accessibility service is not running");
+            return;
+        }
+        service.mainHandler.post(() -> service.captureLocalScreenshot(observation, captureType, callback));
+    }
+
+    /** Execute the existing observation-bound Accessibility action path for a local task. */
+    public static void executeLocalAction(
+            final JSONObject action,
+            final ActionExecutionGate.Token actionToken,
+            final ActionCallback callback) {
+        final ObservationAccessibilityService service = instance;
+        if (service == null) {
+            if (callback != null) {
+                callback.onError("permission_unavailable", "Accessibility service is not running");
+            }
+            return;
+        }
+        service.executeActionNow(null, action, actionToken, callback);
+    }
+
+    /** Release a local task's observation reservation after it stops. */
+    public static void endLocalTaskCapture() {
+        final ObservationAccessibilityService service = instance;
+        if (service != null) {
+            service.mainHandler.post(() -> {
+                service.taskCaptureHeld = false;
+                service.mainHandler.removeCallbacks(service.autoCapture);
+            });
+        }
+    }
+
+    private void captureLocalObservation(String taskId, LocalObservationCallback callback) {
+        if (!isEnabled(this)) {
+            reportLocalObservationError(callback, "permission_unavailable", "Accessibility permission is unavailable");
+            return;
+        }
+        try {
+            BridgeConfig localIdentity = new BridgeConfig("", "", "standalone-device", taskId,
+                    "", "", "", "", "");
+            JSONObject observation = captureOnServiceThread(localIdentity);
+            if (callback != null) {
+                callback.onSuccess(observation);
+            }
+        } catch (SecurityException exception) {
+            reportLocalObservationError(callback, "permission_unavailable", "Accessibility permission is unavailable");
+        } catch (JSONException | RuntimeException exception) {
+            reportLocalObservationError(callback, "capture_failed", "Local Accessibility observation failed");
+        }
+    }
+
+    private void captureLocalScreenshot(
+            JSONObject observation,
+            String captureType,
+            LocalScreenshotCallback callback) {
+        String observationId = observation == null ? "" : observation.optString("observation_id", "");
+        long observationVersion = observation == null ? -1L : observation.optLong("observation_version", -1L);
+        if (observationId.isEmpty() || observationVersion < 1L
+                || (!"BEFORE".equals(captureType) && !"AFTER".equals(captureType))) {
+            reportLocalScreenshotError(callback, "observation_mismatch", "Screenshot must match a valid local observation");
+            return;
+        }
+        long captureCount = ++screenshotCaptureCount;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            reportLocalScreenshotError(callback, "screenshot_api_unavailable", "Accessibility screenshots require Android 11 or newer");
+            return;
+        }
+        try {
+            takeScreenshot(Display.DEFAULT_DISPLAY, command -> mainHandler.post(command), new TakeScreenshotCallback() {
+                @Override
+                public void onSuccess(ScreenshotResult result) {
+                    HardwareBuffer buffer = null;
+                    Bitmap hardwareBitmap = null;
+                    Bitmap bitmap = null;
+                    try {
+                        if (result == null || result.getHardwareBuffer() == null) {
+                            throw new IllegalStateException("screenshot buffer missing");
+                        }
+                        buffer = result.getHardwareBuffer();
+                        hardwareBitmap = Bitmap.wrapHardwareBuffer(buffer, result.getColorSpace());
+                        if (hardwareBitmap == null) {
+                            throw new IllegalStateException("screenshot buffer unreadable");
+                        }
+                        bitmap = hardwareBitmap.copy(Bitmap.Config.ARGB_8888, false);
+                        if (bitmap == null) {
+                            throw new IllegalStateException("screenshot copy failed");
+                        }
+                        ByteArrayOutputStream output = new ByteArrayOutputStream();
+                        if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                            throw new IllegalStateException("screenshot encoding failed");
+                        }
+                        String base64 = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
+                        JSONObject localScreenshot = new JSONObject()
+                                .put("screenshot_id", "local-shot-" + UUID.randomUUID().toString().replace("-", ""))
+                                .put("observation_id", observationId)
+                                .put("observation_version", observationVersion)
+                                .put("capture_type", captureType)
+                                .put("captured_at", java.time.Instant.now().toString())
+                                .put("width_px", bitmap.getWidth())
+                                .put("height_px", bitmap.getHeight())
+                                .put("capture_count", captureCount)
+                                .put("png_base64", base64);
+                        if (callback != null) {
+                            callback.onSuccess(localScreenshot);
+                        }
+                    } catch (RuntimeException | JSONException exception) {
+                        reportLocalScreenshotError(callback, "screenshot_unavailable", "Local screenshot capture failed");
+                    } finally {
+                        if (bitmap != null) {
+                            bitmap.recycle();
+                        }
+                        if (hardwareBitmap != null && hardwareBitmap != bitmap) {
+                            hardwareBitmap.recycle();
+                        }
+                        if (buffer != null) {
+                            buffer.close();
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(int errorCode) {
+                    reportLocalScreenshotError(callback, "screenshot_unavailable",
+                            "Accessibility screenshot failed with code " + errorCode);
+                }
+            });
+        } catch (SecurityException exception) {
+            reportLocalScreenshotError(callback, "permission_unavailable", "Accessibility screenshot permission is unavailable");
+        } catch (RuntimeException exception) {
+            reportLocalScreenshotError(callback, "screenshot_unavailable", "Local screenshot capture failed");
+        }
+    }
+
+    private static void reportLocalObservationError(LocalObservationCallback callback, String code, String message) {
+        if (callback != null) {
+            callback.onError(code, message);
+        }
+    }
+
+    private static void reportLocalScreenshotError(LocalScreenshotCallback callback, String code, String message) {
+        if (callback != null) {
+            callback.onError(code, message);
+        }
     }
 
     /** Capture and upload a real frame for an observation already accepted by the bridge. */
@@ -617,6 +795,11 @@ public class ObservationAccessibilityService extends AccessibilityService {
                 reportActionError(callback, "stale_observation", "the action is bound to an obsolete Accessibility observation");
                 return;
             }
+            if (coordinateAction && !refreshAndMatchCoordinateContext(action)) {
+                reportActionError(callback, "stale_observation",
+                        "the visible page or coordinate target changed after its observation");
+                return;
+            }
             try {
                 if ("system_back".equals(kind)) {
                     if (!frameMatchesCurrentDisplay(action.optJSONObject("coordinate_frame"))) {
@@ -663,6 +846,25 @@ public class ObservationAccessibilityService extends AccessibilityService {
     private static final class ActionBindingException extends Exception {
         ActionBindingException(String message) {
             super(message);
+        }
+    }
+
+    private boolean refreshAndMatchCoordinateContext(JSONObject action) {
+        long expectedVersion = action.optLong("observation_version", -1L);
+        String expectedFingerprint = coordinateFingerprint;
+        if (expectedVersion < 1L || expectedVersion != coordinateFingerprintVersion
+                || expectedFingerprint.isEmpty()) {
+            return false;
+        }
+        try {
+            BridgeConfig identity = new BridgeConfig("", "",
+                    action.optString("device_id", "standalone-device"),
+                    action.optString("task_id", ""));
+            JSONObject current = captureOnServiceThread(identity);
+            return CoordinateObservationFingerprint.matches(expectedFingerprint, current,
+                    action.optJSONObject("coordinate_frame"));
+        } catch (JSONException | RuntimeException exception) {
+            return false;
         }
     }
 
@@ -1158,6 +1360,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
         JSONArray nodesJson = new JSONArray();
         JSONArray rootIds = new JSONArray();
         Rect activeWindowBounds = null;
+        int activeWindowId = -1;
 
         List<AccessibilityWindowInfo> windows = null;
         try {
@@ -1181,6 +1384,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
                         window.getBoundsInScreen(candidateBounds);
                         if (!candidateBounds.isEmpty()) {
                             activeWindowBounds = candidateBounds;
+                            activeWindowId = windowId;
                         }
                     }
                     String nodePrefix = "window-" + windowId + "-" + windowIndex;
@@ -1243,8 +1447,13 @@ public class ObservationAccessibilityService extends AccessibilityService {
         observation.put("nodes", nodesJson);
         observation.put("root_node_ids", rootIds);
         if (activeWindowBounds != null) {
-            observation.put("screen", ObservationPayload.screen(this, activeWindowBounds));
+            JSONObject screen = ObservationPayload.screen(this, activeWindowBounds);
+            screen.put("active_window_id", activeWindowId);
+            screen.put("active_window_bounds", ObservationPayload.bounds(activeWindowBounds));
+            observation.put("screen", screen);
         }
+        coordinateFingerprint = CoordinateObservationFingerprint.create(observation);
+        coordinateFingerprintVersion = version;
         return observation;
     }
 
