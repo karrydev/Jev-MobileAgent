@@ -746,6 +746,22 @@
       "completion_tokens": 621,
       "estimated_list_price_cny": 0.0408045,
       "actual_billed_cny": null
+    },
+    {
+      "id": "jev-access-live01",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "result": "Chinese choice expected, HTTP200; explicit malformed request HTTP400; no retries",
+      "requests": 2,
+      "input_tokens": 378,
+      "output_tokens": 35,
+      "estimated_list_price_usd": 1.5876e-05,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null,
+      "budget_reservation_cny": 0.01,
+      "reservation_note": "Conservative CNY budget hold, not an exchange-rate conversion; invalid-request actual billing not verified",
+      "price_source": "https://docs.typesafe.ai/models",
+      "price_verified_date": "2026-09-25"
     }
   ],
   "estimated_list_price_total_cny": 0.5010885,

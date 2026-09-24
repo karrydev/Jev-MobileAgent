@@ -6,7 +6,7 @@ Blocked by: none
 
 Status: ready-for-agent
 
-Execution: in-progress
+Execution: done
 Owner: main-live-probe
 Branch: main
 Evidence: 真实 Jev 访问探针
@@ -22,8 +22,8 @@ Gate: 已提供 Jev 凭据可用于实测
 
 - [x] Agent 已准备配置样例、最小中文/错误探针与报告入口。
 - [x] 用户已提供包含 `JEV_API_KEY` 和 `JEV_VLM_API_KEY` 的本地测试 env，变量存在；尚未将此事实当作 API 可用。
-- [ ] 用 `services/jev_probe/` 做有限实际访问/中文探针，记录认证、响应和 usage；失败先分类，仅在确认账号/额度缺口时请求用户。
-- [ ] 本项仅关闭访问门槛，接口/质量与收益由后续真实任务验证。
+- [x] 用 `services/jev_probe/` 做有限实际访问/中文探针，记录认证、响应和 usage；失败先分类，仅在确认账号/额度缺口时请求用户。
+- [x] 本项仅关闭访问门槛，接口/质量与收益由后续真实任务验证。
 
 ## 用户参与触发条件
 
@@ -42,3 +42,5 @@ Gate: 已提供 Jev 凭据可用于实测
 2026-09-25：用户已提供统一测试凭据文件，改为 ready-for-agent；本轮仅修订规格，未运行真实 Jev 探针，Execution 保持 pending。
 
 2026-09-25：清理其余文档旧边界后领取；按 code-this 推进。主 Agent 独占真实模型请求、凭据、设备、集成证据与 Git；实现者不提交或推送。
+
+2026-09-25：真实访问通过，见 [jev-access-live01.json](../evidence/jev-access-live01.json)。固定 jev-1.13.0，中文 choice 返回 click_continue/HTTP200，usage 输入378/输出35；显式错误探针HTTP400，无重试。沿用已审查的探针实现，未改源码。按官方输入标价估算 USD0.000015876，实际账单未知，人民币预算保守预留0.01元；不将其记作 App 已集成或质量验收。

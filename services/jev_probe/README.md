@@ -20,4 +20,4 @@ python3 -m services.jev_probe \
 
 只有显式加入 `--error-probe` 才会在主请求完成且 `usage` 完整后再发一次故意无效请求；不自动重试。任何 HTTP、协议或缺失 `usage` 都会停止并写入报告。报告只包含请求摘要、HTTP 状态、usage、耗时和脱敏错误，不包含 Authorization、API key 或原始响应；USD 费用保持 `unknown`，不据文档价格假算。
 
-当前仓库未调用真实 Jev API；mock HTTP 测试只覆盖本地协议和失败分类，不能证明账号、质量、延迟或收益。
+2026-09-25 已通过真实 Jev 访问探针（中文选择 HTTP200、无效请求 HTTP400，见 `.scratch/mobile-agent-v1/evidence/jev-access-live01.json`）；访问结果与 mock HTTP 测试不证明实际任务质量、延迟或收益。
