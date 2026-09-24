@@ -52,10 +52,14 @@ public class MainActivity extends Activity {
     private Button startVlmTaskButton;
     private Button pauseTaskButton;
     private Button cancelTaskButton;
+    private Button reconcileTaskButton;
+    private Button resumeTaskButton;
     private Button connectButton;
+    private TextView recoveryStatus;
     private volatile boolean foregroundRefreshInFlight;
     private volatile long observationGeneration;
     private volatile boolean taskRunnerActive;
+    private volatile boolean taskResultUnknown;
     private volatile String dispatchedActionId;
     private volatile JSONObject pendingReceipt;
     private volatile boolean pendingReceiptWaitsForControl;
@@ -65,6 +69,9 @@ public class MainActivity extends Activity {
     private volatile long taskControlEpoch;
     private volatile boolean vlmTaskActive;
     private volatile boolean actionInFlight;
+    private volatile boolean recoveryInFlight;
+    private volatile JSONObject reconciledRecovery;
+    private volatile String reconciledSessionId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +79,7 @@ public class MainActivity extends Activity {
         setContentView(buildContent());
         loadConfigIntoForm();
         updatePermissionStatus();
+        restoreRecoveryEntry();
     }
 
     @Override
@@ -246,6 +254,26 @@ public class MainActivity extends Activity {
         cancelTaskButton.setEnabled(false);
         cancelTaskButton.setOnClickListener(v -> controlNodeTask("cancel"));
         root.addView(cancelTaskButton, widthMatchWrap());
+        LinearLayout recoveryButtons = new LinearLayout(this);
+        recoveryButtons.setOrientation(LinearLayout.HORIZONTAL);
+        reconcileTaskButton = new Button(this);
+        reconcileTaskButton.setText("Reconcile before resume");
+        reconcileTaskButton.setEnabled(false);
+        reconcileTaskButton.setOnClickListener(v -> reconcileTask());
+        recoveryButtons.addView(reconcileTaskButton, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        resumeTaskButton = new Button(this);
+        resumeTaskButton.setText("Confirm resume");
+        resumeTaskButton.setEnabled(false);
+        resumeTaskButton.setOnClickListener(v -> confirmRecoveryResume());
+        recoveryButtons.addView(resumeTaskButton, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        root.addView(recoveryButtons, widthMatchWrap());
+        recoveryStatus = statusLabel("Recovery status: no interrupted task recorded on this device");
+        recoveryStatus.setContentDescription("Recovery status: no interrupted task recorded on this device");
+        recoveryStatus.setMaxLines(4);
+        recoveryStatus.setTextIsSelectable(true);
+        root.addView(recoveryStatus, widthMatchWrap());
         taskStatus = statusLabel("Task: no task submitted");
         taskStatus.setTextIsSelectable(true);
         root.addView(taskStatus, marginTop(widthMatchWrap(), 8));
@@ -279,7 +307,8 @@ public class MainActivity extends Activity {
     }
 
     private BridgeConfig readConfig() {
-        return new BridgeConfig(
+        BridgeConfig saved = BridgeConfig.load(this);
+        BridgeConfig entered = new BridgeConfig(
                 endpointInput.getText().toString(),
                 tokenInput.getText().toString(),
                 deviceInput.getText().toString(),
@@ -287,23 +316,38 @@ public class MainActivity extends Activity {
                 modelProviderInput.getText().toString(),
                 modelEndpointInput.getText().toString(),
                 modelNameInput.getText().toString(),
-                modelApiKeyInput.getText().toString());
+                modelApiKeyInput.getText().toString(),
+                saved.deviceSessionId);
+        return entered.hasSameSessionBinding(saved) ? entered : entered.withDeviceSessionId("");
     }
 
     private void connectAndCapture() {
         final long generation = advanceObservationGeneration();
-        final BridgeConfig config = readConfig();
+        actionExecutionGate.invalidate();
+        taskControlEpoch++;
+        taskRunnerActive = false;
+        pendingReceipt = null;
+        vlmTaskActive = false;
+        final BridgeConfig config = readConfig().withDeviceSessionId("");
         config.save(this, false);
+        clearReconciledRecovery();
         clearCurrent("Current observation: none; waiting for a fresh capture");
         connectButton.setEnabled(false);
         connectionStatus.setText("Connection: pairing with bridge…");
         executor.execute(() -> {
             try {
-                BridgeClient.pair(config);
+                JSONObject paired = BridgeClient.pair(config);
+                String sessionId = paired.optString("device_session_id", "").trim();
+                if (sessionId.isEmpty() || !BridgeConfig.persistDeviceSessionId(this, sessionId)) {
+                    throw new BridgeClient.BridgeException(
+                            0, "invalid_pair_response", "bridge did not persist a device session id");
+                }
+                refreshRecoveryButtons();
+                final BridgeConfig pairedConfig = config.withDeviceSessionId(sessionId);
                 boolean permission = ObservationAccessibilityService.isEnabled(this);
                 if (!permission) {
                     sendUnavailableThenRead(
-                            config,
+                            pairedConfig,
                             "Accessibility service is disabled or not running",
                             false,
                             false,
@@ -314,18 +358,19 @@ public class MainActivity extends Activity {
                     if (generation != observationGeneration) {
                         return;
                     }
-                    config.save(this, true);
+                    pairedConfig.save(this, true);
+                    refreshRecoveryButtons();
                     connectionStatus.setText("Connection: paired; capturing real Accessibility tree…");
-                    ObservationAccessibilityService.requestCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+                    ObservationAccessibilityService.requestCapture(pairedConfig, new ObservationAccessibilityService.CaptureCallback() {
                         @Override
                         public void onSuccess(JSONObject acknowledgement) {
-                            readLatest(config, generation);
+                            readLatest(pairedConfig, generation);
                         }
 
                         @Override
                         public void onError(String code, String message) {
                             if ("permission_unavailable".equals(code)) {
-                                sendUnavailableThenRead(config, message, false, false, generation);
+                                sendUnavailableThenRead(pairedConfig, message, false, false, generation);
                             } else {
                                 failConnection("Disconnected: " + message, generation);
                             }
@@ -488,12 +533,22 @@ public class MainActivity extends Activity {
             return;
         }
         final BridgeConfig config = readConfig();
+        if (DeviceActionLedger.activeTask(this) != null) {
+            taskStatus.setText("Task: a local task record must be reconciled before starting another task");
+            return;
+        }
+        if (config.deviceSessionId.isEmpty()) {
+            taskStatus.setText("Task: connect and pair this device before starting a task");
+            return;
+        }
         if (vlm && (config.modelEndpoint.isEmpty() || config.modelName.isEmpty() || config.modelApiKey.isEmpty())) {
             taskStatus.setText("Task: VLM provider, HTTPS endpoint, model, and API key are required");
             return;
         }
         activeTaskConfig = config;
         vlmTaskActive = vlm;
+        taskResultUnknown = false;
+        clearReconciledRecovery();
         config.save(this, false);
         final long runEpoch = ++taskControlEpoch;
         final ActionExecutionGate.Token actionToken = actionExecutionGate.begin();
@@ -578,6 +633,12 @@ public class MainActivity extends Activity {
             boolean vlm,
             ActionExecutionGate.Token actionToken) {
         try {
+            taskResultUnknown = true;
+            if (!DeviceActionLedger.beginTask(this, config, vlm)) {
+                throw new BridgeClient.BridgeException(
+                        0, "local_recovery_record_failed", "could not persist the local task record");
+            }
+            updateOnUi(() -> taskInput.setEnabled(false));
             JSONObject status = vlm
                     ? BridgeClient.submitVlmTask(config, goal)
                     : BridgeClient.submitTask(config, goal);
@@ -635,7 +696,8 @@ public class MainActivity extends Activity {
                         ObservationAccessibilityService.endTaskCapture();
                     }
                 } catch (BridgeClient.BridgeException exception) {
-                    updateOnUi(() -> taskStatus.setText("Task: receipt pending — " + exception.getMessage()));
+                    pauseAfterBridgeFailure("receipt upload failed — " + exception.getMessage());
+                    return;
                 }
             }
             try {
@@ -679,13 +741,8 @@ public class MainActivity extends Activity {
                 }
                 Thread.sleep(300L);
             } catch (BridgeClient.BridgeException exception) {
-                updateOnUi(() -> taskStatus.setText("Task: bridge unavailable — " + exception.getMessage()));
-                try {
-                    Thread.sleep(500L);
-                } catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
+                pauseAfterBridgeFailure("bridge unavailable — " + exception.getMessage());
+                return;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 return;
@@ -698,6 +755,27 @@ public class MainActivity extends Activity {
             final ActionExecutionGate.Token actionToken,
             final JSONObject action) {
         actionInFlight = true;
+        String actionId = action == null ? "" : action.optString("action_id", "");
+        if (!DeviceActionLedger.beginAction(this, config, action)) {
+            actionInFlight = false;
+            pauseAfterBridgeFailure("local action record could not be committed; action was not sent");
+            return;
+        }
+        try {
+            JSONObject intent = BridgeClient.commandIntent(config, actionId);
+            if (!intent.optBoolean("intent_recorded", false)
+                    || !config.taskId.equals(intent.optString("task_id", ""))
+                    || !actionId.equals(intent.optString("action_id", ""))
+                    || !config.deviceSessionId.equals(intent.optString("device_session_id", ""))
+                    || !"UNKNOWN".equals(intent.optString("recovery_outcome", ""))) {
+                throw new BridgeClient.BridgeException(
+                        0, "command_intent_not_confirmed", "bridge did not confirm this action intent");
+            }
+        } catch (BridgeClient.BridgeException exception) {
+            actionInFlight = false;
+            pauseAfterBridgeFailure("command intent failed; no action was dispatched — " + exception.getMessage());
+            return;
+        }
         ObservationAccessibilityService.executeAction(config, action, actionToken,
                 new ObservationAccessibilityService.ActionCallback() {
             @Override
@@ -754,6 +832,13 @@ public class MainActivity extends Activity {
     }
 
     private void recordPendingReceipt(JSONObject receipt, boolean waitsForControl) {
+        String actionId = receipt == null ? "" : receipt.optString("action_id", "");
+        if (receipt == null || !DeviceActionLedger.recordReceipt(
+                this, configTaskId(), actionId, receipt)) {
+            actionInFlight = false;
+            pauseAfterBridgeFailure("local receipt could not be committed; device outcome remains UNKNOWN");
+            return;
+        }
         pendingReceiptWaitsForControl = waitsForControl;
         // Publish the wait flag before the volatile receipt reference so the
         // polling worker cannot observe a controlled receipt as immediately
@@ -918,7 +1003,7 @@ public class MainActivity extends Activity {
                 if (exception.status == 404 && taskSubmissionInFlight) {
                     return;
                 }
-                updateOnUi(() -> taskStatus.setText("Task: " + command + " failed — " + exception.getMessage()));
+                pauseAfterBridgeFailure(command + " failed — " + exception.getMessage());
             }
         });
     }
@@ -948,6 +1033,12 @@ public class MainActivity extends Activity {
             return;
         }
         String state = status.optString("state", "UNKNOWN");
+        taskResultUnknown = status.optBoolean("action_result_unknown", false);
+        if (("SUCCEEDED".equals(state) || "FAILED".equals(state) || "CANCELLED".equals(state))
+                && !taskResultUnknown) {
+            DeviceActionLedger.clearTask(this, configTaskId());
+            taskResultUnknown = DeviceActionLedger.task(this, configTaskId()) != null;
+        }
         String phase = status.optString("phase", "");
         StringBuilder message = new StringBuilder("Task: ").append(state);
         String mode = status.optString("mode", "deterministic");
@@ -1000,7 +1091,365 @@ public class MainActivity extends Activity {
         }
         updateOnUi(() -> {
             taskStatus.setText(message.toString());
+            taskInput.setEnabled(DeviceActionLedger.activeTask(this) == null);
             setTaskButtons(taskRunnerActive, state);
+            refreshRecoveryButtons();
+        });
+    }
+
+    private String configTaskId() {
+        BridgeConfig config = activeTaskConfig;
+        return config == null ? BridgeConfig.load(this).taskId : config.taskId;
+    }
+
+    private void restoreRecoveryEntry() {
+        DeviceActionLedger.TaskRecord local = DeviceActionLedger.activeTask(this);
+        if (local == null) {
+            taskInput.setEnabled(true);
+            setRecoveryMessage("no interrupted task recorded on this device");
+        } else {
+            taskInput.setText(local.taskId);
+            taskInput.setEnabled(false);
+            setRecoveryMessage("local task record found; reconnect, then tap Reconcile before resume");
+            taskResultUnknown = true;
+            setTaskButtons(false, "PAUSED");
+        }
+        refreshRecoveryButtons();
+    }
+
+    private void refreshRecoveryButtons() {
+        if (reconcileTaskButton == null || resumeTaskButton == null) {
+            return;
+        }
+        runOnUiThread(() -> {
+            BridgeConfig config = readConfig();
+            boolean hasTask = DeviceActionLedger.activeTask(this) != null;
+            reconcileTaskButton.setEnabled(hasTask && !config.deviceSessionId.isEmpty()
+                    && !recoveryInFlight && !taskRunnerActive && !taskSubmissionInFlight && !actionInFlight);
+            resumeTaskButton.setEnabled(canResumeRecovery(config));
+        });
+    }
+
+    private boolean canResumeRecovery(BridgeConfig config) {
+        JSONObject recovery = reconciledRecovery;
+        DeviceActionLedger.TaskRecord local = DeviceActionLedger.task(this, config.taskId);
+        if (recovery == null || local == null || recoveryInFlight
+                || !"READY_TO_RESUME".equals(recovery.optString("phase", ""))
+                || !recovery.optBoolean("eligible", false)
+                || recovery.optString("resume_token", "").isEmpty()
+                || recovery.optInt("observation_version", 0) <= 0
+                || config.deviceSessionId.isEmpty()
+                || !config.deviceSessionId.equals(reconciledSessionId)
+                || !config.deviceSessionId.equals(recovery.optString("device_session_id", ""))) {
+            return false;
+        }
+        return !local.vlm || (!config.modelProvider.isEmpty()
+                && !config.modelEndpoint.isEmpty()
+                && !config.modelName.isEmpty()
+                && !config.modelApiKey.isEmpty());
+    }
+
+    private void reconcileTask() {
+        final BridgeConfig config = readConfig();
+        if (config.deviceSessionId.isEmpty()) {
+            setRecoveryMessage("pair this device before reconciliation");
+            return;
+        }
+        if (taskRunnerActive || taskSubmissionInFlight || actionInFlight) {
+            setRecoveryMessage("wait for the in-flight task action to settle before reconciliation");
+            return;
+        }
+        if (DeviceActionLedger.task(this, config.taskId) == null) {
+            setRecoveryMessage("no local task record is available for this task id");
+            return;
+        }
+        recoveryInFlight = true;
+        clearReconciledRecovery();
+        actionExecutionGate.invalidate();
+        ++taskControlEpoch;
+        taskRunnerActive = false;
+        vlmTaskActive = false;
+        pendingReceipt = null;
+        pendingReceiptWaitsForControl = false;
+        ObservationAccessibilityService.endTaskCapture();
+        setRecoveryMessage("loading server status and capturing a fresh BEFORE frame…");
+        refreshRecoveryButtons();
+        taskExecutor.execute(() -> {
+            try {
+                JSONObject current = BridgeClient.recovery(config);
+                String actionId = current.isNull("action_id") ? "" : current.optString("action_id", "");
+                JSONObject deviceRecord = DeviceActionLedger.deviceRecord(this, config.taskId, actionId);
+                ObservationAccessibilityService.beginTaskCapture(config,
+                        new ObservationAccessibilityService.CaptureCallback() {
+                    @Override
+                    public void onSuccess(JSONObject acknowledgement) {
+                        ObservationAccessibilityService.requestScreenshot(
+                                config, acknowledgement, "BEFORE",
+                                new ObservationAccessibilityService.ScreenshotCallback() {
+                            @Override
+                            public void onSuccess(JSONObject screenshotAcknowledgement) {
+                                taskExecutor.execute(() -> {
+                                    try {
+                                        JSONObject result = BridgeClient.reconcile(config, deviceRecord);
+                                        String state = result.optString("state", "");
+                                        String phase = result.optString("phase", "");
+                                        String outcome = result.optString("action_outcome", "");
+                                        if (("SUCCEEDED".equals(state) || "FAILED".equals(state)
+                                                || "CANCELLED".equals(state))
+                                                && "NOT_REQUIRED".equals(phase)
+                                                && !"UNKNOWN".equals(outcome)) {
+                                            DeviceActionLedger.clearTask(MainActivity.this, config.taskId);
+                                            taskResultUnknown = DeviceActionLedger.task(MainActivity.this, config.taskId) != null;
+                                        }
+                                        reconciledRecovery = result;
+                                        reconciledSessionId = config.deviceSessionId;
+                                        recoveryInFlight = false;
+                                        runOnUiThread(() -> {
+                                            setRecoveryMessage(recoverySummary(result));
+                                            taskInput.setEnabled(DeviceActionLedger.activeTask(MainActivity.this) == null);
+                                            setTaskButtons(false, result.optString("state", "PAUSED"));
+                                            refreshRecoveryButtons();
+                                        });
+                                    } catch (BridgeClient.BridgeException exception) {
+                                        failRecovery("reconciliation failed — " + exception.getMessage());
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onError(String code, String message) {
+                                ObservationAccessibilityService.endTaskCapture();
+                                failRecovery("fresh BEFORE screenshot failed; no reconciliation was sent — " + message);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String code, String message) {
+                        ObservationAccessibilityService.endTaskCapture();
+                        failRecovery("fresh observation failed; no reconciliation was sent — " + message);
+                    }
+                });
+            } catch (BridgeClient.BridgeException exception) {
+                failRecovery("server recovery status unavailable — " + exception.getMessage());
+            }
+        });
+    }
+
+    private void confirmRecoveryResume() {
+        final BridgeConfig config = readConfig();
+        final JSONObject confirmedStatus = reconciledRecovery;
+        final DeviceActionLedger.TaskRecord local = DeviceActionLedger.task(this, config.taskId);
+        if (!canResumeRecovery(config) || confirmedStatus == null || local == null) {
+            setRecoveryMessage("eligibility or session changed; reconcile again before confirming");
+            clearReconciledRecovery();
+            refreshRecoveryButtons();
+            return;
+        }
+        recoveryInFlight = true;
+        refreshRecoveryButtons();
+        setRecoveryMessage("capturing a fresh observation and BEFORE screenshot before explicit resume…");
+        ObservationAccessibilityService.beginTaskCapture(config,
+                new ObservationAccessibilityService.CaptureCallback() {
+            @Override
+            public void onSuccess(JSONObject acknowledgement) {
+                ObservationAccessibilityService.requestScreenshot(
+                        config, acknowledgement, "BEFORE",
+                        new ObservationAccessibilityService.ScreenshotCallback() {
+                    @Override
+                    public void onSuccess(JSONObject screenshotAcknowledgement) {
+                        taskExecutor.execute(() -> {
+                            try {
+                                JSONObject latest = BridgeClient.recovery(config);
+                                if (!sameResumeWindow(confirmedStatus, latest, config)) {
+                                    failRecovery("resume token, observation version, or device session changed; reconcile again");
+                                    return;
+                                }
+                                // This API call is reachable only from the user's Confirm resume button.
+                                JSONObject response = BridgeClient.resume(
+                                        config,
+                                        true,
+                                        confirmedStatus.optString("resume_token", ""),
+                                        confirmedStatus.optInt("observation_version", 0),
+                                        local.vlm);
+                                JSONObject task = response.optJSONObject("task");
+                                JSONObject recovery = response.optJSONObject("recovery");
+                                String resumedState = task == null ? "" : task.optString("state", "");
+                                JSONObject verification = task == null ? null : task.optJSONObject("verification");
+                                JSONObject independent = task == null ? null : task.optJSONObject("independent_result");
+                                boolean confirmedTerminalSuccess = recovery != null
+                                        && "SUCCEEDED".equals(resumedState)
+                                        && "SUCCEEDED".equals(task.optString("phase", ""))
+                                        && verification != null && "SUCCESS".equals(verification.optString("status", ""))
+                                        && independent != null && independent.optBoolean("success", false)
+                                        && "goal_already_confirmed_by_current_observation".equals(recovery.optString("reason", ""))
+                                        && !recovery.optBoolean("eligible", true);
+                                if (task == null || recovery == null
+                                        || (!"RUNNING".equals(resumedState) && !confirmedTerminalSuccess)
+                                        || !config.taskId.equals(task.optString("task_id", ""))
+                                        || !config.deviceId.equals(task.optString("device_id", ""))
+                                        || !config.taskId.equals(recovery.optString("task_id", ""))
+                                        || !"RESUMED".equals(recovery.optString("phase", ""))
+                                        || !recovery.optBoolean("confirmed", false)
+                                        || !config.deviceSessionId.equals(recovery.optString("device_session_id", ""))) {
+                                    failRecovery("server did not confirm a matched resumed task");
+                                    return;
+                                }
+                                String actionId = latest.isNull("action_id") ? "" : latest.optString("action_id", "");
+                                if ("NOT_EXECUTED".equals(latest.optString("action_outcome", "")) && !actionId.isEmpty()) {
+                                    DeviceActionLedger.clearKnownNotExecutedAction(MainActivity.this, config.taskId, actionId);
+                                }
+                                activeTaskConfig = config;
+                                if (confirmedTerminalSuccess) {
+                                    actionExecutionGate.invalidate();
+                                    ++taskControlEpoch;
+                                    taskRunnerActive = false;
+                                    vlmTaskActive = false;
+                                    taskSubmissionInFlight = false;
+                                    pendingControlCommand = null;
+                                    pendingReceipt = null;
+                                    pendingReceiptWaitsForControl = false;
+                                    actionInFlight = false;
+                                    dispatchedActionId = null;
+                                    if (!DeviceActionLedger.clearTask(MainActivity.this, config.taskId)) {
+                                        renderTaskStatus(task);
+                                        failRecovery("goal completion was confirmed, but local recovery history could not be cleared");
+                                        return;
+                                    }
+                                    taskResultUnknown = false;
+                                    reconciledRecovery = null;
+                                    reconciledSessionId = null;
+                                    recoveryInFlight = false;
+                                    ObservationAccessibilityService.endTaskCapture();
+                                    renderTaskStatus(task);
+                                    runOnUiThread(() -> {
+                                        setRecoveryMessage("goal already completed; confirmed by a fresh independent observation");
+                                        refreshRecoveryButtons();
+                                    });
+                                    return;
+                                }
+                                vlmTaskActive = local.vlm;
+                                taskSubmissionInFlight = false;
+                                pendingControlCommand = null;
+                                pendingReceipt = null;
+                                pendingReceiptWaitsForControl = false;
+                                actionInFlight = false;
+                                dispatchedActionId = null;
+                                long runEpoch = ++taskControlEpoch;
+                                ActionExecutionGate.Token actionToken = actionExecutionGate.begin();
+                                taskRunnerActive = true;
+                                reconciledRecovery = null;
+                                reconciledSessionId = null;
+                                recoveryInFlight = false;
+                                renderTaskStatus(task);
+                                runOnUiThread(() -> {
+                                    setRecoveryMessage("RESUMED after explicit confirmation");
+                                    refreshRecoveryButtons();
+                                });
+                                taskLoopExecutor.execute(() -> runNodeTaskLoop(config, runEpoch, actionToken));
+                            } catch (BridgeClient.BridgeException exception) {
+                                pauseAfterBridgeFailure("explicit resume failed — " + exception.getMessage());
+                                recoveryInFlight = false;
+                                refreshRecoveryButtons();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String code, String message) {
+                        ObservationAccessibilityService.endTaskCapture();
+                        failRecovery("fresh BEFORE screenshot failed; no resume was sent — " + message);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String code, String message) {
+                ObservationAccessibilityService.endTaskCapture();
+                failRecovery("fresh observation failed; no resume was sent — " + message);
+            }
+        });
+    }
+
+    private boolean sameResumeWindow(JSONObject confirmed, JSONObject latest, BridgeConfig config) {
+        return "READY_TO_RESUME".equals(latest.optString("phase", ""))
+                && latest.optBoolean("eligible", false)
+                && !latest.optString("resume_token", "").isEmpty()
+                && confirmed.optString("resume_token", "").equals(latest.optString("resume_token", ""))
+                && confirmed.optInt("observation_version", 0) == latest.optInt("observation_version", 0)
+                && config.deviceSessionId.equals(latest.optString("device_session_id", ""))
+                && config.deviceSessionId.equals(reconciledSessionId);
+    }
+
+    private String recoverySummary(JSONObject recovery) {
+        StringBuilder message = new StringBuilder("phase=")
+                .append(recovery.optString("phase", "UNKNOWN"))
+                .append(" state=").append(recovery.optString("state", "UNKNOWN"))
+                .append(" eligible=").append(recovery.optBoolean("eligible", false))
+                .append(" confirmed=").append(recovery.optBoolean("confirmed", false));
+        if (!recovery.isNull("reason")) {
+            message.append("\nreason=").append(String.valueOf(recovery.opt("reason")));
+        }
+        if (!recovery.isNull("action_id")) {
+            message.append("\naction_id=").append(recovery.optString("action_id", ""));
+        }
+        if (!recovery.isNull("action_outcome")) {
+            message.append(" outcome=").append(recovery.optString("action_outcome", ""));
+        }
+        JSONObject effect = recovery.optJSONObject("actual_effect");
+        if (effect != null) {
+            message.append("\nactual_effect=").append(effect.optString("status", "UNKNOWN"));
+        }
+        JSONObject independent = recovery.optJSONObject("independent_result");
+        if (independent != null) {
+            message.append(" independent_result=").append(independent.optString("status", "UNKNOWN"));
+        }
+        if ("READY_TO_RESUME".equals(recovery.optString("phase", ""))
+                && !recovery.optBoolean("eligible", false)) {
+            message.append("\nResume unavailable: server did not mark this task eligible");
+        }
+        return message.toString();
+    }
+
+    private void clearReconciledRecovery() {
+        reconciledRecovery = null;
+        reconciledSessionId = null;
+    }
+
+    private void setRecoveryMessage(String message) {
+        if (recoveryStatus == null) {
+            return;
+        }
+        String value = "Recovery status: " + (message == null ? "unknown" : message);
+        recoveryStatus.setText(value);
+        recoveryStatus.setContentDescription(value);
+    }
+
+    private void failRecovery(String message) {
+        recoveryInFlight = false;
+        clearReconciledRecovery();
+        runOnUiThread(() -> {
+            setRecoveryMessage(message);
+            refreshRecoveryButtons();
+        });
+    }
+
+    private void pauseAfterBridgeFailure(String message) {
+        actionExecutionGate.invalidate();
+        ++taskControlEpoch;
+        taskRunnerActive = false;
+        vlmTaskActive = false;
+        pendingReceipt = null;
+        pendingReceiptWaitsForControl = false;
+        pendingControlCommand = null;
+        taskSubmissionInFlight = false;
+        ObservationAccessibilityService.endTaskCapture();
+        clearReconciledRecovery();
+        runOnUiThread(() -> {
+            taskStatus.setText("Task: paused for device reconciliation — " + message);
+            setTaskButtons(false, "PAUSED");
+            setRecoveryMessage("local task/action history retained; reconcile before resuming");
+            refreshRecoveryButtons();
         });
     }
 
@@ -1012,15 +1461,24 @@ public class MainActivity extends Activity {
         boolean paused = "PAUSED".equals(state);
         // A paused task remains the same server task. Starting here would
         // submit a second task with the same identity instead of resuming it.
-        startTaskButton.setEnabled(!active && (terminal || "".equals(state)));
+        startTaskButton.setEnabled(!active && !taskResultUnknown && (terminal || "".equals(state)));
         if (startVlmTaskButton != null) {
-            startVlmTaskButton.setEnabled(!active && (terminal || "".equals(state)));
+            startVlmTaskButton.setEnabled(!active && !taskResultUnknown && (terminal || "".equals(state)));
         }
         pauseTaskButton.setEnabled(active && "RUNNING".equals(state));
         cancelTaskButton.setEnabled(!terminal && (active || paused));
+        refreshRecoveryButtons();
     }
 
     private void failConnection(String message, long generation) {
+        actionExecutionGate.invalidate();
+        ++taskControlEpoch;
+        taskRunnerActive = false;
+        vlmTaskActive = false;
+        pendingReceipt = null;
+        pendingReceiptWaitsForControl = false;
+        clearReconciledRecovery();
+        ObservationAccessibilityService.endTaskCapture();
         updateOnUi(() -> {
             if (generation != observationGeneration) {
                 return;
@@ -1031,6 +1489,13 @@ public class MainActivity extends Activity {
             clearCurrent("Current observation: cleared; no fresh server state is available");
             connectButton.setEnabled(true);
             updatePermissionStatus();
+            if (DeviceActionLedger.task(this, BridgeConfig.load(this).taskId) != null) {
+                taskResultUnknown = true;
+                taskStatus.setText("Task: paused for device reconciliation after connection failure");
+                setTaskButtons(false, "PAUSED");
+            }
+            setRecoveryMessage("connection failed; local action history is retained for manual reconciliation");
+            refreshRecoveryButtons();
         });
     }
 
