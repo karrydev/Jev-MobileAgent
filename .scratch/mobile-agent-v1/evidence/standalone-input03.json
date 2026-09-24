@@ -17,7 +17,7 @@
     "jev_profile_present": false,
     "adb_reverse_present": false,
     "usb_connected": true,
-    "host_actions_during_task": "read-only polling of private task journal; no host-generated model decisions or device actions",
+    "host_actions_during_task": "Read-only journal polling failed; harness locked screen, then host explicitly cancelled task through App UI. This interrupted positive trial is invalid.",
     "standalone_disconnected_gate_passed": false
   },
   "final_device_state": "locked / Dozing",

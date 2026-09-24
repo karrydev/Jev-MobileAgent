@@ -846,6 +846,24 @@
       "requests": 2,
       "estimated_list_price_cny": 0.010756500000000002,
       "actual_billed_cny": null
+    },
+    {
+      "id": "standalone-usb-input01",
+      "source_commit": "373da447425df954f14f4364127f6672f3894f9f",
+      "result": "Reserved for user-started physical USB-disconnected acceptance; not yet executed",
+      "requests": null,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null,
+      "budget_reservation_cny": 1.0
+    },
+    {
+      "id": "standalone-usb-visual01",
+      "source_commit": "373da447425df954f14f4364127f6672f3894f9f",
+      "result": "Reserved for user-started physical USB-disconnected acceptance; not yet executed",
+      "requests": null,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null,
+      "budget_reservation_cny": 1.0
     }
   ],
   "estimated_list_price_total_cny": 0.8226915,

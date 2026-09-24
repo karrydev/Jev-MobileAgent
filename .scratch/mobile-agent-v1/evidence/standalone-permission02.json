@@ -17,7 +17,7 @@
     "jev_profile_present": false,
     "adb_reverse_present": false,
     "usb_connected": true,
-    "host_actions_during_task": "read-only polling of private task journal; no host-generated model decisions or device actions",
+    "host_actions_during_task": "Host navigated system Accessibility UI and revoked Jev service during first model request; App rejected dispatch. Permission restored through UI afterward.",
     "standalone_disconnected_gate_passed": false
   },
   "final_device_state": "locked / Dozing",
