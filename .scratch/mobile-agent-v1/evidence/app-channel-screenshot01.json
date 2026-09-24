@@ -1,0 +1,18 @@
+{
+  "kind": "screenshot",
+  "task_status": {
+    "http_status": 404,
+    "body": {
+      "android_schema_version": "1.0",
+      "error": {
+        "code": "task_not_found",
+        "message": "task does not exist"
+      },
+      "schema_version": "1.0"
+    }
+  },
+  "new_real_model_requests": 0,
+  "evidence_level": "physical App capture with explicit HTTP 503 upload injection",
+  "phone_locked_after_test": true,
+  "visible_app_result": "fresh observation failed - explicit validation screenshot upload failure"
+}

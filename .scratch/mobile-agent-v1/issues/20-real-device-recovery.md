@@ -6,9 +6,9 @@ Blocked by: 04, 19
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-physical-recovery
+Branch: codex/v1-physical-recovery
 Evidence: 真实 API 与物理手机
 Gate: 真实手机中断后可核对并手动恢复
 
@@ -33,3 +33,5 @@ Gate: 真实手机中断后可核对并手动恢复
 ## Comments
 
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
+
+2026-09-24：04/19已验收，领取真实手机恢复与本地部署准备。按新版code-this由gpt-6-luna max实现、gpt-6-sol max按实际风险审查；主Agent独占真机/API/Git。复用04恢复语义和当前Android桥，只补双端必要持久记录、核对/显式恢复、旧响应/人工介入保护，不新建通用运行框架。服务器访问与Jev凭据继续延后。

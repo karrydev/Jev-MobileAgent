@@ -1,0 +1,170 @@
+{
+  "kind": "cancel",
+  "evidence_level": "physical phone + explicit replay model, not real API",
+  "before_release": {
+    "action": null,
+    "action_result_unknown": false,
+    "actual_effect": {
+      "reason": "awaiting_model_action",
+      "status": "PENDING"
+    },
+    "after_observation_id": null,
+    "after_screenshot_id": null,
+    "after_visual": null,
+    "android_schema_version": "1.0",
+    "before_observation_id": "android-phone-01-obs-2828-d2b221205f8741e4a931cb64dd8ae60e",
+    "before_screenshot_id": "android-phone-01-shot-27f39d486a88458ebc7b23cf8918da96",
+    "before_visual": {
+      "capture_count": 7,
+      "capture_state": "CAPTURED",
+      "missing_reason": null,
+      "screenshot_id": "android-phone-01-shot-27f39d486a88458ebc7b23cf8918da96",
+      "upload_count": 7
+    },
+    "control": {
+      "command": "cancel",
+      "reason": "user_cancel",
+      "requested_at": "2026-09-24T13:21:51.521645Z"
+    },
+    "device_id": "android-phone-01",
+    "failure": null,
+    "goal": "点击“切换受控状态”按钮",
+    "independent_result": {
+      "reason": "not_evaluated",
+      "status": "UNKNOWN",
+      "success": null
+    },
+    "mode": "vlm",
+    "model": {
+      "model": "gui-plus-2026-02-26",
+      "provider": "GUI-Plus"
+    },
+    "next_action": null,
+    "phase": "CANCELLED",
+    "receipt": null,
+    "schema_version": "1.0",
+    "state": "CANCELLED",
+    "task_id": "jev19-cancel01",
+    "task_output": null,
+    "trace": [
+      {
+        "entity_id": "jev19-cancel01",
+        "event_id": "android-event-jev19-cancel01-0",
+        "kind": "task.submitted",
+        "recorded_at": "2026-09-24T13:21:51.248203Z",
+        "sequence": 0,
+        "task_id": "jev19-cancel01"
+      },
+      {
+        "entity_id": "android-phone-01-obs-2828-d2b221205f8741e4a931cb64dd8ae60e",
+        "event_id": "android-event-jev19-cancel01-1",
+        "kind": "observation.captured",
+        "recorded_at": "2026-09-24T13:21:51.248231Z",
+        "sequence": 1,
+        "task_id": "jev19-cancel01"
+      },
+      {
+        "entity_id": "jev19-cancel01",
+        "event_id": "android-event-jev19-cancel01-2",
+        "kind": "task.cancelled",
+        "recorded_at": "2026-09-24T13:21:51.521678Z",
+        "sequence": 2,
+        "task_id": "jev19-cancel01"
+      }
+    ],
+    "usage": null,
+    "verification": null,
+    "vlm_completion": {
+      "max_steps": 5,
+      "status": "RUNNING",
+      "steps": 0
+    }
+  },
+  "after_release": {
+    "action": null,
+    "action_result_unknown": false,
+    "actual_effect": {
+      "reason": "awaiting_model_action",
+      "status": "PENDING"
+    },
+    "after_observation_id": null,
+    "after_screenshot_id": null,
+    "after_visual": null,
+    "android_schema_version": "1.0",
+    "before_observation_id": "android-phone-01-obs-2828-d2b221205f8741e4a931cb64dd8ae60e",
+    "before_screenshot_id": "android-phone-01-shot-27f39d486a88458ebc7b23cf8918da96",
+    "before_visual": {
+      "capture_count": 7,
+      "capture_state": "CAPTURED",
+      "missing_reason": null,
+      "screenshot_id": "android-phone-01-shot-27f39d486a88458ebc7b23cf8918da96",
+      "upload_count": 7
+    },
+    "control": {
+      "command": "cancel",
+      "reason": "user_cancel",
+      "requested_at": "2026-09-24T13:21:51.521645Z"
+    },
+    "device_id": "android-phone-01",
+    "failure": null,
+    "goal": "点击“切换受控状态”按钮",
+    "independent_result": {
+      "reason": "not_evaluated",
+      "status": "UNKNOWN",
+      "success": null
+    },
+    "mode": "vlm",
+    "model": {
+      "model": "gui-plus-2026-02-26",
+      "provider": "GUI-Plus"
+    },
+    "next_action": null,
+    "phase": "CANCELLED",
+    "receipt": null,
+    "schema_version": "1.0",
+    "state": "CANCELLED",
+    "task_id": "jev19-cancel01",
+    "task_output": null,
+    "trace": [
+      {
+        "entity_id": "jev19-cancel01",
+        "event_id": "android-event-jev19-cancel01-0",
+        "kind": "task.submitted",
+        "recorded_at": "2026-09-24T13:21:51.248203Z",
+        "sequence": 0,
+        "task_id": "jev19-cancel01"
+      },
+      {
+        "entity_id": "android-phone-01-obs-2828-d2b221205f8741e4a931cb64dd8ae60e",
+        "event_id": "android-event-jev19-cancel01-1",
+        "kind": "observation.captured",
+        "recorded_at": "2026-09-24T13:21:51.248231Z",
+        "sequence": 1,
+        "task_id": "jev19-cancel01"
+      },
+      {
+        "entity_id": "jev19-cancel01",
+        "event_id": "android-event-jev19-cancel01-2",
+        "kind": "task.cancelled",
+        "recorded_at": "2026-09-24T13:21:51.521678Z",
+        "sequence": 2,
+        "task_id": "jev19-cancel01"
+      }
+    ],
+    "usage": {
+      "attempts": [],
+      "estimated_cost_cny": 0,
+      "explicit_test_replay": true,
+      "requests": 2,
+      "usage_missing": false
+    },
+    "verification": null,
+    "vlm_completion": {
+      "max_steps": 5,
+      "status": "RUNNING",
+      "steps": 0
+    }
+  },
+  "physical_state": "Controlled action state: ready",
+  "phone_locked_after_test": true
+}

@@ -1,0 +1,187 @@
+{
+  "action": {
+    "action_id": "android-action-jev19-swipe02",
+    "android_schema_version": "1.0",
+    "before_screenshot_id": "android-phone-01-shot-e160458a4dd0481ea5a8e137b5996ff7",
+    "coordinate_frame": {
+      "active_window_bounds": {
+        "bottom": 2400,
+        "left": 0,
+        "right": 1080,
+        "top": 0
+      },
+      "active_window_id": 936,
+      "active_window_layer": 0,
+      "active_window_package": "com.jev.mobileagent",
+      "content_height_px": 2400,
+      "content_width_px": 1080,
+      "coordinate_space": "screen",
+      "model_height_px": 2400,
+      "model_width_px": 1080,
+      "rotation": 0,
+      "screen_height_px": 2400,
+      "screen_width_px": 1080,
+      "system_bar_insets": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "window_offset": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "created_at": "2026-09-24T13:32:08.363295Z",
+    "device_id": "android-phone-01",
+    "expected_page_state": "swipe_completed",
+    "kind": "swipe",
+    "observation_id": "android-phone-01-obs-2903-f7774e728da7466297ccb6079cb796df",
+    "observation_version": 2903,
+    "parameters": {
+      "coordinate_space": "screen",
+      "duration_ms": 600,
+      "x1": 270.0,
+      "x2": 810.0,
+      "y1": 1200.0,
+      "y2": 1200.0
+    },
+    "requires_screenshot": true,
+    "schema_version": "1.0",
+    "sequence": 1,
+    "session_id": "android-session-jev19-swipe02",
+    "source": "deterministic-android-node-strategy",
+    "target_node_id": "",
+    "target_node_label": "",
+    "target_node_role": "visual_surface",
+    "task_id": "jev19-swipe02"
+  },
+  "action_result_unknown": false,
+  "actual_effect": null,
+  "after_observation_id": "android-phone-01-obs-2904-f740b32824a24a78adc096208477c026",
+  "after_screenshot_id": "android-phone-01-shot-09f6e254346040a6b37024bb83e5c72e",
+  "after_visual": {
+    "capture_count": 2,
+    "capture_state": "CAPTURED",
+    "missing_reason": null,
+    "screenshot_id": "android-phone-01-shot-09f6e254346040a6b37024bb83e5c72e",
+    "upload_count": 2
+  },
+  "android_schema_version": "1.0",
+  "before_observation_id": "android-phone-01-obs-2903-f7774e728da7466297ccb6079cb796df",
+  "before_screenshot_id": "android-phone-01-shot-e160458a4dd0481ea5a8e137b5996ff7",
+  "before_visual": {
+    "capture_count": 1,
+    "capture_state": "CAPTURED",
+    "missing_reason": null,
+    "screenshot_id": "android-phone-01-shot-e160458a4dd0481ea5a8e137b5996ff7",
+    "upload_count": 1
+  },
+  "control": null,
+  "device_id": "android-phone-01",
+  "failure": null,
+  "goal": "滑动视觉目标",
+  "independent_result": null,
+  "mode": "deterministic",
+  "model": null,
+  "next_action": null,
+  "phase": "SUCCEEDED",
+  "receipt": {
+    "accepted": true,
+    "action_id": "android-action-jev19-swipe02",
+    "after_observation_id": "android-phone-01-obs-2904-f740b32824a24a78adc096208477c026",
+    "after_observation_version": 2904,
+    "after_screenshot_id": "android-phone-01-shot-09f6e254346040a6b37024bb83e5c72e",
+    "android_schema_version": "1.0",
+    "deduplicated": false,
+    "device_id": "android-phone-01",
+    "error_code": null,
+    "error_message": null,
+    "observation_id": "android-phone-01-obs-2903-f7774e728da7466297ccb6079cb796df",
+    "observation_version": 2903,
+    "outcome": "EXECUTED",
+    "receipt_id": "android-receipt-android-action-jev19-swipe02",
+    "received_at": "2026-09-24T13:32:09.284091Z",
+    "schema_version": "1.0",
+    "task_id": "jev19-swipe02"
+  },
+  "schema_version": "1.0",
+  "state": "SUCCEEDED",
+  "task_id": "jev19-swipe02",
+  "task_output": null,
+  "trace": [
+    {
+      "entity_id": "jev19-swipe02",
+      "event_id": "android-event-jev19-swipe02-0",
+      "kind": "task.submitted",
+      "recorded_at": "2026-09-24T13:32:08.363906Z",
+      "sequence": 0,
+      "task_id": "jev19-swipe02"
+    },
+    {
+      "entity_id": "android-phone-01-obs-2903-f7774e728da7466297ccb6079cb796df",
+      "event_id": "android-event-jev19-swipe02-1",
+      "kind": "observation.captured",
+      "recorded_at": "2026-09-24T13:32:08.363921Z",
+      "sequence": 1,
+      "task_id": "jev19-swipe02"
+    },
+    {
+      "entity_id": "android-action-jev19-swipe02",
+      "event_id": "android-event-jev19-swipe02-2",
+      "kind": "action.dispatched",
+      "recorded_at": "2026-09-24T13:32:08.363941Z",
+      "sequence": 2,
+      "task_id": "jev19-swipe02"
+    },
+    {
+      "entity_id": "android-receipt-android-action-jev19-swipe02",
+      "event_id": "android-event-jev19-swipe02-3",
+      "kind": "receipt.received",
+      "recorded_at": "2026-09-24T13:32:09.682464Z",
+      "sequence": 3,
+      "task_id": "jev19-swipe02"
+    },
+    {
+      "entity_id": "android-phone-01-obs-2904-f740b32824a24a78adc096208477c026",
+      "event_id": "android-event-jev19-swipe02-4",
+      "kind": "observation.after_captured",
+      "recorded_at": "2026-09-24T13:32:09.682541Z",
+      "sequence": 4,
+      "task_id": "jev19-swipe02"
+    },
+    {
+      "entity_id": "android-verification-jev19-swipe02",
+      "event_id": "android-event-jev19-swipe02-5",
+      "kind": "verification.recorded",
+      "recorded_at": "2026-09-24T13:32:09.682543Z",
+      "sequence": 5,
+      "task_id": "jev19-swipe02"
+    },
+    {
+      "entity_id": "jev19-swipe02",
+      "event_id": "android-event-jev19-swipe02-6",
+      "kind": "task.completed",
+      "recorded_at": "2026-09-24T13:32:09.682544Z",
+      "sequence": 6,
+      "task_id": "jev19-swipe02"
+    }
+  ],
+  "usage": null,
+  "verification": {
+    "action_id": "android-action-jev19-swipe02",
+    "actual_page_state": "swipe_completed",
+    "after_observation_id": "android-phone-01-obs-2904-f740b32824a24a78adc096208477c026",
+    "android_schema_version": "1.0",
+    "before_observation_id": "android-phone-01-obs-2903-f7774e728da7466297ccb6079cb796df",
+    "expected_page_state": "swipe_completed",
+    "reason": "postcondition_met",
+    "schema_version": "1.0",
+    "status": "SUCCESS",
+    "task_id": "jev19-swipe02",
+    "verification_id": "android-verification-jev19-swipe02",
+    "verified_at": "2026-09-24T13:32:09.682537Z"
+  },
+  "vlm_completion": null,
+  "phone_locked_after_test": true
+}

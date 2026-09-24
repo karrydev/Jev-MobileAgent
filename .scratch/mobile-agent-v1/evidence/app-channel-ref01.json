@@ -1,0 +1,193 @@
+{
+  "run_id": "ref01",
+  "mode": "extracted_roles_adb_reference",
+  "goal": "点击“切换受控状态”按钮",
+  "max_steps": 5,
+  "success": true,
+  "status": "success",
+  "initial_state": "Controlled action state: ready",
+  "final_state": "Controlled action state: completed",
+  "independent_success": true,
+  "model_done": true,
+  "actions": [
+    {
+      "kind": "click",
+      "parameters": {
+        "coordinate": [
+          500,
+          313
+        ],
+        "pixel_coordinate": [
+          540,
+          751
+        ],
+        "coordinate_space": "screen"
+      },
+      "observation_id": "android-phone-01-obs-2714-1dfed58b5c574e1fb07a741d4a7fbf5f",
+      "executed_at": "2026-09-22T19:38:13.755842+00:00"
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "android-phone-01-obs-2711-13521a389c104e3f96d810982cdcad0d",
+      "captured_at": "2026-09-22T19:37:56.492269Z",
+      "state": "Controlled action state: ready",
+      "screenshot": "observation-1.png"
+    },
+    {
+      "observation_id": "android-phone-01-obs-2713-595bbce8f4fc477092afde88d299d0f1",
+      "captured_at": "2026-09-22T19:38:00.564827Z",
+      "state": "Controlled action state: ready",
+      "screenshot": "observation-2.png"
+    },
+    {
+      "observation_id": "android-phone-01-obs-2714-1dfed58b5c574e1fb07a741d4a7fbf5f",
+      "captured_at": "2026-09-22T19:38:04.187223Z",
+      "state": "Controlled action state: ready",
+      "screenshot": "observation-3.png"
+    },
+    {
+      "observation_id": "android-phone-01-obs-2715-185ebf27096d4988a43bb9ece56c1034",
+      "captured_at": "2026-09-22T19:38:13.059391Z",
+      "state": "Controlled action state: completed",
+      "screenshot": "observation-4.png"
+    },
+    {
+      "observation_id": "android-phone-01-obs-2715-185ebf27096d4988a43bb9ece56c1034",
+      "captured_at": "2026-09-22T19:38:13.059391Z",
+      "state": "Controlled action state: completed",
+      "screenshot": "observation-5.png"
+    }
+  ],
+  "run_at": "2026-09-22T19:38:18.858239+00:00",
+  "source_hashes": {
+    "agent_core/vlm/orchestration.py": "a26e4ab4c1312a3b8e89bcb6d2e0064c3c436ced0b3c385cd31c89960a27557e",
+    "agent_core/vlm/roles.py": "2413580bde1fa58535675704aba907865be820e9792368280e3eca7848493274",
+    "services/live_vlm/transport.py": "39e785606e9fa1df7916c09760651075720d9a4264086ecd9f2a7d4d692b64ab"
+  },
+  "usage": {
+    "requests": 7,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "estimated_cost_cny": 0.0419775,
+    "usage_missing": false,
+    "halted_reason": null,
+    "attempts": [
+      {
+        "attempt": 1,
+        "role": "manager",
+        "step": 0,
+        "http_status": 200,
+        "usage_present": true,
+        "usage": {
+          "prompt_tokens": 2831,
+          "completion_tokens": 101,
+          "total_tokens": 2932,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "estimated_cost_cny": 0.004701,
+        "transport_error": null
+      },
+      {
+        "attempt": 2,
+        "role": "executor",
+        "step": 0,
+        "http_status": 200,
+        "usage_present": true,
+        "usage": {
+          "prompt_tokens": 3650,
+          "completion_tokens": 98,
+          "total_tokens": 3748,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "estimated_cost_cny": 0.005916,
+        "transport_error": null
+      },
+      {
+        "attempt": 3,
+        "role": "executor",
+        "step": 1,
+        "http_status": 200,
+        "usage_present": true,
+        "usage": {
+          "prompt_tokens": 3696,
+          "completion_tokens": 120,
+          "total_tokens": 3816,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "estimated_cost_cny": 0.006084,
+        "transport_error": null
+      },
+      {
+        "attempt": 4,
+        "role": "manager",
+        "step": 2,
+        "http_status": 200,
+        "usage_present": true,
+        "usage": {
+          "prompt_tokens": 3288,
+          "completion_tokens": 122,
+          "total_tokens": 3410,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "estimated_cost_cny": 0.005481,
+        "transport_error": null
+      },
+      {
+        "attempt": 5,
+        "role": "executor",
+        "step": 2,
+        "http_status": 200,
+        "usage_present": true,
+        "usage": {
+          "prompt_tokens": 3751,
+          "completion_tokens": 126,
+          "total_tokens": 3877,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "estimated_cost_cny": 0.0061935,
+        "transport_error": null
+      },
+      {
+        "attempt": 6,
+        "role": "action_reflector",
+        "step": 2,
+        "http_status": 200,
+        "usage_present": true,
+        "usage": {
+          "prompt_tokens": 5499,
+          "completion_tokens": 11,
+          "total_tokens": 5510,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "estimated_cost_cny": 0.008298,
+        "transport_error": null
+      },
+      {
+        "attempt": 7,
+        "role": "manager",
+        "step": 3,
+        "http_status": 200,
+        "usage_present": true,
+        "usage": {
+          "prompt_tokens": 3209,
+          "completion_tokens": 109,
+          "total_tokens": 3318,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "estimated_cost_cny": 0.005304,
+        "transport_error": null
+      }
+    ]
+  },
+  "raw_evidence_directory": "/tmp/jev-task19-ref01",
+  "apk_sha256": "9a91ad8b99c7e82e7705de8348f387d9664808695100e89d2842c21e24bb75ef",
+  "phone_locked_after_run": true
+}

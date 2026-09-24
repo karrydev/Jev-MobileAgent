@@ -1,0 +1,17 @@
+{
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "model": "jev-1.13.0",
+  "credential_env": "JEV_API_KEY",
+  "state": "这是一个中文手机操作选择测试。当前页面有“继续”和“取消”两个按钮，用户希望继续。请从候选动作中选择下一步。",
+  "questions": {
+    "next_action": {
+      "type": "choice",
+      "instructions": "选择应执行的下一步。",
+      "criteria": {
+        "click_continue": "点击“继续”按钮",
+        "click_cancel": "点击“取消”按钮"
+      }
+    }
+  },
+  "expected_choice": "click_continue"
+}

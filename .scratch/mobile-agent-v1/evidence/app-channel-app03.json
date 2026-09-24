@@ -1,0 +1,261 @@
+{
+  "action": {
+    "action_id": "vlm-action-jev19-app03-2",
+    "android_schema_version": "1.0",
+    "before_screenshot_id": "android-phone-01-shot-381234dac02049ea821a9e27dfab11db",
+    "coordinate_frame": {
+      "active_window_bounds": {
+        "bottom": 2400,
+        "left": 0,
+        "right": 1080,
+        "top": 0
+      },
+      "active_window_id": 890,
+      "active_window_layer": 0,
+      "active_window_package": "com.jev.mobileagent",
+      "content_height_px": 2400,
+      "content_width_px": 1080,
+      "coordinate_space": "screen",
+      "model_height_px": 2400,
+      "model_width_px": 1080,
+      "rotation": 0,
+      "screen_height_px": 2400,
+      "screen_width_px": 1080,
+      "system_bar_insets": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "window_offset": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "created_at": "2026-09-24T13:20:43.004410Z",
+    "device_id": "android-phone-01",
+    "expected_page_state": "coordinate_tap_requested",
+    "kind": "coordinate_tap",
+    "observation_id": "android-phone-01-obs-2812-891f987021f946e783910554b033b443",
+    "observation_version": 2812,
+    "parameters": {
+      "x": 540,
+      "y": 753
+    },
+    "requires_screenshot": true,
+    "schema_version": "1.0",
+    "sequence": 2,
+    "session_id": "android-session-jev19-app03",
+    "source": "vlm-extracted-role",
+    "target_node_id": "",
+    "target_node_label": "",
+    "target_node_role": "visual_surface",
+    "task_id": "jev19-app03"
+  },
+  "action_result_unknown": false,
+  "actual_effect": {
+    "action_id": "vlm-action-jev19-app03-2",
+    "reason": "controlled_page_completed",
+    "receipt_id": "android-receipt-vlm-action-jev19-app03-2",
+    "status": "EXECUTED"
+  },
+  "after_observation_id": "android-phone-01-obs-2813-0eaeaea0fe564c26b52cb39898ba8224",
+  "after_screenshot_id": "android-phone-01-shot-fcb48f19fc3e4479b447ba12aa6d0af8",
+  "after_visual": {
+    "capture_count": 4,
+    "capture_state": "CAPTURED",
+    "missing_reason": null,
+    "screenshot_id": "android-phone-01-shot-fcb48f19fc3e4479b447ba12aa6d0af8",
+    "upload_count": 4
+  },
+  "android_schema_version": "1.0",
+  "before_observation_id": "android-phone-01-obs-2812-891f987021f946e783910554b033b443",
+  "before_screenshot_id": "android-phone-01-shot-381234dac02049ea821a9e27dfab11db",
+  "before_visual": {
+    "capture_count": 3,
+    "capture_state": "CAPTURED",
+    "missing_reason": null,
+    "screenshot_id": "android-phone-01-shot-381234dac02049ea821a9e27dfab11db",
+    "upload_count": 3
+  },
+  "control": null,
+  "device_id": "android-phone-01",
+  "failure": null,
+  "goal": "点击“切换受控状态”按钮",
+  "independent_result": {
+    "reason": "controlled_page_completed",
+    "status": "SUCCESS",
+    "success": true
+  },
+  "mode": "vlm",
+  "model": {
+    "model": "gui-plus-2026-02-26",
+    "provider": "GUI-Plus"
+  },
+  "next_action": null,
+  "phase": "SUCCEEDED",
+  "receipt": {
+    "accepted": true,
+    "action_id": "vlm-action-jev19-app03-2",
+    "after_observation_id": "android-phone-01-obs-2813-0eaeaea0fe564c26b52cb39898ba8224",
+    "after_observation_version": 2813,
+    "after_screenshot_id": "android-phone-01-shot-fcb48f19fc3e4479b447ba12aa6d0af8",
+    "android_schema_version": "1.0",
+    "deduplicated": false,
+    "device_id": "android-phone-01",
+    "error_code": null,
+    "error_message": null,
+    "observation_id": "android-phone-01-obs-2812-891f987021f946e783910554b033b443",
+    "observation_version": 2812,
+    "outcome": "EXECUTED",
+    "receipt_id": "android-receipt-vlm-action-jev19-app03-2",
+    "received_at": "2026-09-24T13:20:43.566823Z",
+    "schema_version": "1.0",
+    "task_id": "jev19-app03"
+  },
+  "schema_version": "1.0",
+  "state": "SUCCEEDED",
+  "task_id": "jev19-app03",
+  "task_output": null,
+  "trace": [
+    {
+      "entity_id": "jev19-app03",
+      "event_id": "android-event-jev19-app03-0",
+      "kind": "task.submitted",
+      "recorded_at": "2026-09-24T13:20:35.427171Z",
+      "sequence": 0,
+      "task_id": "jev19-app03"
+    },
+    {
+      "entity_id": "android-phone-01-obs-2812-891f987021f946e783910554b033b443",
+      "event_id": "android-event-jev19-app03-1",
+      "kind": "observation.captured",
+      "recorded_at": "2026-09-24T13:20:35.427210Z",
+      "sequence": 1,
+      "task_id": "jev19-app03"
+    },
+    {
+      "entity_id": "vlm-action-jev19-app03-2",
+      "event_id": "android-event-jev19-app03-2",
+      "kind": "action.dispatched",
+      "recorded_at": "2026-09-24T13:20:43.006109Z",
+      "sequence": 2,
+      "task_id": "jev19-app03"
+    },
+    {
+      "entity_id": "android-receipt-vlm-action-jev19-app03-2",
+      "event_id": "android-event-jev19-app03-3",
+      "kind": "receipt.received",
+      "recorded_at": "2026-09-24T13:20:44.168912Z",
+      "sequence": 3,
+      "task_id": "jev19-app03"
+    },
+    {
+      "entity_id": "jev19-app03",
+      "event_id": "android-event-jev19-app03-4",
+      "kind": "task.completed",
+      "recorded_at": "2026-09-24T13:20:48.127282Z",
+      "sequence": 4,
+      "task_id": "jev19-app03"
+    }
+  ],
+  "usage": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "estimated_cost_cny": 0.004719,
+        "http_status": 200,
+        "role": "manager",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 105,
+          "completion_tokens_details": null,
+          "prompt_tokens": 2831,
+          "prompt_tokens_details": null,
+          "total_tokens": 2936
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 2,
+        "estimated_cost_cny": 0.0060105,
+        "http_status": 200,
+        "role": "executor",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 119,
+          "completion_tokens_details": null,
+          "prompt_tokens": 3650,
+          "prompt_tokens_details": null,
+          "total_tokens": 3769
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 3,
+        "estimated_cost_cny": 0.0060765,
+        "http_status": 200,
+        "role": "executor",
+        "step": 1,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 118,
+          "completion_tokens_details": null,
+          "prompt_tokens": 3697,
+          "prompt_tokens_details": null,
+          "total_tokens": 3815
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 4,
+        "estimated_cost_cny": 0.008292,
+        "http_status": 200,
+        "role": "action_reflector",
+        "step": 1,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 11,
+          "completion_tokens_details": null,
+          "prompt_tokens": 5495,
+          "prompt_tokens_details": null,
+          "total_tokens": 5506
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 5,
+        "estimated_cost_cny": 0.0052335,
+        "http_status": 200,
+        "role": "manager",
+        "step": 2,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 101,
+          "completion_tokens_details": null,
+          "prompt_tokens": 3186,
+          "prompt_tokens_details": null,
+          "total_tokens": 3287
+        },
+        "usage_present": true
+      }
+    ],
+    "estimated_cost_cny": 0.0303315,
+    "halted_reason": null,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "requests": 5,
+    "usage_missing": false
+  },
+  "verification": null,
+  "vlm_completion": {
+    "max_steps": 5,
+    "status": "COMPLETED",
+    "steps": 3
+  },
+  "phone_locked_after_run": true,
+  "raw_evidence_directory": "/tmp/jev-task19-app03",
+  "apk_sha256": "9a91ad8b99c7e82e7705de8348f387d9664808695100e89d2842c21e24bb75ef"
+}

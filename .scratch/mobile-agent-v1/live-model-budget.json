@@ -583,7 +583,142 @@
       "completion_tokens": 11,
       "estimated_list_price_cny": 0.0083085,
       "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-ref01-1",
+      "result": "reference success",
+      "role": "manager",
+      "prompt_tokens": 2831,
+      "completion_tokens": 101,
+      "estimated_list_price_cny": 0.004701,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-ref01-2",
+      "result": "reference success",
+      "role": "executor",
+      "prompt_tokens": 3650,
+      "completion_tokens": 98,
+      "estimated_list_price_cny": 0.005916,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-ref01-3",
+      "result": "reference success",
+      "role": "executor",
+      "prompt_tokens": 3696,
+      "completion_tokens": 120,
+      "estimated_list_price_cny": 0.006084,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-ref01-4",
+      "result": "reference success",
+      "role": "manager",
+      "prompt_tokens": 3288,
+      "completion_tokens": 122,
+      "estimated_list_price_cny": 0.005481,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-ref01-5",
+      "result": "reference success",
+      "role": "executor",
+      "prompt_tokens": 3751,
+      "completion_tokens": 126,
+      "estimated_list_price_cny": 0.0061935,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-ref01-6",
+      "result": "reference success",
+      "role": "action_reflector",
+      "prompt_tokens": 5499,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.008298,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-ref01-7",
+      "result": "reference success",
+      "role": "manager",
+      "prompt_tokens": 3209,
+      "completion_tokens": 109,
+      "estimated_list_price_cny": 0.005304,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app01-1",
+      "result": "App rejected missing window binding; no side effect",
+      "role": "manager",
+      "prompt_tokens": 2831,
+      "completion_tokens": 91,
+      "estimated_list_price_cny": 0.004656,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app01-2",
+      "result": "App rejected missing window binding; no side effect",
+      "role": "executor",
+      "prompt_tokens": 3670,
+      "completion_tokens": 90,
+      "estimated_list_price_cny": 0.00591,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app02-1",
+      "result": "validation harness class replacement broke pricing lookup after real model call; no physical action",
+      "role": "manager",
+      "prompt_tokens": 2831,
+      "completion_tokens": 88,
+      "estimated_list_price_cny": 0.0046425,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app03-1",
+      "result": "App real VLM controlled task succeeded; independent physical state completed",
+      "role": "manager",
+      "prompt_tokens": 2831,
+      "completion_tokens": 105,
+      "estimated_list_price_cny": 0.004719,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app03-2",
+      "result": "App real VLM controlled task succeeded; independent physical state completed",
+      "role": "executor",
+      "prompt_tokens": 3650,
+      "completion_tokens": 119,
+      "estimated_list_price_cny": 0.0060105,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app03-3",
+      "result": "App real VLM controlled task succeeded; independent physical state completed",
+      "role": "executor",
+      "prompt_tokens": 3697,
+      "completion_tokens": 118,
+      "estimated_list_price_cny": 0.0060765,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app03-4",
+      "result": "App real VLM controlled task succeeded; independent physical state completed",
+      "role": "action_reflector",
+      "prompt_tokens": 5495,
+      "completion_tokens": 11,
+      "estimated_list_price_cny": 0.008292,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "app-channel-app03-5",
+      "result": "App real VLM controlled task succeeded; independent physical state completed",
+      "role": "manager",
+      "prompt_tokens": 3186,
+      "completion_tokens": 101,
+      "estimated_list_price_cny": 0.0052335,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 0.3559215
+  "estimated_list_price_total_cny": 0.443439
 }

@@ -1,0 +1,132 @@
+{
+  "task_id": "jev19-app01",
+  "state": "FAILED",
+  "phase": "FAILED",
+  "goal": "点击“切换受控状态”按钮",
+  "mode": "vlm",
+  "action": {
+    "action_id": "vlm-action-jev19-app01-1",
+    "android_schema_version": "1.0",
+    "before_screenshot_id": "android-phone-01-shot-1f0c4cbd05ed478e9d7dd58ca265ed30",
+    "coordinate_frame": {
+      "content_height_px": 2400,
+      "content_width_px": 1080,
+      "coordinate_space": "screen",
+      "model_height_px": 2400,
+      "model_width_px": 1080,
+      "rotation": 0,
+      "screen_height_px": 2400,
+      "screen_width_px": 1080,
+      "system_bar_insets": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "window_offset": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "created_at": "2026-09-22T19:38:52.934811Z",
+    "device_id": "android-phone-01",
+    "expected_page_state": "coordinate_tap_requested",
+    "kind": "coordinate_tap",
+    "observation_id": "android-phone-01-obs-2723-672c9c9cb71949ce878bc13d2046f1dc",
+    "observation_version": 2723,
+    "parameters": {
+      "x": 540,
+      "y": 751
+    },
+    "requires_screenshot": true,
+    "schema_version": "1.0",
+    "sequence": 1,
+    "session_id": "android-session-jev19-app01",
+    "source": "vlm-extracted-role",
+    "target_node_id": "",
+    "target_node_label": "",
+    "target_node_role": "visual_surface",
+    "task_id": "jev19-app01"
+  },
+  "receipt": {
+    "accepted": false,
+    "action_id": "vlm-action-jev19-app01-1",
+    "android_schema_version": "1.0",
+    "deduplicated": false,
+    "device_id": "android-phone-01",
+    "error_code": "stale_observation",
+    "error_message": "the action rotation or display frame is stale",
+    "observation_id": "android-phone-01-obs-2723-672c9c9cb71949ce878bc13d2046f1dc",
+    "observation_version": 2723,
+    "outcome": "REJECTED",
+    "receipt_id": "android-receipt-vlm-action-jev19-app01-1",
+    "received_at": "2026-09-22T19:38:52.738100Z",
+    "schema_version": "1.0",
+    "task_id": "jev19-app01"
+  },
+  "actual_effect": {
+    "action_id": "vlm-action-jev19-app01-1",
+    "reason": "stale_observation",
+    "receipt_id": "android-receipt-vlm-action-jev19-app01-1",
+    "status": "REJECTED"
+  },
+  "independent_result": {
+    "reason": "not_evaluated",
+    "status": "UNKNOWN",
+    "success": null
+  },
+  "vlm_completion": {
+    "max_steps": 5,
+    "status": "FAILED",
+    "steps": 0
+  },
+  "failure": {
+    "code": "stale_observation",
+    "message": "the Android Accessibility service rejected the model action"
+  },
+  "usage": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "estimated_cost_cny": 0.004656,
+        "http_status": 200,
+        "role": "manager",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 91,
+          "completion_tokens_details": null,
+          "prompt_tokens": 2831,
+          "prompt_tokens_details": null,
+          "total_tokens": 2922
+        },
+        "usage_present": true
+      },
+      {
+        "attempt": 2,
+        "estimated_cost_cny": 0.00591,
+        "http_status": 200,
+        "role": "executor",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 90,
+          "completion_tokens_details": null,
+          "prompt_tokens": 3670,
+          "prompt_tokens_details": null,
+          "total_tokens": 3760
+        },
+        "usage_present": true
+      }
+    ],
+    "estimated_cost_cny": 0.010566,
+    "halted_reason": null,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "requests": 2,
+    "usage_missing": false
+  },
+  "raw_evidence_directory": "/tmp/jev-task19-app01",
+  "apk_sha256": "9a91ad8b99c7e82e7705de8348f387d9664808695100e89d2842c21e24bb75ef",
+  "phone_locked_after_run": true
+}

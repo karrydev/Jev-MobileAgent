@@ -1,0 +1,20 @@
+{
+  "kind": "permission",
+  "evidence_level": "physical service disabled through system UI",
+  "service_disabled": true,
+  "task_status": {
+    "http_status": 404,
+    "body": {
+      "android_schema_version": "1.0",
+      "error": {
+        "code": "task_not_found",
+        "message": "task does not exist"
+      },
+      "schema_version": "1.0"
+    }
+  },
+  "phone_locked_after_test": true,
+  "visible_app_result": "fresh observation failed - Accessibility service is not running",
+  "service_restored_after_test": true,
+  "new_real_model_requests": 0
+}

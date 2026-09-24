@@ -1,0 +1,106 @@
+{
+  "action": null,
+  "action_result_unknown": false,
+  "actual_effect": {
+    "reason": "awaiting_model_action",
+    "status": "PENDING"
+  },
+  "after_observation_id": null,
+  "after_screenshot_id": null,
+  "after_visual": null,
+  "android_schema_version": "1.0",
+  "before_observation_id": "android-phone-01-obs-2730-45788ad7031b428796d2ab9301f26521",
+  "before_screenshot_id": "android-phone-01-shot-27c28654c7484598b8835057a88aac4f",
+  "before_visual": {
+    "capture_count": 2,
+    "capture_state": "CAPTURED",
+    "missing_reason": null,
+    "screenshot_id": "android-phone-01-shot-27c28654c7484598b8835057a88aac4f",
+    "upload_count": 2
+  },
+  "control": null,
+  "device_id": "android-phone-01",
+  "failure": {
+    "code": "vlm_loop_failed",
+    "message": "the bounded VLM loop failed"
+  },
+  "goal": "点击“切换受控状态”按钮",
+  "independent_result": {
+    "reason": "not_evaluated",
+    "status": "UNKNOWN",
+    "success": null
+  },
+  "mode": "vlm",
+  "model": {
+    "model": "gui-plus-2026-02-26",
+    "provider": "GUI-Plus"
+  },
+  "next_action": null,
+  "phase": "FAILED",
+  "receipt": null,
+  "schema_version": "1.0",
+  "state": "FAILED",
+  "task_id": "jev19-app02",
+  "task_output": null,
+  "trace": [
+    {
+      "entity_id": "jev19-app02",
+      "event_id": "android-event-jev19-app02-0",
+      "kind": "task.submitted",
+      "recorded_at": "2026-09-22T19:44:39.665763Z",
+      "sequence": 0,
+      "task_id": "jev19-app02"
+    },
+    {
+      "entity_id": "android-phone-01-obs-2730-45788ad7031b428796d2ab9301f26521",
+      "event_id": "android-event-jev19-app02-1",
+      "kind": "observation.captured",
+      "recorded_at": "2026-09-22T19:44:39.665798Z",
+      "sequence": 1,
+      "task_id": "jev19-app02"
+    },
+    {
+      "entity_id": "jev19-app02",
+      "event_id": "android-event-jev19-app02-2",
+      "kind": "task.failed",
+      "recorded_at": "2026-09-22T19:44:41.931901Z",
+      "sequence": 2,
+      "task_id": "jev19-app02"
+    }
+  ],
+  "usage": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "estimated_cost_cny": null,
+        "http_status": 200,
+        "role": "manager",
+        "step": 0,
+        "transport_error": null,
+        "usage": {
+          "completion_tokens": 88,
+          "completion_tokens_details": null,
+          "prompt_tokens": 2831,
+          "prompt_tokens_details": null,
+          "total_tokens": 2919
+        },
+        "usage_present": true
+      }
+    ],
+    "estimated_cost_cny": 0.0,
+    "halted_reason": null,
+    "max_requests": 25,
+    "max_tokens": 1024,
+    "requests": 1,
+    "usage_missing": false
+  },
+  "verification": null,
+  "vlm_completion": {
+    "max_steps": 5,
+    "status": "FAILED",
+    "steps": 0
+  },
+  "validation_failure_classification": "temporary harness monkeypatch replaced class with function, breaking pricing constants; production code unchanged",
+  "recomputed_estimated_cost_cny": 0.0046425,
+  "phone_locked_after_run": true
+}
