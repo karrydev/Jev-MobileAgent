@@ -34,16 +34,22 @@ public class MainActivity extends Activity {
     /** Short task-control requests are serialized; polling runs separately. */
     private final ExecutorService taskExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService taskLoopExecutor = Executors.newSingleThreadExecutor();
+    private final ActionExecutionGate actionExecutionGate = new ActionExecutionGate();
     private EditText endpointInput;
     private EditText tokenInput;
     private EditText deviceInput;
     private EditText taskInput;
+    private EditText modelProviderInput;
+    private EditText modelEndpointInput;
+    private EditText modelNameInput;
+    private EditText modelApiKeyInput;
     private TextView connectionStatus;
     private TextView permissionStatus;
     private TextView currentObservation;
     private EditText goalInput;
     private TextView taskStatus;
     private Button startTaskButton;
+    private Button startVlmTaskButton;
     private Button pauseTaskButton;
     private Button cancelTaskButton;
     private Button connectButton;
@@ -52,10 +58,13 @@ public class MainActivity extends Activity {
     private volatile boolean taskRunnerActive;
     private volatile String dispatchedActionId;
     private volatile JSONObject pendingReceipt;
+    private volatile boolean pendingReceiptWaitsForControl;
     private volatile BridgeConfig activeTaskConfig;
     private volatile boolean taskSubmissionInFlight;
     private volatile String pendingControlCommand;
     private volatile long taskControlEpoch;
+    private volatile boolean vlmTaskActive;
+    private volatile boolean actionInFlight;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,6 +133,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         advanceObservationGeneration();
+        actionExecutionGate.invalidate();
         executor.shutdownNow();
         taskExecutor.shutdownNow();
         taskLoopExecutor.shutdownNow();
@@ -152,6 +162,16 @@ public class MainActivity extends Activity {
         root.addView(tokenInput, widthMatchWrap());
         root.addView(deviceInput, widthMatchWrap());
         root.addView(taskInput, widthMatchWrap());
+
+        root.addView(label("VLM provider (BYOK)", 18, Color.rgb(35, 50, 65)), marginTop(widthMatchWrap(), 16));
+        modelProviderInput = input("Provider name, for example GUI-Plus", false);
+        modelEndpointInput = input("HTTPS model endpoint", false);
+        modelNameInput = input("Model name", false);
+        modelApiKeyInput = input("Model API key (stored privately)", true);
+        root.addView(modelProviderInput, widthMatchWrap());
+        root.addView(modelEndpointInput, widthMatchWrap());
+        root.addView(modelNameInput, widthMatchWrap());
+        root.addView(modelApiKeyInput, widthMatchWrap());
 
         connectButton = new Button(this);
         connectButton.setText("Connect and capture observation");
@@ -211,6 +231,11 @@ public class MainActivity extends Activity {
         startTaskButton.setText("Start node task");
         startTaskButton.setOnClickListener(v -> submitNodeTask());
         root.addView(startTaskButton, marginTop(widthMatchWrap(), 10));
+        startVlmTaskButton = new Button(this);
+        startVlmTaskButton.setText("Start real VLM task");
+        startVlmTaskButton.setContentDescription("Start real VLM task");
+        startVlmTaskButton.setOnClickListener(v -> submitVlmTask());
+        root.addView(startVlmTaskButton, widthMatchWrap());
         pauseTaskButton = new Button(this);
         pauseTaskButton.setText("Pause task");
         pauseTaskButton.setEnabled(false);
@@ -242,6 +267,10 @@ public class MainActivity extends Activity {
         tokenInput.setText(config.token);
         deviceInput.setText(config.deviceId);
         taskInput.setText(config.taskId);
+        modelProviderInput.setText(config.modelProvider);
+        modelEndpointInput.setText(config.modelEndpoint);
+        modelNameInput.setText(config.modelName);
+        modelApiKeyInput.setText(config.modelApiKey);
         String configuredGoal = getSharedPreferences("jev_android_observation", MODE_PRIVATE)
                 .getString("task_goal", "");
         if (!configuredGoal.isEmpty()) {
@@ -254,7 +283,11 @@ public class MainActivity extends Activity {
                 endpointInput.getText().toString(),
                 tokenInput.getText().toString(),
                 deviceInput.getText().toString(),
-                taskInput.getText().toString());
+                taskInput.getText().toString(),
+                modelProviderInput.getText().toString(),
+                modelEndpointInput.getText().toString(),
+                modelNameInput.getText().toString(),
+                modelApiKeyInput.getText().toString());
     }
 
     private void connectAndCapture() {
@@ -439,28 +472,47 @@ public class MainActivity extends Activity {
     }
 
     private void submitNodeTask() {
+        submitTask(false);
+    }
+
+    private void submitVlmTask() {
+        submitTask(true);
+    }
+
+    private void submitTask(final boolean vlm) {
         String goal = goalInput == null ? "" : goalInput.getText().toString().trim();
         if (goal.isEmpty()) {
-            taskStatus.setText("Task: enter a Chinese node goal first");
+            taskStatus.setText(vlm
+                    ? "Task: enter a goal for the real VLM task first"
+                    : "Task: enter a Chinese node goal first");
             return;
         }
         final BridgeConfig config = readConfig();
+        if (vlm && (config.modelEndpoint.isEmpty() || config.modelName.isEmpty() || config.modelApiKey.isEmpty())) {
+            taskStatus.setText("Task: VLM provider, HTTPS endpoint, model, and API key are required");
+            return;
+        }
         activeTaskConfig = config;
+        vlmTaskActive = vlm;
+        config.save(this, false);
         final long runEpoch = ++taskControlEpoch;
+        final ActionExecutionGate.Token actionToken = actionExecutionGate.begin();
         pendingControlCommand = null;
         taskSubmissionInFlight = true;
         taskRunnerActive = true;
+        actionInFlight = false;
         dispatchedActionId = null;
         pendingReceipt = null;
+        pendingReceiptWaitsForControl = false;
         setTaskButtons(true, "RUNNING");
-        taskStatus.setText("Task: submitting goal…");
+        taskStatus.setText(vlm ? "Task: submitting real VLM goal…" : "Task: submitting deterministic goal…");
         // The start-button accessibility event can schedule an automatic
         // capture while submit is in flight. Reserve the stream and publish
         // one explicit fresh before frame first.
         beginTaskCaptureForGoal(config, goal, new ObservationAccessibilityService.CaptureCallback() {
             @Override
             public void onSuccess(JSONObject acknowledgement) {
-                taskExecutor.execute(() -> submitNodeTaskAfterCapture(config, goal, runEpoch));
+                taskExecutor.execute(() -> submitTaskAfterCapture(config, goal, runEpoch, vlm, actionToken));
             }
 
             @Override
@@ -478,7 +530,7 @@ public class MainActivity extends Activity {
 
     private boolean requiresVisualTask(String goal) {
         String value = goal == null ? "" : goal.trim();
-        return value.contains("长按") || value.contains("滑动") || value.contains("坐标")
+        return vlmTaskActive || value.contains("长按") || value.contains("滑动") || value.contains("坐标")
                 || value.contains("点击屏幕") || value.startsWith("点击(") || value.startsWith("点击（")
                 || value.equals("返回") || value.contains("系统返回")
                 || value.equalsIgnoreCase("back") || value.equalsIgnoreCase("system back");
@@ -519,9 +571,16 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void submitNodeTaskAfterCapture(BridgeConfig config, String goal, long runEpoch) {
+    private void submitTaskAfterCapture(
+            BridgeConfig config,
+            String goal,
+            long runEpoch,
+            boolean vlm,
+            ActionExecutionGate.Token actionToken) {
         try {
-            JSONObject status = BridgeClient.submitTask(config, goal);
+            JSONObject status = vlm
+                    ? BridgeClient.submitVlmTask(config, goal)
+                    : BridgeClient.submitTask(config, goal);
             taskSubmissionInFlight = false;
             renderTaskStatus(status);
             // A pause/cancel click can legitimately happen before this
@@ -529,17 +588,19 @@ public class MainActivity extends Activity {
             if (runEpoch != taskControlEpoch || pendingControlCommand != null) {
                 JSONObject controlled = applyPendingControl(config);
                 if (controlled != null && controlled.optBoolean("action_result_unknown", false)) {
-                    taskLoopExecutor.execute(() -> runNodeTaskLoop(config, taskControlEpoch));
+                    taskLoopExecutor.execute(() -> runNodeTaskLoop(config, taskControlEpoch, actionToken));
                 } else {
                     taskRunnerActive = false;
+                    vlmTaskActive = false;
                     ObservationAccessibilityService.endTaskCapture();
                 }
                 return;
             }
-            taskLoopExecutor.execute(() -> runNodeTaskLoop(config, runEpoch));
+            taskLoopExecutor.execute(() -> runNodeTaskLoop(config, runEpoch, actionToken));
         } catch (BridgeClient.BridgeException exception) {
             taskSubmissionInFlight = false;
             taskRunnerActive = false;
+            vlmTaskActive = false;
             ObservationAccessibilityService.endTaskCapture();
             updateOnUi(() -> {
                 taskStatus.setText("Task: submission failed — " + exception.getMessage());
@@ -548,16 +609,26 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void runNodeTaskLoop(BridgeConfig config, long runEpoch) {
-        while (taskRunnerActive && !Thread.currentThread().isInterrupted()) {
-            boolean receiptPending = pendingReceipt != null;
+    private void runNodeTaskLoop(
+            BridgeConfig config,
+            long runEpoch,
+            ActionExecutionGate.Token actionToken) {
+        while ((taskRunnerActive || actionInFlight || pendingReceipt != null)
+                && !Thread.currentThread().isInterrupted()) {
+            boolean receiptPending = pendingReceipt != null
+                    && (!pendingReceiptWaitsForControl || pendingControlCommand == null);
             if (receiptPending) {
                 try {
                     JSONObject pending = pendingReceipt;
                     JSONObject status = BridgeClient.postReceipt(config, pending);
                     pendingReceipt = null;
+                    pendingReceiptWaitsForControl = false;
                     renderTaskStatus(status);
-                    if (pending.optBoolean("accepted", false)
+                    if ("vlm".equals(status.optString("mode"))
+                            && pending.optBoolean("accepted", false)
+                            && "RUNNING".equals(status.optString("state"))) {
+                        requestNextVlmObservation(config);
+                    } else if (pending.optBoolean("accepted", false)
                             && !pending.has("after_observation_id")) {
                         requestPostActionCapture(config);
                     } else {
@@ -585,20 +656,23 @@ public class MainActivity extends Activity {
                                 && pendingControlCommand == null
                                 && "RUNNING".equals(beforeDispatch.optString("state", ""))
                                 && beforeDispatch.optJSONObject("next_action") != null) {
-                            executeNodeAction(config, beforeDispatch.optJSONObject("next_action"));
+                            executeNodeAction(config, actionToken, beforeDispatch.optJSONObject("next_action"));
                         }
                     }
                 }
                 if ("SUCCEEDED".equals(state) || "FAILED".equals(state) || "CANCELLED".equals(state)) {
-                    if (pendingReceipt == null && !status.optBoolean("action_result_unknown", false)) {
+                    if (pendingReceipt == null && !actionInFlight
+                            && !status.optBoolean("action_result_unknown", false)) {
                         taskRunnerActive = false;
+                        vlmTaskActive = false;
                         ObservationAccessibilityService.endTaskCapture();
                         setTaskButtons(false, state);
                         return;
                     }
                 }
-                if ("PAUSED".equals(state) && pendingReceipt == null) {
+                if ("PAUSED".equals(state) && pendingReceipt == null && !actionInFlight) {
                     taskRunnerActive = false;
+                    vlmTaskActive = false;
                     ObservationAccessibilityService.endTaskCapture();
                     setTaskButtons(false, state);
                     return;
@@ -619,8 +693,13 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void executeNodeAction(final BridgeConfig config, final JSONObject action) {
-        ObservationAccessibilityService.executeAction(config, action, new ObservationAccessibilityService.ActionCallback() {
+    private void executeNodeAction(
+            final BridgeConfig config,
+            final ActionExecutionGate.Token actionToken,
+            final JSONObject action) {
+        actionInFlight = true;
+        ObservationAccessibilityService.executeAction(config, action, actionToken,
+                new ObservationAccessibilityService.ActionCallback() {
             @Override
             public void onSuccess() {
                 // Capture the postcondition frame before publishing the
@@ -637,20 +716,20 @@ public class MainActivity extends Activity {
                                     new ObservationAccessibilityService.ScreenshotCallback() {
                                         @Override
                                         public void onSuccess(JSONObject screenshotAcknowledgement) {
-                                            pendingReceipt = buildReceipt(
+                                            recordPendingReceipt(buildReceipt(
                                                     action, true, null, null, acknowledgement,
-                                                    screenshotAcknowledgement, null);
+                                                    screenshotAcknowledgement, null));
                                         }
 
                                         @Override
                                         public void onError(String code, String message) {
-                                            pendingReceipt = buildReceipt(
+                                            recordPendingReceipt(buildReceipt(
                                                     action, true, null, null, acknowledgement,
-                                                    null, code + ": " + message);
+                                                    null, code + ": " + message));
                                         }
                                     });
                         } else {
-                            pendingReceipt = buildReceipt(action, true, null, null, acknowledgement);
+                            recordPendingReceipt(buildReceipt(action, true, null, null, acknowledgement));
                         }
                     }
 
@@ -658,16 +737,29 @@ public class MainActivity extends Activity {
                     public void onError(String code, String message) {
                         // Keep the receipt truthful about execution; the
                         // fallback capture after receipt remains available.
-                        pendingReceipt = buildReceipt(action, true, null, null, null, null, code + ": " + message);
+                        recordPendingReceipt(buildReceipt(action, true, null, null, null, null, code + ": " + message));
                     }
                 });
             }
 
             @Override
             public void onError(String code, String message) {
-                pendingReceipt = buildReceipt(action, false, code, message);
+                recordPendingReceipt(buildReceipt(action, false, code, message), "action_controlled".equals(code));
             }
         });
+    }
+
+    private void recordPendingReceipt(JSONObject receipt) {
+        recordPendingReceipt(receipt, false);
+    }
+
+    private void recordPendingReceipt(JSONObject receipt, boolean waitsForControl) {
+        pendingReceiptWaitsForControl = waitsForControl;
+        // Publish the wait flag before the volatile receipt reference so the
+        // polling worker cannot observe a controlled receipt as immediately
+        // sendable.
+        pendingReceipt = receipt;
+        actionInFlight = false;
     }
 
     private void requestPostActionCapture(
@@ -693,12 +785,42 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** Capture the next VLM before frame while retaining the task reservation. */
+    private void requestNextVlmObservation(final BridgeConfig config) {
+        requestPostActionCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+            @Override
+            public void onSuccess(JSONObject acknowledgement) {
+                ObservationAccessibilityService.requestScreenshot(
+                        config,
+                        acknowledgement,
+                        "BEFORE",
+                        new ObservationAccessibilityService.ScreenshotCallback() {
+                            @Override
+                            public void onSuccess(JSONObject screenshotAcknowledgement) {
+                                // The bridge runner is waiting on this exact
+                                // observation id/version and screenshot id.
+                            }
+
+                            @Override
+                            public void onError(String code, String message) {
+                                updateOnUi(() -> taskStatus.setText("Task: next VLM screenshot unavailable — " + message));
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(String code, String message) {
+                updateOnUi(() -> taskStatus.setText("Task: next VLM observation unavailable — " + message));
+            }
+        });
+    }
+
     private JSONObject buildReceipt(JSONObject action, boolean accepted, String errorCode, String errorMessage) {
         return buildReceipt(action, accepted, errorCode, errorMessage, null);
     }
 
     private boolean requiresVisualAction(JSONObject action) {
-        return action != null && (action.optBoolean("requires_screenshot", false)
+        return action != null && (vlmTaskActive || action.optBoolean("requires_screenshot", false)
                 || "long_press".equals(action.optString("kind"))
                 || "swipe".equals(action.optString("kind"))
                 || "coordinate_tap".equals(action.optString("kind"))
@@ -765,6 +887,9 @@ public class MainActivity extends Activity {
     private void controlNodeTask(String command) {
         final BridgeConfig config = activeTaskConfig == null ? readConfig() : activeTaskConfig;
         final long controlEpoch = ++taskControlEpoch;
+        // Invalidate before the remote request so a queued Accessibility
+        // runnable cannot dispatch the old action while control is in flight.
+        actionExecutionGate.invalidate();
         pendingControlCommand = command;
         taskRunnerActive = true;
         setTaskButtons(true, "RUNNING");
@@ -781,7 +906,10 @@ public class MainActivity extends Activity {
                 renderTaskStatus(status);
                 if ("cancel".equals(command) && !status.optBoolean("action_result_unknown", false)) {
                     taskRunnerActive = false;
-                    ObservationAccessibilityService.endTaskCapture();
+                    if (!actionInFlight && pendingReceipt == null) {
+                        vlmTaskActive = false;
+                        ObservationAccessibilityService.endTaskCapture();
+                    }
                 }
             } catch (BridgeClient.BridgeException exception) {
                 // Submit/control can cross on the wire.  Keep the local epoch
@@ -822,6 +950,8 @@ public class MainActivity extends Activity {
         String state = status.optString("state", "UNKNOWN");
         String phase = status.optString("phase", "");
         StringBuilder message = new StringBuilder("Task: ").append(state);
+        String mode = status.optString("mode", "deterministic");
+        message.append("\nmode=").append(mode);
         if (!phase.isEmpty()) {
             message.append("\nphase=").append(phase);
         }
@@ -839,6 +969,29 @@ public class MainActivity extends Activity {
         if (verification != null) {
             message.append("\nverification=").append(verification.optString("status", ""))
                     .append(" reason=").append(verification.optString("reason", ""));
+        }
+        JSONObject actualEffect = status.optJSONObject("actual_effect");
+        if (actualEffect != null) {
+            message.append("\nactual_effect=").append(actualEffect.optString("status", ""));
+        }
+        JSONObject completion = status.optJSONObject("vlm_completion");
+        if (completion != null) {
+            message.append("\nvlm_completion=").append(completion.optString("status", ""))
+                    .append(" steps=").append(completion.optInt("steps", 0));
+        }
+        JSONObject independent = status.optJSONObject("independent_result");
+        if (independent != null) {
+            message.append("\nindependent_result=").append(independent.optString("status", ""))
+                    .append(" reason=").append(independent.optString("reason", ""));
+        }
+        JSONObject usage = status.optJSONObject("usage");
+        if (usage != null) {
+            message.append("\nusage requests=").append(usage.optInt("requests", 0))
+                    .append(" estimated_cny=").append(usage.optDouble("estimated_cost_cny", 0.0))
+                    .append(" usage_missing=").append(usage.optBoolean("usage_missing", false));
+        }
+        if (status.has("task_output") && !status.isNull("task_output")) {
+            message.append("\ntask_output=").append(status.optString("task_output", ""));
         }
         JSONObject failure = status.optJSONObject("failure");
         if (failure != null) {
@@ -860,6 +1013,9 @@ public class MainActivity extends Activity {
         // A paused task remains the same server task. Starting here would
         // submit a second task with the same identity instead of resuming it.
         startTaskButton.setEnabled(!active && (terminal || "".equals(state)));
+        if (startVlmTaskButton != null) {
+            startVlmTaskButton.setEnabled(!active && (terminal || "".equals(state)));
+        }
         pauseTaskButton.setEnabled(active && "RUNNING".equals(state));
         cancelTaskButton.setEnabled(!terminal && (active || paused));
     }

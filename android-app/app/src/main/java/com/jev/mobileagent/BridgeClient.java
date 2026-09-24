@@ -78,6 +78,33 @@ public final class BridgeClient {
         return request(config, "POST", "/v1/android/tasks", body);
     }
 
+    public static JSONObject submitVlmTask(BridgeConfig config, String goal) throws BridgeException {
+        JSONObject body = new JSONObject();
+        try {
+            body.put("schema_version", "1.0");
+            body.put("android_schema_version", "1.0");
+            body.put("task_id", config.taskId);
+            body.put("device_id", config.deviceId);
+            body.put("goal", goal == null ? "" : goal);
+            body.put("source", "android-app-user-vlm");
+            JSONObject model = new JSONObject();
+            model.put("provider", config.modelProvider);
+            model.put("endpoint", config.modelEndpoint);
+            model.put("model", config.modelName);
+            // The key is sent only in this in-memory request body.  The bridge
+            // deliberately excludes it from task status and trace records.
+            model.put("api_key", config.modelApiKey);
+            model.put("max_steps", 5);
+            model.put("max_requests", 25);
+            model.put("max_tokens", 1024);
+            model.put("budget_cny", 1.0);
+            body.put("model", model);
+        } catch (JSONException exception) {
+            throw new BridgeException(0, "invalid_client_payload", exception.getMessage(), exception);
+        }
+        return request(config, "POST", "/v1/android/vlm-tasks", body);
+    }
+
     public static JSONObject taskStatus(BridgeConfig config) throws BridgeException {
         return request(config, "GET", taskPath(config, ""), null);
     }

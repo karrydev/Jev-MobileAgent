@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import http.client
 import json
+import math
 import re
 import secrets
 import threading
@@ -164,6 +165,18 @@ class BridgeRequestError(ValueError):
         super().__init__(message)
 
 
+class _VlmTaskStopped(RuntimeError):
+    """Internal signal used when a user control stops the model loop."""
+
+
+class _VlmTaskFailure(RuntimeError):
+    def __init__(self, code: str, message: str, *, pause: bool = False):
+        self.code = code
+        self.message = message
+        self.pause = pause
+        super().__init__(message)
+
+
 class AndroidBridge:
     _PENDING_CONTROL_TTL_SECONDS = 5.0
 
@@ -188,6 +201,7 @@ class AndroidBridge:
         self.clock = clock
         self.freshness_seconds = freshness_seconds
         self._lock = threading.RLock()
+        self._condition = threading.Condition(self._lock)
         self._paired = False
         self._client_name: str | None = None
         self._last_seen_at: str | None = None
@@ -222,10 +236,16 @@ class AndroidBridge:
                 active = self._tasks.get(self._active_task_id)
                 if active is not None and active["state"] == "RUNNING":
                     active["state"] = "PAUSED"
+                    active["phase"] = "PAUSED"
                     active["failure"] = {
                         "code": "device_session_restarted",
                         "message": "pairing started a new observation session; user confirmation is required",
                     }
+                    if active.get("mode") == "vlm":
+                        active["vlm_completion"] = {
+                            **(active.get("vlm_completion") or {}),
+                            "status": "PAUSED",
+                        }
                     active["control"] = {
                         "command": "pause",
                         "reason": "device_session_restarted",
@@ -245,6 +265,7 @@ class AndroidBridge:
             self._received_at = None
             self._last_observation_monotonic = None
             self._pending_controls.clear()
+            self._condition.notify_all()
         return {
             "schema_version": SCHEMA_VERSION,
             "android_schema_version": ANDROID_SCHEMA_VERSION,
@@ -281,7 +302,15 @@ class AndroidBridge:
             self._received_at = received_at
             self._last_seen_at = received_at
             self._last_observation_monotonic = time.monotonic()
-            self._maybe_verify_task_locked()
+            # The deterministic task verifier owns its terminal state.  A VLM
+            # runner consumes the same fresh frame through the condition
+            # below, then binds each action to this exact observation.
+            if not (
+                self._active_task_id is not None
+                and self._tasks.get(self._active_task_id, {}).get("mode") == "vlm"
+            ):
+                self._maybe_verify_task_locked()
+            self._condition.notify_all()
             return {
                 "schema_version": SCHEMA_VERSION,
                 "android_schema_version": ANDROID_SCHEMA_VERSION,
@@ -356,6 +385,7 @@ class AndroidBridge:
             if available:
                 self._screenshots[screenshot_id] = event
                 self._screenshot_by_observation[key] = screenshot_id
+            self._condition.notify_all()
             return {
                 "schema_version": SCHEMA_VERSION,
                 "android_schema_version": ANDROID_SCHEMA_VERSION,
@@ -504,7 +534,7 @@ class AndroidBridge:
             "phase": task.get("phase", "RUNNING"),
             "action": copy.deepcopy(task.get("action")),
             "next_action": next_action,
-            "receipt": copy.deepcopy(task.get("receipt")),
+            "receipt": copy.deepcopy(task.get("receipt") or task.get("last_receipt")),
             "verification": copy.deepcopy(task.get("verification")),
             "failure": copy.deepcopy(task.get("failure")),
             "control": copy.deepcopy(task.get("control")),
@@ -515,6 +545,16 @@ class AndroidBridge:
             "before_visual": copy.deepcopy(task.get("before_visual")),
             "after_visual": copy.deepcopy(task.get("after_visual")),
             "action_result_unknown": bool(task.get("action_result_unknown")),
+            # VLM tasks keep model completion, device effect, and the known
+            # independent controlled-page judge as separate values.  The
+            # deterministic task path leaves these fields null/absent.
+            "mode": task.get("mode", "deterministic"),
+            "model": copy.deepcopy(task.get("model_info")),
+            "actual_effect": copy.deepcopy(task.get("actual_effect")),
+            "vlm_completion": copy.deepcopy(task.get("vlm_completion")),
+            "independent_result": copy.deepcopy(task.get("independent_result")),
+            "task_output": task.get("task_output"),
+            "usage": copy.deepcopy(task.get("usage")),
             "trace": copy.deepcopy(task["trace"]),
         }
         return status
@@ -645,6 +685,658 @@ class AndroidBridge:
                 self._apply_control_locked(task, pending_control["command"], pending_control["reason"])
             return self._task_status_locked(task)
 
+    @staticmethod
+    def _validate_vlm_config(config: Any) -> dict[str, Any]:
+        if not isinstance(config, dict):
+            raise BridgeRequestError(422, "model_configuration_required", "VLM configuration is required")
+        provider = config.get("provider", "")
+        endpoint = config.get("endpoint")
+        model = config.get("model")
+        api_key = config.get("api_key")
+        if not isinstance(provider, str):
+            raise BridgeRequestError(422, "model_invalid_config", "VLM provider must be text")
+        if not isinstance(endpoint, str) or not endpoint.strip():
+            raise BridgeRequestError(422, "model_configuration_required", "VLM endpoint is required")
+        parsed = urlparse(endpoint.strip())
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise BridgeRequestError(422, "model_invalid_endpoint", "VLM endpoint must be an HTTPS URL")
+        if not isinstance(model, str) or not model.strip():
+            raise BridgeRequestError(422, "model_configuration_required", "VLM model is required")
+        if not isinstance(api_key, str) or not api_key:
+            raise BridgeRequestError(422, "model_credentials_required", "VLM API key is required")
+        if provider.strip().casefold() not in {"gui-plus", "gui_plus", "gui plus"}:
+            raise BridgeRequestError(
+                422,
+                "model_unpriced",
+                "only the reviewed GUI-Plus pricing configuration can run a bounded paid task",
+            )
+        if model.strip() != "gui-plus-2026-02-26":
+            raise BridgeRequestError(
+                422,
+                "model_unpriced",
+                "this model has no reviewed local CNY price; choose gui-plus-2026-02-26",
+            )
+
+        def bounded_int(name: str, default: int, maximum: int) -> int:
+            value = config.get(name, default)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise BridgeRequestError(422, "model_invalid_config", f"{name} must be a positive integer")
+            return min(value, maximum)
+
+        max_steps = bounded_int("max_steps", 5, 5)
+        max_requests = bounded_int("max_requests", 25, 25)
+        max_tokens = bounded_int("max_tokens", 1024, 1024)
+        try:
+            budget_cny = float(config.get("budget_cny", 1.0))
+            timeout_seconds = float(config.get("timeout_seconds", 30.0))
+        except (TypeError, ValueError) as exc:
+            raise BridgeRequestError(422, "model_invalid_config", "VLM budget and timeout must be numbers") from exc
+        if not math.isfinite(budget_cny) or budget_cny <= 0:
+            raise BridgeRequestError(422, "model_invalid_config", "VLM budget must be positive")
+        if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+            raise BridgeRequestError(422, "model_invalid_config", "VLM timeout must be positive")
+        return {
+            "provider": provider.strip(),
+            "endpoint": endpoint.strip(),
+            "model": model.strip(),
+            "api_key": api_key,
+            "max_steps": max_steps,
+            "max_requests": max_requests,
+            "max_tokens": max_tokens,
+            "budget_cny": min(budget_cny, 1.0),
+            "timeout_seconds": min(timeout_seconds, 30.0),
+        }
+
+    def submit_vlm_task(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Start the bounded extracted-role loop for the paired Android app.
+
+        The existing deterministic task endpoint remains unchanged.  This
+        endpoint creates the same guarded task record but lets a background
+        role runner fill each observation-bound action after the model reply.
+        The API key is copied only into that runner's in-memory configuration;
+        no task/status/trace field stores it.
+        """
+        core = {
+            key: payload.get(key)
+            for key in ("schema_version", "android_schema_version", "task_id", "device_id", "goal", "source")
+            if key in payload
+        }
+        try:
+            assert_valid(core, "task_submit")
+        except SchemaValidationError as exc:
+            raise BridgeRequestError(400, "invalid_schema", str(exc)) from exc
+        if core["device_id"] != self.device_id:
+            raise BridgeRequestError(403, "device_identity_mismatch", "task device is not paired with this bridge")
+        model_config = self._validate_vlm_config(payload.get("model"))
+        with self._condition:
+            if not self._paired:
+                raise BridgeRequestError(409, "device_not_paired", "pair the Android app before submitting a task")
+            if self._active_task_id is not None:
+                raise BridgeRequestError(409, "task_active", "one Android task is already active")
+            if core["task_id"] in self._tasks:
+                raise BridgeRequestError(409, "task_exists", "task_id already exists")
+            if self._latest is None or not self._is_current_locked():
+                raise BridgeRequestError(409, "observation_unavailable", "a fresh Accessibility observation is required before starting a task")
+            observation = self._latest
+            if observation["task_id"] != core["task_id"]:
+                raise BridgeRequestError(409, "task_observation_mismatch", "task_id must match the paired App observation session")
+            if observation["availability"] != "AVAILABLE":
+                raise BridgeRequestError(409, "permission_unavailable", "the App has no current actionable Accessibility tree")
+            before_screenshot = self._screenshot_for_observation_locked(
+                observation["observation_id"], "BEFORE"
+            )
+            if before_screenshot is None:
+                raise BridgeRequestError(
+                    409,
+                    "before_screenshot_required",
+                    "a real BEFORE screenshot bound to the fresh observation is required for a VLM task",
+                )
+            task_id = core["task_id"]
+            task = {
+                "task_id": task_id,
+                "device_id": self.device_id,
+                "goal": core["goal"],
+                "mode": "vlm",
+                "state": "RUNNING",
+                "phase": "WAITING_MODEL",
+                "action": None,
+                "receipt": None,
+                "last_receipt": None,
+                "verification": None,
+                "failure": None,
+                "control": None,
+                "before_observation_id": observation["observation_id"],
+                "after_observation_id": None,
+                "action_result_unknown": False,
+                "command_delivered": False,
+                "post_observation_min_version": observation["observation_version"],
+                "post_observation_id": None,
+                "post_observation_version": None,
+                "requires_screenshot": True,
+                "before_screenshot_id": before_screenshot["screenshot_id"],
+                "after_screenshot_id": None,
+                "before_visual": copy.deepcopy(observation.get("visual")),
+                "after_visual": None,
+                "actual_effect": {"status": "PENDING", "reason": "awaiting_model_action"},
+                "vlm_completion": {
+                    "status": "RUNNING",
+                    "steps": 0,
+                    "max_steps": model_config["max_steps"],
+                },
+                "independent_result": {"status": "UNKNOWN", "success": None, "reason": "not_evaluated"},
+                "task_output": None,
+                "usage": None,
+                "model_info": {"provider": model_config["provider"], "model": model_config["model"]},
+                "trace": [],
+                "vlm_after_observation": None,
+                "vlm_after_screenshot": None,
+                "vlm_last_observation_version": None,
+                "vlm_limits": {
+                    "max_steps": model_config["max_steps"],
+                    "max_requests": model_config["max_requests"],
+                    "max_tokens": model_config["max_tokens"],
+                    "budget_cny": model_config["budget_cny"],
+                    "timeout_seconds": model_config["timeout_seconds"],
+                },
+            }
+            self._tasks[task_id] = task
+            self._active_task_id = task_id
+            self._record_task_event_locked(task, "task.submitted", task_id)
+            self._record_task_event_locked(task, "observation.captured", observation["observation_id"])
+            self._condition.notify_all()
+        runner = threading.Thread(
+            target=self._run_vlm_task,
+            args=(task_id, core["goal"], model_config),
+            name=f"jev-vlm-{task_id}",
+            daemon=True,
+        )
+        runner.start()
+        with self._condition:
+            task = self._tasks[task_id]
+            return self._task_status_locked(task)
+
+    def _vlm_frame_locked(
+            self,
+            observation: dict[str, Any],
+            screenshot: dict[str, Any],
+    ) -> Any:
+        # Import the extracted role seam lazily so deterministic bridge users
+        # and the Android app do not acquire model/runtime dependencies.
+        from agent_core.vlm import ObservationFrame
+
+        return ObservationFrame.from_contract(
+            copy.deepcopy(observation),
+            screenshot={
+                "data": screenshot["png_base64"],
+                "media_type": "image/png",
+            },
+        )
+
+    def _wait_vlm_frame(self, task_id: str, minimum_version: int, timeout: float) -> Any:
+        deadline = time.monotonic() + timeout
+        with self._condition:
+            while True:
+                task = self._tasks.get(task_id)
+                if task is None:
+                    raise _VlmTaskStopped("task no longer exists")
+                if task["state"] != "RUNNING":
+                    raise _VlmTaskStopped("task is controlled by the user")
+                observation = self._latest
+                if observation is not None and observation["observation_version"] > minimum_version:
+                    if observation["task_id"] != task_id or observation["device_id"] != self.device_id:
+                        raise _VlmTaskFailure(
+                            "observation_mismatch",
+                            "the fresh Accessibility observation belongs to another task",
+                            pause=True,
+                        )
+                    if observation["availability"] != "AVAILABLE":
+                        raise _VlmTaskFailure(
+                            "permission_unavailable",
+                            "the App has no actionable Accessibility observation",
+                            pause=True,
+                        )
+                    screenshot = self._screenshot_for_observation_locked(
+                        observation["observation_id"], "BEFORE"
+                    )
+                    if screenshot is not None:
+                        return self._vlm_frame_locked(observation, screenshot)
+                    visual = observation.get("visual") or {}
+                    if visual.get("capture_state") == "UNAVAILABLE":
+                        raise _VlmTaskFailure(
+                            "screenshot_missing",
+                            "a fresh VLM observation has no usable screenshot",
+                            pause=True,
+                        )
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise _VlmTaskFailure(
+                        "observation_timeout",
+                        "timed out waiting for a fresh Accessibility observation and screenshot",
+                        pause=True,
+                    )
+                self._condition.wait(min(remaining, 0.5))
+
+    @staticmethod
+    def _judge_controlled_observation(observation: dict[str, Any], goal: str) -> dict[str, Any]:
+        if observation.get("availability") != "AVAILABLE":
+            return {"status": "UNKNOWN", "success": None, "reason": "observation_unavailable"}
+        values: list[str] = []
+        for node in observation.get("nodes", []):
+            for field in ("text", "content_description", "state_description"):
+                value = node.get(field)
+                if isinstance(value, str) and value:
+                    values.append(value.casefold())
+        joined = "\n".join(values)
+        normalised_goal = _normalise_goal(goal)
+        expected_text = None
+        for pattern in _INPUT_GOAL_PATTERNS:
+            match = pattern.fullmatch(goal or "") or pattern.fullmatch(normalised_goal)
+            if match is not None:
+                expected_text = match.group("text")
+                break
+        if expected_text is not None:
+            successful = any(
+                node.get("content_description") == "中文输入框"
+                and node.get("text") == expected_text
+                for node in observation.get("nodes", [])
+            )
+            return {
+                "status": "SUCCESS" if successful else "UNKNOWN",
+                "success": successful,
+                "reason": "controlled_input_completed" if successful else "controlled_input_not_completed",
+            }
+        expected_tokens: tuple[str, ...] = ()
+        if "长按" in normalised_goal:
+            expected_tokens = ("long press completed", "long_press completed")
+        elif "滑动" in normalised_goal:
+            expected_tokens = ("swipe completed", "swipe_completed")
+        elif "坐标" in normalised_goal:
+            expected_tokens = ("coordinate tap completed", "coordinate_tap completed")
+        elif "返回" in normalised_goal or normalised_goal.casefold() in {"back", "system back"}:
+            expected_tokens = ("system back completed", "system_back completed")
+        elif "切换受控状态" in normalised_goal or "toggle controlled state" in normalised_goal.casefold():
+            expected_tokens = ("controlled action state: completed", "controlled action state completed")
+        if expected_tokens and any(token in joined for token in expected_tokens):
+            return {"status": "SUCCESS", "success": True, "reason": "controlled_page_completed"}
+        if expected_tokens:
+            return {"status": "UNKNOWN", "success": None, "reason": "controlled_page_not_completed"}
+        return {"status": "UNKNOWN", "success": None, "reason": "independent_judge_not_applicable"}
+
+    def _dispatch_vlm_action(self, task_id: str, action_command: Any, before: Any, timeout: float) -> tuple[dict[str, Any], Any]:
+        contract = copy.deepcopy(action_command.contract_action)
+        if not isinstance(contract, dict):
+            raise _VlmTaskFailure("unsupported_action", "the model action is outside the Android Accessibility contract")
+        observation = before.as_contract()
+        with self._condition:
+            task = self._tasks.get(task_id)
+            if task is None or task["state"] != "RUNNING":
+                raise _VlmTaskStopped("task is controlled by the user")
+            if observation.get("task_id") != task_id or observation.get("device_id") != self.device_id:
+                raise _VlmTaskFailure("observation_mismatch", "the action observation is not bound to this task", pause=True)
+            contract["task_id"] = task_id
+            contract["device_id"] = self.device_id
+            contract["session_id"] = f"android-session-{task_id}"
+            # The extracted role only knows the portable ScreenFrame shape.
+            # Rebuild the Android action frame from this exact observation so
+            # the action carries the active window identity and geometry that
+            # the Accessibility service will validate.  Do not read
+            # ``self._latest`` here: a delayed capture must not rebind the
+            # action or its screenshot to a different observation.
+            contract["coordinate_frame"] = self._coordinate_frame(observation)
+            before_screenshot = self._screenshot_for_observation_locked(
+                observation["observation_id"], "BEFORE"
+            )
+            contract["before_screenshot_id"] = (
+                before_screenshot["screenshot_id"] if before_screenshot is not None else None
+            )
+            if not contract["before_screenshot_id"]:
+                raise _VlmTaskFailure("before_screenshot_required", "the action has no screenshot bound to its observation", pause=True)
+            if contract.get("kind") == "set_text":
+                editable = next(
+                    (
+                        node for node in observation.get("nodes", [])
+                        if node.get("editable") and node.get("enabled") and node.get("visible_to_user")
+                    ),
+                    None,
+                )
+                if editable is None:
+                    raise _VlmTaskFailure("target_node_not_found", "no visible editable Accessibility node is available", pause=True)
+                contract["target_node_id"] = editable["node_id"]
+                contract["target_node_label"] = (
+                    editable.get("content_description") or editable.get("text") or ""
+                )
+            try:
+                assert_valid(contract, "action")
+            except SchemaValidationError as exc:
+                raise _VlmTaskFailure("bridge_contract_error", "the model action did not satisfy the Android contract") from exc
+            task["action"] = contract
+            task["receipt"] = None
+            task["after_observation_id"] = None
+            task["after_screenshot_id"] = None
+            task["after_visual"] = None
+            task["vlm_after_observation"] = None
+            task["vlm_after_screenshot"] = None
+            task["phase"] = "WAITING_RECEIPT"
+            task["command_delivered"] = False
+            task["action_result_unknown"] = False
+            task["actual_effect"] = {
+                "status": "PENDING",
+                "action_id": contract["action_id"],
+                "reason": "awaiting_android_receipt",
+            }
+            task["before_observation_id"] = observation["observation_id"]
+            task["before_screenshot_id"] = contract["before_screenshot_id"]
+            task["_vlm_action_started_monotonic"] = time.monotonic()
+            self._record_task_event_locked(task, "action.dispatched", contract["action_id"])
+            self._condition.notify_all()
+            deadline = time.monotonic() + timeout
+            while True:
+                if task["state"] != "RUNNING":
+                    raise _VlmTaskStopped("task is controlled by the user")
+                receipt = task.get("receipt")
+                after = task.get("vlm_after_observation")
+                if receipt is not None and (not receipt.get("accepted") or after is not None):
+                    return copy.deepcopy(receipt), after
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    task["state"] = "PAUSED"
+                    task["phase"] = "PAUSED"
+                    task["action_result_unknown"] = True
+                    task["failure"] = {
+                        "code": "vlm_action_timeout",
+                        "message": "timed out waiting for the Android action receipt and after frame",
+                    }
+                    task["actual_effect"] = {
+                        "status": "UNKNOWN",
+                        "action_id": contract["action_id"],
+                        "reason": "receipt_timeout",
+                    }
+                    self._record_task_event_locked(task, "task.paused", task_id)
+                    self._condition.notify_all()
+                    raise _VlmTaskFailure("vlm_action_timeout", "Android action receipt timed out", pause=True)
+                self._condition.wait(min(remaining, 0.5))
+
+    def _mark_vlm_failure(self, task_id: str, code: str, message: str, *, pause: bool) -> None:
+        with self._condition:
+            task = self._tasks.get(task_id)
+            if task is None or task["state"] in {"SUCCEEDED", "FAILED", "CANCELLED"}:
+                return
+            task["state"] = "PAUSED" if pause else "FAILED"
+            task["phase"] = task["state"]
+            task["failure"] = {"code": code, "message": message}
+            completion = task.get("vlm_completion") or {}
+            completion["status"] = task["state"]
+            task["vlm_completion"] = completion
+            if not pause:
+                self._active_task_id = None
+                self._record_task_event_locked(task, "task.failed", task_id)
+            else:
+                self._record_task_event_locked(task, "task.paused", task_id)
+            self._condition.notify_all()
+
+    def _run_vlm_task(self, task_id: str, goal: str, model_config: dict[str, Any]) -> None:
+        """Run extracted roles while all device I/O stays in bridge guards."""
+
+        transport = None
+        try:
+            from agent_core.vlm import RoleOrchestrator
+            from services.live_vlm.transport import ProductionVlmTransport, VlmTransportError
+
+            transport = ProductionVlmTransport(
+                endpoint=model_config["endpoint"],
+                model=model_config["model"],
+                api_key=model_config["api_key"],
+                provider=model_config["provider"],
+                max_requests=model_config["max_requests"],
+                max_tokens=model_config["max_tokens"],
+                budget_cny=model_config["budget_cny"],
+                timeout_seconds=model_config["timeout_seconds"],
+            )
+            orchestrator = RoleOrchestrator(transport, allow_uncontracted_actions=True)
+            previous_version = 0
+            last_after: Any = None
+            for step_index in range(model_config["max_steps"]):
+                with self._condition:
+                    task = self._tasks.get(task_id)
+                    if task is None or task["state"] != "RUNNING":
+                        raise _VlmTaskStopped("task is controlled by the user")
+                before = self._wait_vlm_frame(task_id, previous_version, max(2.0, model_config["timeout_seconds"] * 2.0))
+                after_holder: list[Any] = []
+                unsupported: list[_VlmTaskFailure] = []
+                first_observation = True
+
+                def observe() -> Any:
+                    if first_observation:
+                        return before
+                    if after_holder:
+                        return after_holder[0]
+                    raise _VlmTaskFailure("after_observation_missing", "the Android action produced no bound after frame", pause=True)
+
+                def execute(action_command: Any) -> Any:
+                    if action_command.answer:
+                        safe_text = str(action_command.parameters.get("text", ""))
+                        safe_text = safe_text.replace(model_config["api_key"], "[REDACTED]")
+                        with self._condition:
+                            task = self._tasks.get(task_id)
+                            if task is None or task["state"] != "RUNNING":
+                                raise _VlmTaskStopped("task is controlled by the user")
+                            task["task_output"] = safe_text
+                        return {"outcome": "TASK_OUTPUT"}
+                    if action_command.contract_action is None:
+                        failure = _VlmTaskFailure(
+                            "unsupported_action",
+                            "the model selected an Android action outside the supported Accessibility contract",
+                        )
+                        unsupported.append(failure)
+                        raise failure
+                    receipt, after = self._dispatch_vlm_action(
+                        task_id,
+                        action_command,
+                        before,
+                        max(2.0, model_config["timeout_seconds"] * 2.0),
+                    )
+                    if not receipt.get("accepted"):
+                        raise _VlmTaskFailure("action_rejected", "the Android Accessibility service rejected the action")
+                    if after is None:
+                        raise _VlmTaskFailure("after_observation_missing", "the action receipt has no bound after frame", pause=True)
+                    after_holder.append(self._vlm_frame_from_contract(after, task_id))
+                    return receipt
+
+                # The callback's first call and the role loop's post-action
+                # call are intentionally distinct; keep one fresh frame per
+                # action and never hand the previous before frame to a later
+                # action.
+                def role_observe() -> Any:
+                    nonlocal first_observation
+                    value = observe()
+                    first_observation = False
+                    return value
+
+                result = orchestrator.step(goal, observe=role_observe, execute=execute)
+                summary = transport.summary()
+                with self._condition:
+                    task = self._tasks.get(task_id)
+                    if task is None or task["state"] != "RUNNING":
+                        raise _VlmTaskStopped("task is controlled by the user")
+                    task["usage"] = summary
+                    completion = task.get("vlm_completion") or {}
+                    completion.update({"status": "RUNNING", "steps": step_index + 1, "max_steps": model_config["max_steps"]})
+                    task["vlm_completion"] = completion
+                    action_data = result.data.get("action") if isinstance(result.data, dict) else None
+                    if unsupported:
+                        raise unsupported[0]
+                    if isinstance(action_data, dict) and action_data.get("kind") == "answer":
+                        completion["status"] = "COMPLETED"
+                        task["vlm_completion"] = completion
+                        task["independent_result"] = self._judge_controlled_observation(
+                            last_after.as_contract() if last_after is not None else before.as_contract(),
+                            goal,
+                        )
+                        independent = task.get("independent_result") or {}
+                        if independent.get("success") is True:
+                            task["state"] = "SUCCEEDED"
+                            task["phase"] = "SUCCEEDED"
+                            self._active_task_id = None
+                            self._record_task_event_locked(task, "task.completed", task_id)
+                        else:
+                            task["state"] = "PAUSED"
+                            task["phase"] = "PAUSED"
+                            task["failure"] = {
+                                "code": "independent_result_unknown",
+                                "message": "the answer output does not prove the device goal completed",
+                            }
+                            self._record_task_event_locked(task, "task.paused", task_id)
+                        self._condition.notify_all()
+                        return
+                    if after_holder:
+                        last_after = after_holder[0]
+                        previous_version = last_after.observation_version
+                        task["independent_result"] = self._judge_controlled_observation(last_after.as_contract(), goal)
+                    if result.done:
+                        completion["status"] = "COMPLETED"
+                        task["vlm_completion"] = completion
+                        if last_after is not None:
+                            task["independent_result"] = self._judge_controlled_observation(last_after.as_contract(), goal)
+                        independent = task.get("independent_result") or {}
+                        if independent.get("success") is True:
+                            task["state"] = "SUCCEEDED"
+                            task["phase"] = "SUCCEEDED"
+                            self._active_task_id = None
+                            self._record_task_event_locked(task, "task.completed", task_id)
+                        else:
+                            task["state"] = "PAUSED"
+                            task["phase"] = "PAUSED"
+                            task["failure"] = {
+                                "code": "independent_result_unknown",
+                                "message": "the VLM marked the task complete but the controlled-page judge has no success evidence",
+                            }
+                            self._record_task_event_locked(task, "task.paused", task_id)
+                        self._condition.notify_all()
+                        return
+                    if after_holder:
+                        task["phase"] = "WAITING_MODEL"
+                        self._condition.notify_all()
+                # Wait for a new observation only on the next loop.  The App
+                # schedules that capture after it posts this action receipt.
+            self._mark_vlm_failure(task_id, "vlm_step_budget_exhausted", "the bounded VLM step limit was reached", pause=False)
+        except _VlmTaskStopped:
+            return
+        except _VlmTaskFailure as exc:
+            self._mark_vlm_failure(task_id, exc.code, exc.message, pause=exc.pause)
+        except VlmTransportError as exc:
+            self._mark_vlm_failure(task_id, exc.code, "the VLM provider stopped the bounded run", pause=False)
+        except Exception:
+            # Provider payloads and model text never enter task status or
+            # trace.  Keep the user-facing failure deliberately generic.
+            self._mark_vlm_failure(task_id, "vlm_loop_failed", "the bounded VLM loop failed", pause=False)
+        finally:
+            # Preserve usage for every exit path, including cancellation,
+            # provider validation, and a late exception inside a role step.
+            if transport is not None:
+                with self._condition:
+                    task = self._tasks.get(task_id)
+                    if task is not None:
+                        task["usage"] = transport.summary()
+                        self._condition.notify_all()
+
+    def _vlm_frame_from_contract(self, observation: dict[str, Any], task_id: str) -> Any:
+        with self._condition:
+            task = self._tasks.get(task_id)
+            screenshot = task.get("vlm_after_screenshot") if task else None
+            if screenshot is None:
+                screenshot = self._screenshot_for_observation_locked(observation["observation_id"], "AFTER")
+            if screenshot is None:
+                raise _VlmTaskFailure("after_screenshot_missing", "the after observation has no screenshot", pause=True)
+            return self._vlm_frame_locked(observation, screenshot)
+
+    def _receive_vlm_receipt_locked(
+            self,
+            task: dict[str, Any],
+            receipt: dict[str, Any],
+            associated_after: dict[str, Any] | None,
+            after_screenshot: dict[str, Any] | None,
+            after_screenshot_missing_reason: str | None,
+    ) -> dict[str, Any]:
+        task_id = task["task_id"]
+        if task.get("receipt") is not None:
+            duplicate = copy.deepcopy(task["receipt"])
+            duplicate["deduplicated"] = True
+            return {**self._task_status_locked(task), "receipt": duplicate}
+        task["receipt"] = copy.deepcopy(receipt)
+        task["last_receipt"] = copy.deepcopy(receipt)
+        task["after_screenshot_id"] = receipt.get("after_screenshot_id")
+        if associated_after is not None:
+            task["after_observation_id"] = associated_after["observation_id"]
+            task["post_observation_id"] = associated_after["observation_id"]
+            task["post_observation_version"] = associated_after["observation_version"]
+            task["after_visual"] = copy.deepcopy(associated_after.get("visual"))
+            task["vlm_after_observation"] = copy.deepcopy(associated_after)
+        if after_screenshot is not None:
+            task["vlm_after_screenshot"] = copy.deepcopy(after_screenshot)
+        self._record_task_event_locked(task, "receipt.received", receipt["receipt_id"])
+        independent = None
+        if associated_after is not None:
+            independent = self._judge_controlled_observation(associated_after, task.get("goal", ""))
+            task["independent_result"] = independent
+        effect_reason = receipt.get("error_code") or "action_rejected"
+        effect_status = "REJECTED"
+        if receipt["accepted"]:
+            if associated_after is None:
+                # A receipt is an execution fact, but this VLM action has no
+                # post-action image to prove an effect.
+                effect_status = "UNKNOWN"
+                effect_reason = after_screenshot_missing_reason or "after_observation_missing"
+            elif after_screenshot is None:
+                # VLM actions require the real after image as evidence.  A
+                # tree alone cannot turn an accepted receipt into an effect.
+                effect_status = "UNKNOWN"
+                effect_reason = after_screenshot_missing_reason or "after_screenshot_missing"
+            elif independent is not None and independent.get("success") is True:
+                effect_status = "EXECUTED"
+                effect_reason = independent.get("reason") or "controlled_page_completed"
+            else:
+                effect_status = "UNKNOWN"
+                effect_reason = (independent or {}).get("reason") or "effect_not_proven"
+        task["actual_effect"] = {
+            "status": effect_status,
+            "action_id": receipt["action_id"],
+            "receipt_id": receipt["receipt_id"],
+            "reason": effect_reason,
+        }
+        if task["state"] in {"CANCELLED", "PAUSED"}:
+            # A delayed receipt may resolve action_result_unknown, but never
+            # reopens a user-controlled task or creates another action.
+            task["action_result_unknown"] = False
+            if task["state"] == "CANCELLED" and self._active_task_id == task_id:
+                self._active_task_id = None
+            self._condition.notify_all()
+            return self._task_status_locked(task)
+        if not receipt["accepted"]:
+            task["state"] = "FAILED"
+            task["phase"] = "FAILED"
+            task["failure"] = {
+                "code": receipt.get("error_code") or "action_rejected",
+                "message": "the Android Accessibility service rejected the model action",
+            }
+            task["vlm_completion"] = {**(task.get("vlm_completion") or {}), "status": "FAILED"}
+            self._active_task_id = None
+            self._record_task_event_locked(task, "task.failed", task_id)
+        elif after_screenshot is None:
+            task["state"] = "PAUSED"
+            task["phase"] = "PAUSED"
+            task["action_result_unknown"] = True
+            reason = after_screenshot_missing_reason or "after_screenshot_missing"
+            task["failure"] = {
+                "code": "screenshot_missing",
+                "message": "after screenshot evidence is unavailable: " + reason,
+            }
+            task["vlm_completion"] = {**(task.get("vlm_completion") or {}), "status": "PAUSED"}
+            self._record_task_event_locked(task, "task.paused", task_id)
+        else:
+            task["phase"] = "WAITING_MODEL"
+        self._condition.notify_all()
+        return self._task_status_locked(task)
+
     def task_status(self, task_id: str) -> dict[str, Any]:
         with self._lock:
             task = self._tasks.get(task_id)
@@ -693,6 +1385,7 @@ class AndroidBridge:
                 task["action_result_unknown"] = True
             elif self._active_task_id == task_id:
                 self._active_task_id = None
+        self._condition.notify_all()
 
     def receive_receipt(self, task_id: str, receipt: dict[str, Any]) -> dict[str, Any]:
         try:
@@ -764,6 +1457,14 @@ class AndroidBridge:
                         "screenshot_mismatch",
                         "the explicitly associated after screenshot does not match this task observation",
                     )
+            if task.get("mode") == "vlm":
+                return self._receive_vlm_receipt_locked(
+                    task,
+                    receipt,
+                    associated_after,
+                    after_screenshot if after_screenshot_id is not None else None,
+                    after_screenshot_missing_reason,
+                )
             if task.get("receipt") is not None:
                 duplicate = copy.deepcopy(task["receipt"])
                 duplicate["deduplicated"] = True
@@ -1059,6 +1760,9 @@ def create_server(bridge: AndroidBridge, host: str = "127.0.0.1", port: int = 0)
                     return
                 if self.path == "/v1/android/screenshots":
                     _send_json(self, 200, bridge.receive_screenshot(_read_json(self)))
+                    return
+                if path == "/v1/android/vlm-tasks":
+                    _send_json(self, 200, bridge.submit_vlm_task(_read_json(self)))
                     return
                 segments = [part for part in path.split("/") if part]
                 task_prefix = segments[:2] in (["v1", "tasks"], ["v1", "android"])

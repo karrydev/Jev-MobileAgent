@@ -31,18 +31,23 @@ public class ControlledPageActivity extends Activity {
     private TextView taskStatus;
     private TextView visualStatus;
     private Button startTaskButton;
+    private Button startVlmTaskButton;
     private Button pauseTaskButton;
     private Button cancelTaskButton;
     /** Serialize submit/control requests while keeping status polling responsive. */
     private final ExecutorService taskExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService taskLoopExecutor = Executors.newSingleThreadExecutor();
+    private final ActionExecutionGate actionExecutionGate = new ActionExecutionGate();
     private volatile boolean taskRunnerActive;
     private volatile String dispatchedActionId;
     private volatile JSONObject pendingReceipt;
+    private volatile boolean pendingReceiptWaitsForControl;
     private volatile BridgeConfig activeTaskConfig;
     private volatile boolean taskSubmissionInFlight;
     private volatile String pendingControlCommand;
     private volatile long taskControlEpoch;
+    private volatile boolean vlmTaskActive;
+    private volatile boolean actionInFlight;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -185,7 +190,12 @@ public class ControlledPageActivity extends Activity {
 
         startTaskButton = new Button(this);
         startTaskButton.setText("Start configured node task");
-        startTaskButton.setOnClickListener(v -> submitConfiguredTask(configuredGoal));
+        startTaskButton.setOnClickListener(v -> submitConfiguredTask(configuredGoal, false));
+
+        startVlmTaskButton = new Button(this);
+        startVlmTaskButton.setText("Start real VLM task");
+        startVlmTaskButton.setContentDescription("Start real VLM task");
+        startVlmTaskButton.setOnClickListener(v -> submitConfiguredTask(configuredGoal, true));
 
         pauseTaskButton = new Button(this);
         pauseTaskButton.setText("Pause task");
@@ -216,6 +226,7 @@ public class ControlledPageActivity extends Activity {
         buttonRow.addView(pauseTaskButton, rowButtonParams());
         buttonRow.addView(cancelTaskButton, rowButtonParams());
         taskPanel.addView(buttonRow, compactParams());
+        taskPanel.addView(startVlmTaskButton, compactParams());
         taskPanel.addView(taskStatus, compactParams());
         if (landscape) {
             startTaskButton.setText("Start");
@@ -224,13 +235,14 @@ public class ControlledPageActivity extends Activity {
             taskStatus.setTextSize(12);
         }
         LinearLayout.LayoutParams taskLayout = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, landscape ? dp(130) : dp(245));
+                LinearLayout.LayoutParams.MATCH_PARENT, landscape ? dp(150) : dp(285));
         root.addView(taskPanel, taskLayout);
         setContentView(root);
     }
 
     @Override
     protected void onDestroy() {
+        actionExecutionGate.invalidate();
         taskRunnerActive = false;
         taskExecutor.shutdownNow();
         taskLoopExecutor.shutdownNow();
@@ -238,28 +250,37 @@ public class ControlledPageActivity extends Activity {
         super.onDestroy();
     }
 
-    private void submitConfiguredTask(String goal) {
+    private void submitConfiguredTask(String goal, final boolean vlm) {
         if (goal == null || goal.trim().isEmpty()) {
             taskStatus.setText("Task: configure a Chinese node goal on the connection screen first");
             return;
         }
         final BridgeConfig config = BridgeConfig.load(this);
+        if (vlm && (config.modelEndpoint.isEmpty() || config.modelName.isEmpty() || config.modelApiKey.isEmpty())) {
+            taskStatus.setText("Task: configure VLM provider, HTTPS endpoint, model, and API key on the connection screen first");
+            return;
+        }
         activeTaskConfig = config;
+        vlmTaskActive = vlm;
         final long runEpoch = ++taskControlEpoch;
+        final ActionExecutionGate.Token actionToken = actionExecutionGate.begin();
         pendingControlCommand = null;
         taskSubmissionInFlight = true;
         taskRunnerActive = true;
+        actionInFlight = false;
         dispatchedActionId = null;
         pendingReceipt = null;
+        pendingReceiptWaitsForControl = false;
         setTaskButtons(true, "RUNNING");
-        taskStatus.setText("Task: submitting goal…");
+        taskStatus.setText(vlm ? "Task: submitting real VLM goal…" : "Task: submitting configured goal…");
         // The start-button accessibility event can schedule an automatic
         // capture while submit is in flight. Reserve the stream and publish
         // one explicit fresh before frame first.
         beginTaskCaptureForGoal(config, goal, new ObservationAccessibilityService.CaptureCallback() {
             @Override
             public void onSuccess(JSONObject acknowledgement) {
-                taskExecutor.execute(() -> submitConfiguredTaskAfterCapture(config, goal.trim(), runEpoch));
+                taskExecutor.execute(() -> submitConfiguredTaskAfterCapture(
+                        config, goal.trim(), runEpoch, vlm, actionToken));
             }
 
             @Override
@@ -277,7 +298,7 @@ public class ControlledPageActivity extends Activity {
 
     private boolean requiresVisualTask(String goal) {
         String value = goal == null ? "" : goal.trim();
-        return value.contains("长按") || value.contains("滑动") || value.contains("坐标")
+        return vlmTaskActive || value.contains("长按") || value.contains("滑动") || value.contains("坐标")
                 || value.contains("点击屏幕") || value.startsWith("点击(") || value.startsWith("点击（")
                 || value.equals("返回") || value.contains("系统返回")
                 || value.equalsIgnoreCase("back") || value.equalsIgnoreCase("system back");
@@ -318,9 +339,14 @@ public class ControlledPageActivity extends Activity {
         });
     }
 
-    private void submitConfiguredTaskAfterCapture(BridgeConfig config, String goal, long runEpoch) {
+    private void submitConfiguredTaskAfterCapture(
+            BridgeConfig config,
+            String goal,
+            long runEpoch,
+            boolean vlm,
+            ActionExecutionGate.Token actionToken) {
         try {
-            JSONObject status = BridgeClient.submitTask(config, goal);
+            JSONObject status = vlm ? BridgeClient.submitVlmTask(config, goal) : BridgeClient.submitTask(config, goal);
             taskSubmissionInFlight = false;
             renderTaskStatus(status);
             // A control click may have happened while submit was in flight.
@@ -328,17 +354,19 @@ public class ControlledPageActivity extends Activity {
             if (runEpoch != taskControlEpoch || pendingControlCommand != null) {
                 JSONObject controlled = applyPendingControl(config);
                 if (controlled != null && controlled.optBoolean("action_result_unknown", false)) {
-                    taskLoopExecutor.execute(() -> runNodeTaskLoop(config, taskControlEpoch));
+                    taskLoopExecutor.execute(() -> runNodeTaskLoop(config, taskControlEpoch, actionToken));
                 } else {
                     taskRunnerActive = false;
+                    vlmTaskActive = false;
                     ObservationAccessibilityService.endTaskCapture();
                 }
                 return;
             }
-            taskLoopExecutor.execute(() -> runNodeTaskLoop(config, runEpoch));
+            taskLoopExecutor.execute(() -> runNodeTaskLoop(config, runEpoch, actionToken));
         } catch (BridgeClient.BridgeException exception) {
             taskSubmissionInFlight = false;
             taskRunnerActive = false;
+            vlmTaskActive = false;
             ObservationAccessibilityService.endTaskCapture();
             runOnUiThread(() -> {
                 taskStatus.setText("Task: submission failed — " + exception.getMessage());
@@ -347,15 +375,25 @@ public class ControlledPageActivity extends Activity {
         }
     }
 
-    private void runNodeTaskLoop(BridgeConfig config, long runEpoch) {
-        while (taskRunnerActive && !Thread.currentThread().isInterrupted()) {
+    private void runNodeTaskLoop(
+            BridgeConfig config,
+            long runEpoch,
+            ActionExecutionGate.Token actionToken) {
+        while ((taskRunnerActive || actionInFlight || pendingReceipt != null)
+                && !Thread.currentThread().isInterrupted()) {
             JSONObject pending = pendingReceipt;
-            if (pending != null) {
+            if (pending != null
+                    && (!pendingReceiptWaitsForControl || pendingControlCommand == null)) {
                 try {
                     JSONObject status = BridgeClient.postReceipt(config, pending);
                     pendingReceipt = null;
+                    pendingReceiptWaitsForControl = false;
                     renderTaskStatus(status);
-                    if (pending.optBoolean("accepted", false)
+                    if ("vlm".equals(status.optString("mode"))
+                            && pending.optBoolean("accepted", false)
+                            && "RUNNING".equals(status.optString("state"))) {
+                        requestNextVlmObservation(config);
+                    } else if (pending.optBoolean("accepted", false)
                             && !pending.has("after_observation_id")) {
                         requestPostActionCapture(config);
                     } else {
@@ -380,14 +418,16 @@ public class ControlledPageActivity extends Activity {
                                 && pendingControlCommand == null
                                 && "RUNNING".equals(beforeDispatch.optString("state", ""))
                                 && beforeDispatch.optJSONObject("next_action") != null) {
-                            executeNodeAction(config, beforeDispatch.optJSONObject("next_action"));
+                            executeNodeAction(config, actionToken, beforeDispatch.optJSONObject("next_action"));
                         }
                     }
                 }
                 if ("SUCCEEDED".equals(stateValue) || "FAILED".equals(stateValue)
                         || "CANCELLED".equals(stateValue) || "PAUSED".equals(stateValue)) {
-                    if (pendingReceipt == null && !status.optBoolean("action_result_unknown", false)) {
+                    if (pendingReceipt == null && !actionInFlight
+                            && !status.optBoolean("action_result_unknown", false)) {
                         taskRunnerActive = false;
+                        vlmTaskActive = false;
                         ObservationAccessibilityService.endTaskCapture();
                         runOnUiThread(() -> setTaskButtons(false, stateValue));
                         return;
@@ -409,8 +449,12 @@ public class ControlledPageActivity extends Activity {
         }
     }
 
-    private void executeNodeAction(final BridgeConfig config, final JSONObject action) {
-        ObservationAccessibilityService.executeAction(config, action,
+    private void executeNodeAction(
+            final BridgeConfig config,
+            final ActionExecutionGate.Token actionToken,
+            final JSONObject action) {
+        actionInFlight = true;
+        ObservationAccessibilityService.executeAction(config, action, actionToken,
                 new ObservationAccessibilityService.ActionCallback() {
                     @Override
                     public void onSuccess() {
@@ -427,33 +471,33 @@ public class ControlledPageActivity extends Activity {
                                     new ObservationAccessibilityService.ScreenshotCallback() {
                                         @Override
                                         public void onSuccess(JSONObject screenshotAcknowledgement) {
-                                            pendingReceipt = buildReceipt(
+                                            recordPendingReceipt(buildReceipt(
                                                     action, true, null, null, acknowledgement,
-                                                    screenshotAcknowledgement, null);
+                                                    screenshotAcknowledgement, null));
                                         }
 
                                         @Override
                                         public void onError(String code, String message) {
-                                            pendingReceipt = buildReceipt(
+                                            recordPendingReceipt(buildReceipt(
                                                     action, true, null, null, acknowledgement,
-                                                    null, code + ": " + message);
+                                                    null, code + ": " + message));
                                         }
                                     });
                         } else {
-                            pendingReceipt = buildReceipt(action, true, null, null, acknowledgement);
+                            recordPendingReceipt(buildReceipt(action, true, null, null, acknowledgement));
                         }
                             }
 
                             @Override
                             public void onError(String code, String message) {
-                        pendingReceipt = buildReceipt(action, true, null, null, null, null, code + ": " + message);
+                        recordPendingReceipt(buildReceipt(action, true, null, null, null, null, code + ": " + message));
                             }
                         });
                     }
 
                     @Override
                     public void onError(String code, String message) {
-                        pendingReceipt = buildReceipt(action, false, code, message);
+                        recordPendingReceipt(buildReceipt(action, false, code, message), "action_controlled".equals(code));
                     }
                 });
     }
@@ -481,12 +525,52 @@ public class ControlledPageActivity extends Activity {
         });
     }
 
+    private void recordPendingReceipt(JSONObject receipt) {
+        recordPendingReceipt(receipt, false);
+    }
+
+    private void recordPendingReceipt(JSONObject receipt, boolean waitsForControl) {
+        pendingReceiptWaitsForControl = waitsForControl;
+        // Publish the wait flag before the volatile receipt reference so the
+        // polling worker cannot observe a controlled receipt as immediately
+        // sendable.
+        pendingReceipt = receipt;
+        actionInFlight = false;
+    }
+
+    private void requestNextVlmObservation(final BridgeConfig config) {
+        requestPostActionCapture(config, new ObservationAccessibilityService.CaptureCallback() {
+            @Override
+            public void onSuccess(JSONObject acknowledgement) {
+                ObservationAccessibilityService.requestScreenshot(
+                        config,
+                        acknowledgement,
+                        "BEFORE",
+                        new ObservationAccessibilityService.ScreenshotCallback() {
+                            @Override
+                            public void onSuccess(JSONObject screenshotAcknowledgement) {
+                            }
+
+                            @Override
+                            public void onError(String code, String message) {
+                                runOnUiThread(() -> taskStatus.setText("Task: next VLM screenshot unavailable — " + message));
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(String code, String message) {
+                runOnUiThread(() -> taskStatus.setText("Task: next VLM observation unavailable — " + message));
+            }
+        });
+    }
+
     private JSONObject buildReceipt(JSONObject action, boolean accepted, String errorCode, String errorMessage) {
         return buildReceipt(action, accepted, errorCode, errorMessage, null);
     }
 
     private boolean requiresVisualAction(JSONObject action) {
-        return action != null && (action.optBoolean("requires_screenshot", false)
+        return action != null && (vlmTaskActive || action.optBoolean("requires_screenshot", false)
                 || "long_press".equals(action.optString("kind"))
                 || "swipe".equals(action.optString("kind"))
                 || "coordinate_tap".equals(action.optString("kind"))
@@ -553,6 +637,9 @@ public class ControlledPageActivity extends Activity {
     private void controlNodeTask(String command) {
         final BridgeConfig config = activeTaskConfig == null ? BridgeConfig.load(this) : activeTaskConfig;
         final long controlEpoch = ++taskControlEpoch;
+        // Invalidate before the remote request so a queued Accessibility
+        // runnable cannot dispatch the old action while control is in flight.
+        actionExecutionGate.invalidate();
         pendingControlCommand = command;
         taskRunnerActive = true;
         setTaskButtons(true, "RUNNING");
@@ -569,7 +656,10 @@ public class ControlledPageActivity extends Activity {
                 renderTaskStatus(status);
                 if ("cancel".equals(command) && !status.optBoolean("action_result_unknown", false)) {
                     taskRunnerActive = false;
-                    ObservationAccessibilityService.endTaskCapture();
+                    if (!actionInFlight && pendingReceipt == null) {
+                        vlmTaskActive = false;
+                        ObservationAccessibilityService.endTaskCapture();
+                    }
                 }
             } catch (BridgeClient.BridgeException exception) {
                 // A control request can reach the bridge before submit. The
@@ -610,6 +700,7 @@ public class ControlledPageActivity extends Activity {
         String stateValue = status.optString("state", "UNKNOWN");
         String phase = status.optString("phase", "");
         StringBuilder message = new StringBuilder("Task: ").append(stateValue);
+        message.append("\nmode=").append(status.optString("mode", "deterministic"));
         if (!phase.isEmpty()) {
             message.append("\nphase=").append(phase);
         }
@@ -627,6 +718,29 @@ public class ControlledPageActivity extends Activity {
         if (verification != null) {
             message.append("\nverification=").append(verification.optString("status", ""))
                     .append(" reason=").append(verification.optString("reason", ""));
+        }
+        JSONObject actualEffect = status.optJSONObject("actual_effect");
+        if (actualEffect != null) {
+            message.append("\nactual_effect=").append(actualEffect.optString("status", ""));
+        }
+        JSONObject completion = status.optJSONObject("vlm_completion");
+        if (completion != null) {
+            message.append("\nvlm_completion=").append(completion.optString("status", ""))
+                    .append(" steps=").append(completion.optInt("steps", 0));
+        }
+        JSONObject independent = status.optJSONObject("independent_result");
+        if (independent != null) {
+            message.append("\nindependent_result=").append(independent.optString("status", ""))
+                    .append(" reason=").append(independent.optString("reason", ""));
+        }
+        JSONObject usage = status.optJSONObject("usage");
+        if (usage != null) {
+            message.append("\nusage requests=").append(usage.optInt("requests", 0))
+                    .append(" estimated_cny=").append(usage.optDouble("estimated_cost_cny", 0.0))
+                    .append(" usage_missing=").append(usage.optBoolean("usage_missing", false));
+        }
+        if (status.has("task_output") && !status.isNull("task_output")) {
+            message.append("\ntask_output=").append(status.optString("task_output", ""));
         }
         JSONObject failure = status.optJSONObject("failure");
         if (failure != null) {
@@ -649,6 +763,9 @@ public class ControlledPageActivity extends Activity {
         // A paused task remains the same server task. Starting here would
         // submit a second task with the same identity instead of resuming it.
         startTaskButton.setEnabled(!active && (terminal || "".equals(stateValue)));
+        if (startVlmTaskButton != null) {
+            startVlmTaskButton.setEnabled(!active && (terminal || "".equals(stateValue)));
+        }
         pauseTaskButton.setEnabled(active && "RUNNING".equals(stateValue));
         cancelTaskButton.setEnabled(!terminal && (active || paused));
     }

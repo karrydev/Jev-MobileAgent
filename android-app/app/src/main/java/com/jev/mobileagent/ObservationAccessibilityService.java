@@ -284,7 +284,11 @@ public class ObservationAccessibilityService extends AccessibilityService {
      * This is deliberately separate from observation upload: the server never
      * receives an adb tap or a host-side substitute for the device action.
      */
-    public static void executeAction(final BridgeConfig config, final JSONObject action, final ActionCallback callback) {
+    public static void executeAction(
+            final BridgeConfig config,
+            final JSONObject action,
+            final ActionExecutionGate.Token actionToken,
+            final ActionCallback callback) {
         final ObservationAccessibilityService service = instance;
         if (service == null) {
             if (callback != null) {
@@ -292,7 +296,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
             }
             return;
         }
-        service.executeActionNow(config, action, callback);
+        service.executeActionNow(config, action, actionToken, callback);
     }
 
     private static void retryCapture(final BridgeConfig config, final CaptureCallback callback, final int attempt) {
@@ -587,8 +591,16 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
     }
 
-    private void executeActionNow(final BridgeConfig config, final JSONObject action, final ActionCallback callback) {
+    private void executeActionNow(
+            final BridgeConfig config,
+            final JSONObject action,
+            final ActionExecutionGate.Token actionToken,
+            final ActionCallback callback) {
         mainHandler.post(() -> {
+            if (actionToken == null) {
+                reportActionError(callback, "action_controlled", "the task was paused or cancelled before action dispatch");
+                return;
+            }
             String kind = action.optString("kind", "");
             String targetId = action.optString("target_node_id", "");
             long expectedVersion = action.optLong("observation_version", -1L);
@@ -607,22 +619,36 @@ public class ObservationAccessibilityService extends AccessibilityService {
             }
             try {
                 if ("system_back".equals(kind)) {
-                    if (!performGlobalBack(action)) {
+                    if (!frameMatchesCurrentDisplay(action.optJSONObject("coordinate_frame"))) {
+                        reportActionError(callback, "stale_observation", "the action rotation or display frame is stale");
+                        return;
+                    }
+                    final boolean[] performed = new boolean[1];
+                    if (!actionToken.runIfCurrent(() -> performed[0] = performGlobalAction(GLOBAL_ACTION_BACK))) {
+                        reportActionError(callback, "action_controlled", "the task was paused or cancelled before action dispatch");
+                    } else if (!performed[0]) {
                         reportActionError(callback, "action_failed", "system Back was not accepted by Accessibility");
                     } else if (callback != null) {
                         callback.onSuccess();
                     }
                 } else if ("coordinate_tap".equals(kind) || "swipe".equals(kind)) {
-                    dispatchCoordinateAction(action, callback);
+                    dispatchCoordinateAction(action, actionToken, callback);
                 } else if ("long_press".equals(kind)) {
                     NodeBinding binding = validateBoundBinding(action);
-                    dispatchGestureAt(action, centerX(binding.bounds), centerY(binding.bounds), callback);
-                } else if (performBoundAction(action)) {
-                    if (callback != null) {
-                        callback.onSuccess();
-                    }
+                    dispatchGestureAt(action, actionToken, centerX(binding.bounds), centerY(binding.bounds), callback);
                 } else {
-                    reportActionError(callback, "target_node_not_found", "the observation-bound Accessibility node is no longer available");
+                    NodeBinding binding = validateBoundBinding(action);
+                    AccessibilityNodeInfo node = binding.node;
+                    final boolean[] performed = new boolean[1];
+                    if (!actionToken.runIfCurrent(() -> performed[0] = performBoundAction(node, action))) {
+                        reportActionError(callback, "action_controlled", "the task was paused or cancelled before action dispatch");
+                    } else if (performed[0]) {
+                        if (callback != null) {
+                            callback.onSuccess();
+                        }
+                    } else {
+                        reportActionError(callback, "target_node_not_found", "the observation-bound Accessibility node is no longer available");
+                    }
                 }
             } catch (ActionBindingException exception) {
                 reportActionError(callback, "stale_observation", exception.getMessage());
@@ -681,9 +707,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
         return binding;
     }
 
-    private boolean performBoundAction(JSONObject action) throws ActionBindingException {
-        NodeBinding binding = validateBoundBinding(action);
-        AccessibilityNodeInfo node = binding.node;
+    private boolean performBoundAction(AccessibilityNodeInfo node, JSONObject action) {
         String kind = action.optString("kind", "");
         if ("tap".equals(kind)) {
             return node.isClickable() && node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
@@ -703,8 +727,9 @@ public class ObservationAccessibilityService extends AccessibilityService {
         return false;
     }
 
-    private void dispatchGestureAt(
+    private boolean dispatchGestureAt(
             JSONObject action,
+            ActionExecutionGate.Token actionToken,
             float x,
             float y,
             ActionCallback callback) throws ActionBindingException {
@@ -715,10 +740,13 @@ public class ObservationAccessibilityService extends AccessibilityService {
         path.moveTo(x, y);
         GestureDescription.Builder builder = new GestureDescription.Builder();
         builder.addStroke(new GestureDescription.StrokeDescription(path, 0L, duration));
-        dispatchGestureWithCallback(builder.build(), callback);
+        return dispatchGestureWithCallback(builder.build(), actionToken, callback);
     }
 
-    private void dispatchCoordinateAction(JSONObject action, ActionCallback callback) throws ActionBindingException {
+    private boolean dispatchCoordinateAction(
+            JSONObject action,
+            ActionExecutionGate.Token actionToken,
+            ActionCallback callback) throws ActionBindingException {
         JSONObject parameters = action.optJSONObject("parameters");
         if (parameters == null) {
             throw new ActionBindingException("coordinate action parameters are missing");
@@ -746,12 +774,16 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
         GestureDescription.Builder builder = new GestureDescription.Builder();
         builder.addStroke(new GestureDescription.StrokeDescription(path, 0L, duration));
-        dispatchGestureWithCallback(builder.build(), callback);
+        return dispatchGestureWithCallback(builder.build(), actionToken, callback);
     }
 
-    private void dispatchGestureWithCallback(GestureDescription gesture, ActionCallback callback)
+    private boolean dispatchGestureWithCallback(
+            GestureDescription gesture,
+            ActionExecutionGate.Token actionToken,
+            ActionCallback callback)
             throws ActionBindingException {
-        boolean dispatched = dispatchGesture(gesture, new GestureResultCallback() {
+        final boolean[] dispatched = new boolean[1];
+        if (!actionToken.runIfCurrent(() -> dispatched[0] = dispatchGesture(gesture, new GestureResultCallback() {
             @Override
             public void onCompleted(GestureDescription description) {
                 if (callback != null) {
@@ -763,17 +795,14 @@ public class ObservationAccessibilityService extends AccessibilityService {
             public void onCancelled(GestureDescription description) {
                 reportActionError(callback, "action_cancelled", "Accessibility gesture was cancelled");
             }
-        }, mainHandler);
-        if (!dispatched) {
+        }, mainHandler))) {
+            reportActionError(callback, "action_controlled", "the task was paused or cancelled before action dispatch");
+            return false;
+        }
+        if (!dispatched[0]) {
             throw new ActionBindingException("Accessibility gesture could not be dispatched");
         }
-    }
-
-    private boolean performGlobalBack(JSONObject action) throws ActionBindingException {
-        if (!frameMatchesCurrentDisplay(action.optJSONObject("coordinate_frame"))) {
-            throw new ActionBindingException("the action rotation or display frame is stale");
-        }
-        return performGlobalAction(GLOBAL_ACTION_BACK);
+        return true;
     }
 
     private float[] mapPoint(JSONObject frame, double rawX, double rawY) throws ActionBindingException {
@@ -1246,14 +1275,21 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
         Rect bounds = new Rect();
         node.getBoundsInScreen(bounds);
+        // Password fields can appear in the same Accessibility tree as the
+        // task controls.  Keep their shape and editability for targeting, but
+        // never serialize their value or descriptive text to the bridge.
+        boolean password = node.isPassword();
+        String nodeText = password ? "" : text(node.getText());
+        String nodeDescription = password ? "" : text(node.getContentDescription());
+        String nodeStateDescription = password ? "" : stateDescription(node);
         JSONObject json = new JSONObject()
                 .put("node_id", nodeId)
                 .put("parent_node_id", parentId == null ? JSONObject.NULL : parentId)
                 .put("class_name", text(node.getClassName()))
                 .put("package_name", text(node.getPackageName()))
-                .put("text", text(node.getText()))
-                .put("content_description", text(node.getContentDescription()))
-                .put("state_description", stateDescription(node))
+                .put("text", nodeText)
+                .put("content_description", nodeDescription)
+                .put("state_description", nodeStateDescription)
                 .put("view_id_resource_name", text(viewId(node)))
                 .put("enabled", node.isEnabled())
                 .put("visible_to_user", node.isVisibleToUser())
