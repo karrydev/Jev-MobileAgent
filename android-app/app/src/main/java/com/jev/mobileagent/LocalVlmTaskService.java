@@ -289,6 +289,9 @@ public final class LocalVlmTaskService extends Service {
                     continue;
                 }
                 if (command.terminal) {
+                    if (command.answer) {
+                        roles.recordAnswer(command, selected[2]);
+                    }
                     finishStep(runTaskId, roles, ++step);
                     StandaloneGoalVerifier.Outcome goalOutcome = verifyOverallGoal(runTaskId, task);
                     if (StandaloneGoalVerifier.mayMarkSucceeded(goalOutcome)) {

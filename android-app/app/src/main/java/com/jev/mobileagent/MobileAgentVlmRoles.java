@@ -55,6 +55,7 @@ public final class MobileAgentVlmRoles {
     public String plan = "";
     public String completedPlan = "No completed subgoal.";
     public String progressStatus = "";
+    public String lastAnswer = "";
     public String importantNotes = "";
     public String lastSummary = "";
     public String lastActionThought = "";
@@ -254,6 +255,17 @@ public final class MobileAgentVlmRoles {
         if (kind.isEmpty()) {
             throw new JSONException("action JSON must contain an action string");
         }
+        if ("answer".equals(kind)) {
+            Object value = raw.opt("text");
+            if (!(value instanceof String)) {
+                throw new JSONException("answer requires string text");
+            }
+            String answerText = ((String) value).trim();
+            if (answerText.isEmpty()) {
+                throw new JSONException("answer requires non-empty text");
+            }
+            return new ActionCommand(raw, null, true, true, answerText);
+        }
         if ("done".equals(kind) || "terminate".equals(kind)) {
             return new ActionCommand(raw, null, true);
         }
@@ -329,8 +341,6 @@ public final class MobileAgentVlmRoles {
             }
             case "open_app":
                 throw new JSONException("open_app is not available in the Android action contract");
-            case "answer":
-                throw new JSONException("answer is not available in the Android action contract");
             default:
                 throw new JSONException("unsupported action: " + kind);
         }
@@ -379,6 +389,20 @@ public final class MobileAgentVlmRoles {
         progressStatus = completedPlan;
     }
 
+    public void recordAnswer(ActionCommand command, String summary) {
+        if (command == null || !command.answer) {
+            throw new IllegalArgumentException("recordAnswer requires an answer action");
+        }
+        lastAnswer = command.answerText;
+        actionHistory.add(command.original.toString());
+        summaryHistory.add(summary == null ? "" : summary);
+        actionOutcomes.add("A");
+        errorDescriptions.add("None");
+        progressStatus = completedPlan
+                + "\nThe `answer` action has been performed. Answer to the question: "
+                + lastAnswer;
+    }
+
     void setActionForReflection(JSONObject raw) {
         actionForReflection = raw == null ? "" : raw.toString();
     }
@@ -394,6 +418,7 @@ public final class MobileAgentVlmRoles {
                     .put("plan", plan)
                     .put("completed_plan", completedPlan)
                     .put("progress_status", progressStatus)
+                    .put("last_answer", lastAnswer)
                     .put("important_notes", importantNotes)
                     .put("last_summary", lastSummary)
                     .put("last_action_thought", lastActionThought)
@@ -418,6 +443,7 @@ public final class MobileAgentVlmRoles {
         plan = value.optString("plan", "");
         completedPlan = value.optString("completed_plan", "No completed subgoal.");
         progressStatus = value.optString("progress_status", "");
+        lastAnswer = value.optString("last_answer", "");
         importantNotes = value.optString("important_notes", "");
         lastSummary = value.optString("last_summary", "");
         lastActionThought = value.optString("last_action_thought", "");
@@ -522,11 +548,20 @@ public final class MobileAgentVlmRoles {
         public final JSONObject original;
         public final JSONObject contractAction;
         public final boolean terminal;
+        public final boolean answer;
+        public final String answerText;
 
         private ActionCommand(JSONObject original, JSONObject contractAction, boolean terminal) {
+            this(original, contractAction, terminal, false, "");
+        }
+
+        private ActionCommand(JSONObject original, JSONObject contractAction, boolean terminal,
+                boolean answer, String answerText) {
             this.original = original;
             this.contractAction = contractAction;
             this.terminal = terminal;
+            this.answer = answer;
+            this.answerText = answerText;
         }
     }
 }

@@ -340,9 +340,12 @@ public class MainActivity extends Activity {
         }
     }
 
-    private static String taskSummary(JSONObject task) {
+    static String taskSummary(JSONObject task) {
         String status = task.optString("runtime_status", "");
-        return task.optString("state", "") + (status.isEmpty() ? "" : "：" + status);
+        String summary = task.optString("state", "") + (status.isEmpty() ? "" : "：" + status);
+        JSONObject history = task.optJSONObject("history");
+        String answer = history == null ? "" : history.optString("last_answer", "").trim();
+        return answer.isEmpty() ? summary : summary + "\n模型答复：" + answer;
     }
 
     private String globalBudgetText() {
