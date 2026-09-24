@@ -6,9 +6,9 @@ Blocked by: none
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: main-live-probe
+Branch: main
 Evidence: 真实 Jev 访问探针
 Gate: 已提供 Jev 凭据可用于实测
 
@@ -40,3 +40,5 @@ Gate: 已提供 Jev 凭据可用于实测
 2026-09-24：Agent访问材料已准备 services/jev_probe/（默认dry-run、显式live、中文choice与可选错误探针、JSON报告）。7项离线HTTP测试通过，Sol定向复核关闭错误配置URL凭据回显与401/429误判；尚未调用真实Jev，不将本票记为done。待20本地恢复/部署准备后尽量合并请求所需外部条件。
 
 2026-09-25：用户已提供统一测试凭据文件，改为 ready-for-agent；本轮仅修订规格，未运行真实 Jev 探针，Execution 保持 pending。
+
+2026-09-25：清理其余文档旧边界后领取；按 code-this 推进。主 Agent 独占真实模型请求、凭据、设备、集成证据与 Git；实现者不提交或推送。

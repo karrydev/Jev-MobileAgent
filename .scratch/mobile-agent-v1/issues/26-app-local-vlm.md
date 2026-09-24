@@ -6,9 +6,9 @@ Blocked by: 19, 20
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-standalone-runtime
+Branch: codex/v1-standalone-runtime
 Evidence: 独立 APK、真实 VLM、物理手机
 Gate: 安装 App 并填写 Key 后完成手机内 VLM 任务
 
@@ -42,3 +42,5 @@ Gate: 安装 App 并填写 Key 后完成手机内 VLM 任务
 2026-09-24：20已验收，本地部署配置与控制器、health和同源码路径回退演练完成，见 `deployment/`、`docs/local-deployment.md`。尚无远端主机身份与网络条件，本票保持 ready-for-human / pending。
 
 2026-09-25：根据用户明确的独立 App 边界改写。旧任务标题与要求已被上文替代，编号保留；当前验收条件重新从 pending 开始。
+
+2026-09-25：清理其余文档旧边界后领取；按 code-this 推进。主 Agent 独占真实模型请求、凭据、设备、集成证据与 Git；实现者不提交或推送。
