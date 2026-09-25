@@ -1,0 +1,192 @@
+{
+  "source_commit": "2915ed9a377ff2e375f36c57b223dfe88cb6a25c",
+  "attempt": "planning25-on-visual04",
+  "before_observation_id": "standalone-device-obs-3929-1081de0d2a624ddf80edb82618d67a87",
+  "after_observation_id": "standalone-device-obs-3930-64e07ed8e12143b4b445309adfd1887a",
+  "same_screen": true,
+  "same_windows": true,
+  "same_page_state": true,
+  "same_node_ids": true,
+  "changed_nodes": [
+    {
+      "node_id": "window-226-0-node-0-0-0",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 176,
+            "top": 34,
+            "right": 299,
+            "bottom": 103
+          },
+          "after": {
+            "left": 175,
+            "top": 34,
+            "right": 298,
+            "bottom": 103
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-1",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 299,
+            "top": 34,
+            "right": 351,
+            "bottom": 103
+          },
+          "after": {
+            "left": 298,
+            "top": 34,
+            "right": 350,
+            "bottom": 103
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-2",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 351,
+            "top": 34,
+            "right": 403,
+            "bottom": 103
+          },
+          "after": {
+            "left": 350,
+            "top": 34,
+            "right": 402,
+            "bottom": 103
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-3",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 403,
+            "top": 34,
+            "right": 455,
+            "bottom": 103
+          },
+          "after": {
+            "left": 402,
+            "top": 34,
+            "right": 454,
+            "bottom": 103
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-4",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 707,
+            "top": 35,
+            "right": 755,
+            "bottom": 101
+          },
+          "after": {
+            "left": 706,
+            "top": 35,
+            "right": 754,
+            "bottom": 101
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-5",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 755,
+            "top": 35,
+            "right": 812,
+            "bottom": 101
+          },
+          "after": {
+            "left": 754,
+            "top": 35,
+            "right": 811,
+            "bottom": 101
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-6",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 812,
+            "top": 35,
+            "right": 869,
+            "bottom": 101
+          },
+          "after": {
+            "left": 811,
+            "top": 35,
+            "right": 868,
+            "bottom": 101
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-7",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 923,
+            "top": 34,
+            "right": 1000,
+            "bottom": 103
+          },
+          "after": {
+            "left": 922,
+            "top": 34,
+            "right": 999,
+            "bottom": 103
+          }
+        }
+      }
+    },
+    {
+      "node_id": "window-226-0-node-0-0-7-0",
+      "package_name": "com.android.systemui",
+      "changes": {
+        "bounds": {
+          "before": {
+            "left": 928,
+            "top": 50,
+            "right": 1000,
+            "bottom": 86
+          },
+          "after": {
+            "left": 927,
+            "top": 50,
+            "right": 999,
+            "bottom": 86
+          }
+        }
+      }
+    }
+  ]
+}

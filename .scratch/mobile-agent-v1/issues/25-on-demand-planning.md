@@ -39,3 +39,5 @@ Gate: 按需规划完成任务并处理计划失效
 2026-09-25：24验收记录已在bf278d1主线完成，领取本票。25为Android运行/持久化的唯一源码实现者；27已固定d48e0d8 APK，由主协调继续真机验收，不并发修改共享源码。按需规划默认关闭，保持24选择与核验设置；实现者不接触真机、凭据/API、总账或Git。
 
 2026-09-25：gui-plus 在 bec1606 APK 上完成四项同条件 OFF/ON 有界对照，实际输入与蓝框均未达目标，不能放行。查明旧版 gui-plus 与日期版坐标协议不同，而 Android 统一按0–1000处理；正在进行精确模型适配，旧失败与费用保留。详见 [真实对照记录](../evidence/on-demand-planning-validation.md)。
+
+2026-09-25：2915ed9新增有界post-action观察关联与Jev70上限，Policy24定向通过，assemble成功，Sol时序意见已修复。四项同APK复测仅中文OFF自动SUCCEEDED，中文ON需fresh确认、两项蓝框未命中且已结束；仍不放行。状态栏节点1px移动导致结构拒绝及截图期间事件需后续定向处理，详见[最新证据](../evidence/post-action-scene-validation.md)。已恢复规划OFF，Jev46/70，费用上限不变。

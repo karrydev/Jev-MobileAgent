@@ -1,0 +1,20 @@
+{
+  "source_commit": "2915ed9a377ff2e375f36c57b223dfe88cb6a25c",
+  "apk_path": "/tmp/recovery27-evidence/integrated-2915ed9.apk",
+  "apk_sha256": "d7bc17eaa45b7a3351152e4885b16367a193ad79cc20e9c906b9faaae92afb00",
+  "build_command": ":app:assembleDebug --offline --no-daemon --console plain",
+  "build_result": "BUILD SUCCESSFUL",
+  "policy_tests": 24,
+  "policy_failures": 0,
+  "review": "Sol original two early-accept paths closed; final screenshot deadline gap corrected by new Luna and verified by coordinator",
+  "phone_install": "adb install -r Success; existing encrypted configuration, historical tasks and global Jev=40 preserved",
+  "live_validation": "four frozen pairs completed; 1 automatic success; quality gate not passed",
+  "jev_global_calls": 46,
+  "jev_global_limit": 70,
+  "host_accounted_cny_including_holds": 3.4842470000000003,
+  "planning25_accounted_cny_including_holds": 0.5299715,
+  "phone_final_state": "Dozing",
+  "active_task_id": null,
+  "planning_default_restored": true,
+  "on_demand_planning_enabled": false
+}

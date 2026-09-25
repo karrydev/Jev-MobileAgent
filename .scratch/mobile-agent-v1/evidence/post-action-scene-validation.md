@@ -17,3 +17,26 @@
 最新定向测试：`LocalTaskControlPolicyTest` 24 项通过（原常量检查替换为两项使用生产采样策略的时序行为测试，净增 1）。`postActionSamplerWaitsAndResamplesEvenWhenNoEventArrives` 覆盖无事件仍等待重采；`earlyMatchingOldFramesAfterEventCannotReleasePostActionScene` 覆盖早期两棵旧树不能放行。初始 AFTER 观察与截图也传入回执起剩余时限，耗尽时拒绝继续。`git diff --check` 通过。定向复审、打包和真机结果待补。
 
 Sol 定向复审确认原两条提前接受路径关闭；发现终帧截图保存后缺少截止复查，后由新 Luna 追加 `sampling_deadline_after_screenshot` 拒绝分支。主协调核对该最小补丁：超过总时限会保留终帧 trace、返回既有 deadline 拒绝结果，不进入 verifier。该路径不改变已通过的纯策略测试；最终 APK 重新构建，真机验收继续。
+
+## 2915ed9 真机复测（进行中）
+
+中文 OFF `planning25-off-input05` 自动 SUCCEEDED：实际中文与目标一致，tree_rule SUCCESS，整体目标核验通过；3 VLM / 1 Jev、13.51 秒、费用与预留 ¥0.0207295。关联耗时 1312ms，第一样本期间事件变化被拒，后两棵稳定并取得终图。
+
+中文 ON `planning25-on-input03` 在最终截图期间事件 50→51，三次额外采样用完后 NEEDS_REVIEW；未误报成功。fresh 双重观察确认实际文本后 COMPLETED_ON_REVIEW，原动作 EXECUTED/后置 UNKNOWN 保留，不能计自动通过。2 VLM / 1 Jev、费用与预留 ¥0.017248。该对照尚不满足25质量放行；不得因请求减少宣称收益。
+
+## 2915ed9 同 APK 四项配对
+
+APK SHA-256 `d7bc17eaa45b7a3351152e4885b16367a193ad79cc20e9c906b9faaae92afb00`。选择ON、树核验ON、影子OFF；每次开始前从手机偏好读回规划开关和全局次数。
+
+|尝试|自动结束|VLM/Jev|耗时秒|费用与预留 CNY|
+|---|---|---|---|---|
+|[planning25-off-input05](planning25-off-input05.json)|SUCCEEDED|3/1|13.506|0.0207295|
+|[planning25-on-input03](planning25-on-input03.json)|NEEDS_REVIEW|2/1|9.750|0.0172480|
+|[planning25-off-visual02](planning25-off-visual02.json)|NEEDS_REVIEW|2/1|9.597|0.0172975|
+|[planning25-on-visual04](planning25-on-visual04.json)|NEEDS_REVIEW|4/3|18.941|0.0465090|
+
+中文OFF实际文本正确、tree_rule及整体目标通过。中文ON已输入，但终图期间新事件使采样配额用完；fresh双重核对后COMPLETED_ON_REVIEW，不计自动成功。两项蓝框均只点击了预设按钮，蓝框实际仍ready；OFF因终图事件耗尽采样、ON第二动作因结构变化暂停，最终均ENDED_WITH_UNRESOLVED。ON第一次按钮动作的VLM Reflector SUCCESS不等于蓝框或整体目标成功。
+
+ON蓝框初始obs3929与采样obs3930：screen/windows/page_state及目标App节点保持一致，仅系统状态栏9个节点横坐标移动1px，触发严格结构拒绝。另两项event_during_screenshot的事件来源没有日志，不能确定为人工变化或App状态刷新。源码ControlledPageActivity每750ms重复setText可产生无效刷新，但当前仅为待验证因素，未据此改门禁或放宽场景一致要求。
+
+本批未满足冻结质量放行，25保持in-progress、按需规划恢复默认OFF，27/28最终独立运行仍未完成；不宣称优化收益，不用fresh确认替换原始自动结果。所有失败和费用保留，不继续无源码/环境变化的付费重试。完成清理后无活动任务，手机Dozing。OFF蓝框在自动运行结束后的清理期间曾误触目标字段打开键盘；随后关闭键盘再fresh核对并结束，未改变已冻结trial-end结果或蓝框状态。

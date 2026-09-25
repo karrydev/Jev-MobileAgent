@@ -48,3 +48,20 @@ APK SHA-256 `dfdc4b261b3182be1e2d21907da8feec30e53a32c6d4fbdd039d3db9e7a2ea4c`�
 两项新请求元数据均记录原1080×2400、上传672×1484及原观察关联；Android PNG缩放/编码和真实HTTP200路径已发生。Jev累计40次后停止相关调用，用户随后明确提高到70次；累计费用含预留¥3.3533675，原历史不重置。动作后短暂更新误暂停继续作为范围内缺陷修复，任务25与最终拔线验收仍未通过。
 
 `planning25-on-visual03-vlm-only` 是独立VLM诊断，不属于正式25配对：Jev选择/树核验/影子均关闭，规划ON，源及APK仍717b174。7次VLM、0次Jev、¥0.0290955。前2次返回[486,990]并按672×1484映射到屏幕[781,1601]，确实点到预设按钮；第3次屏幕[540,1010]由VLM直接派发，真实蓝框变为`coordinate tap completed`。成功receipt后又因动作期正常文本回显的AFTER采样不稳定而NEEDS_REVIEW；fresh两重核对后COMPLETED_ON_REVIEW。此结果证明gui-plus坐标适配后可直接命中真实视觉目标，也保留前两次选错目标和自动核验中断，不宣称一击成功或整体自动完成。Jev已用仍40，费用含预留累计¥3.382463。
+
+## 2915ed9 同 APK 四项配对
+
+APK SHA-256 `d7bc17eaa45b7a3351152e4885b16367a193ad79cc20e9c906b9faaae92afb00`。选择ON、树核验ON、影子OFF；每次开始前从手机偏好读回规划开关和全局次数。
+
+|尝试|自动结束|VLM/Jev|耗时秒|费用与预留 CNY|
+|---|---|---|---|---|
+|[planning25-off-input05](planning25-off-input05.json)|SUCCEEDED|3/1|13.506|0.0207295|
+|[planning25-on-input03](planning25-on-input03.json)|NEEDS_REVIEW|2/1|9.750|0.0172480|
+|[planning25-off-visual02](planning25-off-visual02.json)|NEEDS_REVIEW|2/1|9.597|0.0172975|
+|[planning25-on-visual04](planning25-on-visual04.json)|NEEDS_REVIEW|4/3|18.941|0.0465090|
+
+中文OFF实际文本正确、tree_rule及整体目标通过。中文ON已输入，但终图期间新事件使采样配额用完；fresh双重核对后COMPLETED_ON_REVIEW，不计自动成功。两项蓝框均只点击了预设按钮，蓝框实际仍ready；OFF因终图事件耗尽采样、ON第二动作因结构变化暂停，最终均ENDED_WITH_UNRESOLVED。ON第一次按钮动作的VLM Reflector SUCCESS不等于蓝框或整体目标成功。
+
+ON蓝框初始obs3929与采样obs3930：screen/windows/page_state及目标App节点保持一致，仅系统状态栏9个节点横坐标移动1px，触发严格结构拒绝。另两项event_during_screenshot的事件来源没有日志，不能确定为人工变化或App状态刷新。源码ControlledPageActivity每750ms重复setText可产生无效刷新，但当前仅为待验证因素，未据此改门禁或放宽场景一致要求。
+
+本批未满足冻结质量放行，25保持in-progress、按需规划恢复默认OFF，27/28最终独立运行仍未完成；不宣称优化收益，不用fresh确认替换原始自动结果。所有失败和费用保留，不继续无源码/环境变化的付费重试。完成清理后无活动任务，手机Dozing。OFF蓝框在自动运行结束后的清理期间曾误触目标字段打开键盘；随后关闭键盘再fresh核对并结束，未改变已冻结trial-end结果或蓝框状态。

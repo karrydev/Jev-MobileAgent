@@ -1,0 +1,544 @@
+{
+  "task_id": "01ffd1f1-e5ed-41e0-9e37-62bb884518c5",
+  "goal": "点击受控页面中蓝色的视觉手势目标",
+  "state": "ENDED_WITH_UNRESOLVED",
+  "state_reason": "user_ended_after_review_acknowledging_unresolved_postcondition",
+  "created_at": "2026-09-25T13:51:46.076468Z",
+  "updated_at": "2026-09-25T13:54:10.416766Z",
+  "step_count": 0,
+  "request_count": 2,
+  "jev_shadow_enabled": false,
+  "jev_selection_enabled": true,
+  "jev_shadow_call_count": 1,
+  "jev_shadow_reserved_cny": 0.01,
+  "accounted_cost_cny": 0.0172975,
+  "usage_missing": false,
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 1616,
+        "output_tokens": 140,
+        "total_tokens": 1756
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.003054,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-5be0f25179134f308361de7427867e22"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-5be0f25179134f308361de7427867e22",
+          "observation_id": "standalone-device-obs-3879-58a34c7a507c4fce9a0477c4d8e70aa8",
+          "observation_version": 3879,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "role": "executor",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2535,
+        "output_tokens": 98,
+        "total_tokens": 2633
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0042435,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-5be0f25179134f308361de7427867e22"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-5be0f25179134f308361de7427867e22",
+          "observation_id": "standalone-device-obs-3879-58a34c7a507c4fce9a0477c4d8e70aa8",
+          "observation_version": 3879,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    }
+  ],
+  "jev_shadow_attempts": [
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T13:51:52.862151Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 1,
+      "observation_id": "standalone-device-obs-3879-58a34c7a507c4fce9a0477c4d8e70aa8",
+      "observation_version": 3879,
+      "candidate_count": 8,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 8,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-0-3-32e1d53fffe9",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-248-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-0-7-2877c0a7597a",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-248-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-0-8-216eac458259",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-248-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-0-9-ab17c71d773a",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-248-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-0-10-eb4b38e2f2e7",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-248-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-1-73eccecfe590",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-248-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-2-065d0c8cb66d",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-248-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-248-1-node-0-3-e2f2f1e82ab5",
+            "kind": "tap",
+            "target_node_id": "window-248-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-248-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [
+          "text",
+          "text"
+        ],
+        "warnings": [
+          {
+            "node_id": "window-248-1-node-0-0-3",
+            "reason": "missing_required_parameter",
+            "parameter": "text"
+          },
+          {
+            "node_id": "window-248-1-node-0-0-7",
+            "reason": "missing_required_parameter",
+            "parameter": "text"
+          }
+        ]
+      },
+      "action_dispatched": true,
+      "comparison": {
+        "status": "same_action",
+        "jev_choice_id": "candidate-tap-window-248-1-node-0-0-9-ab17c71d773a",
+        "vlm_equivalent_candidate_id": "candidate-tap-window-248-1-node-0-0-9-ab17c71d773a"
+      },
+      "known_parameter_source": "none",
+      "candidate_coverage_status": "matched",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "question_id": "next_action",
+      "elapsed_ms": 943,
+      "request_sent": true,
+      "http_status": 200,
+      "protocol_status": "valid",
+      "usage": {
+        "status": "known",
+        "input_tokens": 738,
+        "output_tokens": 314
+      },
+      "choice_id": "candidate-tap-window-248-1-node-0-0-9-ab17c71d773a",
+      "confidence": 0.99,
+      "status": "valid_recommendation",
+      "confidence_status": "meets_frozen_threshold",
+      "cost": {
+        "status": "reserved_actual_unknown",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0.01
+      },
+      "attempt": 1,
+      "selection_status": "selected",
+      "selected_candidate_id": "candidate-tap-window-248-1-node-0-0-9-ab17c71d773a",
+      "dispatch_status": "executed",
+      "action_id": "local-vlm-action-01ffd1f1-e5ed-41e0-9e37-62bb884518c5-1",
+      "action_source": "jev-controlled-candidate-v1"
+    }
+  ],
+  "tree_verification_enabled": true,
+  "tree_verification_policy_id": "jev-android-tree-verification-rules-v1",
+  "tree_verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3879-58a34c7a507c4fce9a0477c4d8e70aa8",
+      "observation_version": 3879,
+      "screenshot_id": "local-shot-5be0f25179134f308361de7427867e22",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/01ffd1f1-e5ed-41e0-9e37-62bb884518c5/screenshot-3879-before.png",
+      "captured_at": "2026-09-25T13:51:46.645754Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-3885-ae001ea852c44a8ebad4f9c55ed14453",
+      "observation_version": 3885,
+      "screenshot_id": "local-shot-e57ac18846074849a1526ae3b9fb5070",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/01ffd1f1-e5ed-41e0-9e37-62bb884518c5/screenshot-3885-after.png",
+      "captured_at": "2026-09-25T13:51:54.578594Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-3887-bcd8067e70324247badd82d45378c5ae",
+      "observation_version": 3887,
+      "screenshot_id": "local-shot-82a40eb1250e4627b7ff72b0694e798f",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/01ffd1f1-e5ed-41e0-9e37-62bb884518c5/screenshot-3887-after.png",
+      "captured_at": "2026-09-25T13:51:55.349504Z",
+      "attempt": 3
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3908-d4b4a0466eb74d8c9b521e7bf486b2ea",
+      "observation_version": 3908,
+      "screenshot_id": "local-shot-a951330b411646dcbb29aa6aef0fa467",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/01ffd1f1-e5ed-41e0-9e37-62bb884518c5/screenshot-3908-recovery.png",
+      "captured_at": "2026-09-25T13:53:49.002750Z",
+      "attempt": 4
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3913-f515843e77b947ebb1f114465a05926a",
+      "observation_version": 3913,
+      "screenshot_id": "local-shot-ba89c77292514dbe92562928cc343fcc",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/01ffd1f1-e5ed-41e0-9e37-62bb884518c5/screenshot-3913-recovery.png",
+      "captured_at": "2026-09-25T13:54:10.227212Z",
+      "attempt": 5
+    }
+  ],
+  "on_demand_planning_enabled": false,
+  "planning_plan_step": -1,
+  "planning_events": [
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 1,
+      "plan_step": null,
+      "plan_age_steps": null,
+      "active_subgoal": "",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 1,
+      "previous_subgoal": "",
+      "next_subgoal": "Identify the \"视觉手势目标\" button on the screen. 2. Click on the \"视觉手势目标\" button to access the blue visual gesture target. 3. Locate the blue visual gesture target within the displayed area. 4. Perform a click action on the blue visual gesture target. 5. Perform the `answer` action to confirm completion of the task.",
+      "subgoal_changed": false
+    }
+  ],
+  "schema_version": "standalone-phone-evidence-v1",
+  "attempt": "planning25-off-visual02",
+  "source_commit": "2915ed9a377ff2e375f36c57b223dfe88cb6a25c",
+  "apk_sha256": "d7bc17eaa45b7a3351152e4885b16367a193ad79cc20e9c906b9faaae92afb00",
+  "device": "OnePlus 8T / Android14 API34",
+  "vlm_model": "gui-plus",
+  "jev_model": "jev-1.13.0",
+  "execution_boundary": "Android app direct HTTPS; USB for setup and read-only evidence, no host orchestration; not a disconnected acceptance",
+  "final_device_state": "Dozing",
+  "final_observation_sha256": "246b5eb00a12cc78d979d212f06c5957434e3de1f7b9565796f20501306d3ced",
+  "independent_page_evidence": [
+    {
+      "node_id": "window-248-1-node-0-0-3",
+      "text": "请输入中文",
+      "content_description": "中文输入框",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-248-1-node-0-0-4",
+      "text": "Controlled input state: empty",
+      "content_description": "Controlled input state empty",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-248-1-node-0-0-6",
+      "text": "Visual gesture state: ready",
+      "content_description": "Visual gesture state ready",
+      "label": null,
+      "role": null
+    }
+  ],
+  "elapsed_seconds": 144.340298,
+  "trial_end_state": "NEEDS_REVIEW",
+  "trial_end_reason": "control_during_device_action_or_verification:post_action_scene_no_two_settled_matching_samples",
+  "trial_elapsed_seconds": 9.596965,
+  "trial_history": {},
+  "recovery_evidence": {
+    "debug_recovery_fault": null,
+    "recovery_review": {
+      "observation_id": "standalone-device-obs-3908-d4b4a0466eb74d8c9b521e7bf486b2ea",
+      "observation_version": 3908,
+      "captured_at": "2026-09-25T13:53:48.646836Z",
+      "scene_fingerprint": "1f9a357c1dfc8d14de9919c58e197de99c69b9fca4847ed2cb400c88fe55cfb2",
+      "semantic_fingerprint": "e029923aadce1e341f3d3d864a6d4ffcca2e069867c413c2a3a3c572514c818f",
+      "target_application_package": "com.jev.mobileagent",
+      "goal": "点击受控页面中蓝色的视觉手势目标",
+      "goal_outcome": "NOT_VERIFIED",
+      "valid": false,
+      "action_facts": [
+        {
+          "action_id": "local-vlm-action-01ffd1f1-e5ed-41e0-9e37-62bb884518c5-1",
+          "execution_fact": "EXECUTED",
+          "phase": "executed",
+          "receipt_success": true,
+          "verification_status": "UNKNOWN"
+        }
+      ],
+      "invalidated_reason": "confirmation_consumed"
+    },
+    "recovery_decisions": [
+      {
+        "decision": "end",
+        "decision_actor": "user",
+        "review_observation_id": "standalone-device-obs-3908-d4b4a0466eb74d8c9b521e7bf486b2ea",
+        "confirmation_observation_id": "standalone-device-obs-3913-f515843e77b947ebb1f114465a05926a",
+        "confirmed_at": "2026-09-25T13:54:10.373887Z",
+        "execution_facts_known": true,
+        "unresolved_postcondition_retained": true,
+        "review_goal_outcome": "NOT_VERIFIED",
+        "confirmation_goal_outcome": "NOT_VERIFIED",
+        "confirmation_sample_count": 1,
+        "step_count_before": 0,
+        "request_count_at_confirmation": 2,
+        "accounted_cost_cny_at_confirmation": 0.0172975
+      }
+    ],
+    "recovery_history": null,
+    "debug_recovery_window": {
+      "expectedTargetPackage": "com.jev.mobileagent",
+      "phase": "stable_target",
+      "error": "",
+      "readinessError": "",
+      "elapsedMs": 958,
+      "screenInteractive": true,
+      "keyguardLocked": false,
+      "capturedAt": "2026-09-25T13:54:09.861812Z",
+      "availability": "AVAILABLE",
+      "screen": {
+        "widthPx": 1080,
+        "heightPx": 2400,
+        "rotation": 0,
+        "activeWindowId": 248,
+        "activeWindowBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 2400
+        },
+        "recoverySystemBarInsets": {
+          "available": true,
+          "source": "window_metrics_system_bars",
+          "reason": "",
+          "statusBarsVisible": true,
+          "navigationBarsVisible": true,
+          "left": 0,
+          "top": 103,
+          "right": 0,
+          "bottom": 48,
+          "metricsBoundsPx": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      },
+      "windowCount": 2,
+      "windows": [
+        {
+          "id": 226,
+          "type": 3,
+          "packageName": "com.android.systemui",
+          "className": "android.widget.FrameLayout",
+          "active": false,
+          "focused": false,
+          "layer": 1,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 103
+          }
+        },
+        {
+          "id": 248,
+          "type": 1,
+          "packageName": "com.jev.mobileagent",
+          "className": "android.widget.FrameLayout",
+          "active": true,
+          "focused": true,
+          "layer": 0,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      ]
+    },
+    "completion_attribution": null,
+    "decision_actor": null,
+    "execution_actor": null
+  },
+  "actions": [
+    {
+      "action_id": "local-vlm-action-01ffd1f1-e5ed-41e0-9e37-62bb884518c5-1",
+      "phase": "executed",
+      "kind": "tap",
+      "source": "jev-controlled-candidate-v1",
+      "target_node_label": "视觉手势目标",
+      "parameters": {},
+      "result": {
+        "success": true,
+        "error_code": null,
+        "message": null
+      },
+      "reflection": null,
+      "verification": null,
+      "post_action_scene": {
+        "schema_version": "post-action-scene-v1",
+        "status": "rejected",
+        "reason": "no_two_settled_matching_samples",
+        "trigger_event_sequence": 69,
+        "initial_observation_id": "standalone-device-obs-3885-ae001ea852c44a8ebad4f9c55ed14453",
+        "initial_screenshot_id": "local-shot-e57ac18846074849a1526ae3b9fb5070",
+        "max_resamples": 3,
+        "settling_age_ms": 700,
+        "timeout_ms": 2000,
+        "elapsed_ms": 1244,
+        "samples": [
+          {
+            "sample": 1,
+            "observation_id": "standalone-device-obs-3886-9acd6c8de8d34d0b90c29f7df55eafaa",
+            "screenshot_id": "",
+            "event_sequence_before": 71,
+            "event_sequence_after_observation": 71,
+            "event_sequence_after_screenshot": -1,
+            "same_context_and_structure": true,
+            "same_as_previous_stable_scene": false,
+            "accepted": false,
+            "reason": "stable_candidate"
+          },
+          {
+            "sample": 2,
+            "observation_id": "standalone-device-obs-3887-bcd8067e70324247badd82d45378c5ae",
+            "screenshot_id": "local-shot-82a40eb1250e4627b7ff72b0694e798f",
+            "event_sequence_before": 71,
+            "event_sequence_after_observation": 71,
+            "event_sequence_after_screenshot": 72,
+            "same_context_and_structure": true,
+            "same_as_previous_stable_scene": true,
+            "accepted": false,
+            "reason": "event_during_screenshot"
+          },
+          {
+            "sample": 3,
+            "observation_id": "standalone-device-obs-3888-337bdba3ad4f495fb71b991cdabbcab7",
+            "screenshot_id": "",
+            "event_sequence_before": 72,
+            "event_sequence_after_observation": 72,
+            "event_sequence_after_screenshot": -1,
+            "same_context_and_structure": true,
+            "same_as_previous_stable_scene": false,
+            "accepted": false,
+            "reason": "stable_candidate"
+          }
+        ]
+      }
+    }
+  ],
+  "estimated_list_price_cny": 0.0072975,
+  "actual_billed_cny": null,
+  "role_request_counts": {
+    "manager": 1,
+    "executor": 1
+  },
+  "screenshot_capture_attempt_count": 5,
+  "screenshot_capture_status_counts": {
+    "captured": 5
+  },
+  "image_upload_count": 2,
+  "unique_uploaded_screenshot_count": 1,
+  "formal_pair_eligible": true,
+  "comparison_batch": "post-action-scene-2915ed9"
+}
