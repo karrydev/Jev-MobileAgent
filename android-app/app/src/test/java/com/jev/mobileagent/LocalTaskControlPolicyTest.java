@@ -159,6 +159,50 @@ public final class LocalTaskControlPolicyTest {
                         cursorBlink, "review-pixels", "NOT_VERIFIED", 1, 5, false));
     }
 
+    @Test
+    public void localStatusDisplayUpdatesDoNotChangeDecisionSceneButOtherTextStillDoes() throws Exception {
+        JSONObject expected = sceneObservation();
+        expected.getJSONArray("nodes").put(localTaskStatusNode("com.jev.mobileagent"));
+        String expectedFingerprint = LocalTaskControlPolicy.sceneFingerprint(expected, "");
+
+        JSONObject updatedStatus = new JSONObject(expected.toString());
+        updatedStatus.getJSONArray("nodes").getJSONObject(1)
+                .put("text", "本地任务运行中，费用 ¥0.18")
+                .put("state_description", "第 3 次请求");
+        assertTrue(LocalTaskControlPolicy.sameDecisionScene(expected, updatedStatus));
+        assertTrue(LocalTaskControlPolicy.matchesDecisionScene(expectedFingerprint, updatedStatus));
+
+        JSONObject changedTarget = new JSONObject(expected.toString());
+        changedTarget.getJSONArray("nodes").getJSONObject(0).put("text", "Changed target page");
+        assertFalse(LocalTaskControlPolicy.sameDecisionScene(expected, changedTarget));
+        assertFalse(LocalTaskControlPolicy.matchesDecisionScene(expectedFingerprint, changedTarget));
+
+        JSONObject otherApp = new JSONObject(expected.toString());
+        otherApp.getJSONArray("windows").getJSONObject(0).put("package_name", "com.example.target");
+        otherApp.getJSONArray("nodes").getJSONObject(0).put("package_name", "com.example.target");
+        otherApp.getJSONArray("nodes").getJSONObject(1).put("package_name", "com.example.target");
+        String otherAppFingerprint = LocalTaskControlPolicy.sceneFingerprint(otherApp, "");
+        JSONObject otherAppStatusUpdate = new JSONObject(otherApp.toString());
+        otherAppStatusUpdate.getJSONArray("nodes").getJSONObject(1)
+                .put("text", "本地任务运行中，费用 ¥0.18");
+        assertFalse(LocalTaskControlPolicy.sameDecisionScene(otherApp, otherAppStatusUpdate));
+        assertFalse(LocalTaskControlPolicy.matchesDecisionScene(otherAppFingerprint, otherAppStatusUpdate));
+    }
+
+    @Test
+    public void recoveryConfirmationStillRejectsChangedScreenshotAfterLocalStatusUpdate() throws Exception {
+        JSONObject reviewed = sceneObservation();
+        reviewed.getJSONArray("nodes").put(localTaskStatusNode("com.jev.mobileagent"));
+        JSONObject task = recoveryTask(reviewed, "review-pixels");
+        JSONObject updatedStatus = new JSONObject(reviewed.toString());
+        updatedStatus.getJSONArray("nodes").getJSONObject(1).put("text", "费用 ¥0.18");
+
+        assertFalse(LocalTaskControlPolicy.sameReviewedScene(task, updatedStatus, "status-updated-pixels"));
+        assertEquals(LocalTaskControlPolicy.RecoveryConfirmationSample.REJECT,
+                LocalTaskControlPolicy.classifyRecoveryConfirmationSample("resume", task, "review-1",
+                        updatedStatus, "status-updated-pixels", "NOT_VERIFIED", 5, 5, true));
+    }
+
     private static JSONObject recoveryTask(JSONObject reviewedObservation, String screenshotFingerprint)
             throws Exception {
         String targetPackage = LocalTaskControlPolicy.activeApplicationPackage(reviewedObservation);
@@ -400,6 +444,16 @@ public final class LocalTaskControlPolicyTest {
                         .put("enabled", true).put("visible_to_user", true).put("clickable", true)
                         .put("focusable", true).put("focused", false).put("selected", false)
                         .put("scrollable", false).put("editable", false).put("bounds", "10,20,300,80")));
+    }
+
+    private static JSONObject localTaskStatusNode(String packageName) throws Exception {
+        return new JSONObject().put("node_id", "task-status").put("package_name", packageName)
+                .put("class_name", "android.widget.TextView").put("text", "本地任务：等待")
+                .put("content_description", "Local VLM task status").put("state_description", "等待")
+                .put("view_id_resource_name", "com.jev.mobileagent:id/task_status")
+                .put("enabled", true).put("visible_to_user", true).put("clickable", false)
+                .put("focusable", false).put("focused", false).put("selected", false)
+                .put("scrollable", false).put("editable", false).put("bounds", "10,900,700,980");
     }
 
     private static JSONObject fullScreenSystemWindowObservation() throws Exception {

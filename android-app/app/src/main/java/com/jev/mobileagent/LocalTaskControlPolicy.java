@@ -11,6 +11,9 @@ import java.util.Locale;
 
 /** Safety rules for releasing app-local tasks after a control request. */
 final class LocalTaskControlPolicy {
+    private static final String LOCAL_APP_PACKAGE = "com.jev.mobileagent";
+    private static final String LOCAL_TASK_STATUS_DESCRIPTION = "Local VLM task status";
+
     enum RecoveryConfirmationSample {
         MATCH,
         RESAMPLE,
@@ -72,7 +75,7 @@ final class LocalTaskControlPolicy {
         return false;
     }
 
-    /** Stable UI scene identity: excludes observation IDs, versions and capture timestamps. */
+    /** Stable UI scene identity; excludes capture metadata and volatile text from the app's own status label. */
     static String sceneFingerprint(JSONObject observation) {
         return sceneFingerprint(observation, "");
     }
@@ -536,8 +539,26 @@ final class LocalTaskControlPolicy {
             JSONObject value = values.optJSONObject(i);
             if (value == null || packageName.isEmpty()
                     || !packageName.equals(value.optString("package_name", ""))) continue;
-            append(target, value, keys);
+            if (isLocalTaskStatusNode(value, packageName)) {
+                appendWithoutVolatileStatusText(target, value, keys);
+            } else {
+                append(target, value, keys);
+            }
         }
         target.append(']');
+    }
+
+    private static boolean isLocalTaskStatusNode(JSONObject node, String activePackage) {
+        return LOCAL_APP_PACKAGE.equals(activePackage)
+                && LOCAL_APP_PACKAGE.equals(node.optString("package_name", ""))
+                && LOCAL_TASK_STATUS_DESCRIPTION.equals(node.optString("content_description", ""));
+    }
+
+    private static void appendWithoutVolatileStatusText(StringBuilder target, JSONObject node,
+            String[] keys) {
+        for (String key : keys) {
+            if ("text".equals(key) || "state_description".equals(key)) continue;
+            target.append(key).append('=').append(node.opt(key)).append('|');
+        }
     }
 }
