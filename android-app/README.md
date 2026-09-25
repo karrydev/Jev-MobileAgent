@@ -2,7 +2,7 @@
 
 本目录承载[独立 Android 运行时](../docs/adr/0003-standalone-android-runtime.md)：App 在手机内观察、规划、执行、核验和记录任务，直接请求模型供应商。产品入口不再配置设备桥地址或 Token。
 
-任务 26 尚在实施和验收。当前已取得真实 VLM 的中文输入与视觉点击 USB 联调记录；它们不是断开 USB 后的独立使用验收。完整中断恢复和最终交付分别由 27、28 验收，状态见[任务索引](../.scratch/mobile-agent-v1/index.md)。
+任务 26 已通过真实 VLM 的中文输入与视觉点击拔线验收，见[独立基线](../.scratch/mobile-agent-v1/evidence/standalone-baseline.md)。完整中断恢复和最终交付分别由 27、28 验收，状态见[任务索引](../.scratch/mobile-agent-v1/index.md)。
 
 ## 构建与安装
 

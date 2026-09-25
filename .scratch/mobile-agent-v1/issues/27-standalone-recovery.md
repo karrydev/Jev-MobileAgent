@@ -6,9 +6,9 @@ Blocked by: 20, 26
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-standalone-recovery
+Branch: codex/v1-standalone-recovery
 Evidence: 独立 APK、物理手机恢复演练
 Gate: 独立 App 中断后核对并手动恢复
 
@@ -38,3 +38,5 @@ Gate: 独立 App 中断后核对并手动恢复
 2026-09-25：根据用户明确的独立 App 边界改写。旧任务标题与要求已被上文替代，编号保留；当前验收条件重新从 pending 开始。
 
 2026-09-25：任务 26 的 input03 取证脚本异常触发锁屏，模型请求仍继续直到主 Agent 显式取消；本次不是正式恢复验收。实施本票时纳入锁屏/人工介入检查：停止后续决策与动作，解锁不自动续跑。不要用任务 26 的暂停/取消单例替代本票完整故障矩阵。
+
+2026-09-25：26 独立 App 验收合入后领取。22 首批仅新增候选/HTTPS/影子报告模块与相关测试，不修改运行入口；27 独占 LocalVlmTaskService、LocalTaskStore、恢复 UI 与无障碍控制。共享入口待 27 稳定后串行接入 22，不新建重复运行框架。主 Agent 独占真机、真实 API、凭据、预算与 Git。

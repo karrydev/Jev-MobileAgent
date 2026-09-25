@@ -6,9 +6,9 @@ Blocked by: 11, 21, 26
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-jev-shadow
+Branch: codex/v1-jev-shadow
 Evidence: 真实模型、物理手机影子运行
 Gate: 真实 Jev 在 VLM 任务旁提供可评估建议
 
@@ -35,3 +35,5 @@ Gate: 真实 Jev 在 VLM 任务旁提供可评估建议
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-25：按 ADR-0003 改为手机内策略实现与独立 App 对照；旧 Python 实现可作参考，不作为本票产品运行通道。
+
+2026-09-25：26 独立 App 验收合入后领取。22 首批仅新增候选/HTTPS/影子报告模块与相关测试，不修改运行入口；27 独占 LocalVlmTaskService、LocalTaskStore、恢复 UI 与无障碍控制。共享入口待 27 稳定后串行接入 22，不新建重复运行框架。主 Agent 独占真机、真实 API、凭据、预算与 Git。
