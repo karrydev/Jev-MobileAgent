@@ -185,7 +185,7 @@ public final class ControlledPageActivity extends Activity {
         root.addView(taskControls, params());
 
         taskStatus = label("本地任务：无", 13, Color.DKGRAY);
-        taskStatus.setMaxLines(3);
+        taskStatus.setLines(3);
         taskStatus.setTextIsSelectable(true);
         taskStatus.setContentDescription("Local VLM task status");
         root.addView(taskStatus, params());
@@ -606,7 +606,7 @@ public final class ControlledPageActivity extends Activity {
         controls.addView(cancel, rowParams());
         root.addView(controls, params());
         taskStatus = label("本地任务：无", 13, Color.DKGRAY);
-        taskStatus.setMaxLines(3);
+        taskStatus.setLines(3);
         taskStatus.setTextIsSelectable(true);
         taskStatus.setContentDescription("Local VLM task status");
         root.addView(taskStatus, params());
