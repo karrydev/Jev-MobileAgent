@@ -1,0 +1,769 @@
+{
+  "task_id": "969ddb83-06a2-4c04-a3f4-c6745aab6a46",
+  "goal": "点击受控页面中蓝色的视觉手势目标",
+  "state": "CANCELLED",
+  "state_reason": "user_ended_after_fresh_reconciliation",
+  "created_at": "2026-09-25T16:04:08.686725Z",
+  "updated_at": "2026-09-25T16:05:52.089426Z",
+  "step_count": 1,
+  "request_count": 4,
+  "jev_shadow_enabled": false,
+  "jev_selection_enabled": true,
+  "jev_shadow_call_count": 2,
+  "jev_shadow_reserved_cny": 0.02,
+  "accounted_cost_cny": 0.036044,
+  "usage_missing": false,
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 1616,
+        "output_tokens": 128,
+        "total_tokens": 1744
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.003,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-f0c2514fab5a4d80902d3d916661eb4b"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-f0c2514fab5a4d80902d3d916661eb4b",
+          "observation_id": "standalone-device-obs-4227-53c4721645284effa5bcd2a43c5c386a",
+          "observation_version": 4227,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "role": "executor",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2523,
+        "output_tokens": 90,
+        "total_tokens": 2613
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0041895,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-f0c2514fab5a4d80902d3d916661eb4b"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-f0c2514fab5a4d80902d3d916661eb4b",
+          "observation_id": "standalone-device-obs-4227-53c4721645284effa5bcd2a43c5c386a",
+          "observation_version": 4227,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "role": "action_reflector",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3291,
+        "output_tokens": 74,
+        "total_tokens": 3365
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0052695,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 2,
+      "screenshot_ids": [
+        "local-shot-f0c2514fab5a4d80902d3d916661eb4b",
+        "local-shot-d5fba48faafe45398de1c8d24351beb7"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-f0c2514fab5a4d80902d3d916661eb4b",
+          "observation_id": "standalone-device-obs-4227-53c4721645284effa5bcd2a43c5c386a",
+          "observation_version": 4227,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        },
+        {
+          "screenshot_id": "local-shot-d5fba48faafe45398de1c8d24351beb7",
+          "observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+          "observation_version": 4236,
+          "capture_type": "AFTER",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    },
+    {
+      "attempt": 4,
+      "role": "manager",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2138,
+        "output_tokens": 84,
+        "total_tokens": 2222
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.003585,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-7b8274b31f824f909ff3c1c560b7c02a"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-7b8274b31f824f909ff3c1c560b7c02a",
+          "observation_id": "standalone-device-obs-4237-812f20c4ff93427282e465eb8375a2ac",
+          "observation_version": 4237,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    }
+  ],
+  "jev_shadow_attempts": [
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T16:04:15.535041Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 1,
+      "observation_id": "standalone-device-obs-4227-53c4721645284effa5bcd2a43c5c386a",
+      "observation_version": 4227,
+      "candidate_count": 8,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 8,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-0-3-34bfe728ded3",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-418-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-0-7-2b9d307a0f1f",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-418-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-0-8-ce5b55a276f8",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-418-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-0-9-cf14089f893f",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-418-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-0-10-0382b8346dc2",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-418-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-1-b3298bee15de",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-418-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-2-35879f707c9f",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-418-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-418-1-node-0-3-d8daf0293758",
+            "kind": "tap",
+            "target_node_id": "window-418-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-418-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [
+          "text",
+          "text"
+        ],
+        "warnings": [
+          {
+            "node_id": "window-418-1-node-0-0-3",
+            "reason": "missing_required_parameter",
+            "parameter": "text"
+          },
+          {
+            "node_id": "window-418-1-node-0-0-7",
+            "reason": "missing_required_parameter",
+            "parameter": "text"
+          }
+        ]
+      },
+      "action_dispatched": true,
+      "comparison": {
+        "status": "same_action",
+        "jev_choice_id": "candidate-tap-window-418-1-node-0-0-9-cf14089f893f",
+        "vlm_equivalent_candidate_id": "candidate-tap-window-418-1-node-0-0-9-cf14089f893f"
+      },
+      "known_parameter_source": "none",
+      "candidate_coverage_status": "matched",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "question_id": "next_action",
+      "elapsed_ms": 1298,
+      "request_sent": true,
+      "http_status": 200,
+      "protocol_status": "valid",
+      "usage": {
+        "status": "known",
+        "input_tokens": 738,
+        "output_tokens": 315
+      },
+      "choice_id": "candidate-tap-window-418-1-node-0-0-9-cf14089f893f",
+      "confidence": 0.99,
+      "status": "valid_recommendation",
+      "confidence_status": "meets_frozen_threshold",
+      "cost": {
+        "status": "reserved_actual_unknown",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0.01
+      },
+      "attempt": 1,
+      "selection_status": "selected",
+      "selected_candidate_id": "candidate-tap-window-418-1-node-0-0-9-cf14089f893f",
+      "dispatch_status": "executed",
+      "action_id": "local-vlm-action-969ddb83-06a2-4c04-a3f4-c6745aab6a46-1",
+      "action_source": "jev-controlled-candidate-v1"
+    },
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T16:04:19.296862Z",
+      "source": "task_verification",
+      "request_purpose": "verification",
+      "step": 1,
+      "observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+      "observation_version": 4236,
+      "candidate_count": 4,
+      "question_id": "action_verification",
+      "verification_policy_id": "jev-android-tree-verification-rules-v1",
+      "verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+      "action_dispatched": false,
+      "rule_status": "UNKNOWN",
+      "rule_reason": "no_supported_unique_tree_postcondition",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "elapsed_ms": 296,
+      "request_sent": true,
+      "http_status": 200,
+      "protocol_status": "valid",
+      "usage": {
+        "status": "known",
+        "input_tokens": 1709,
+        "output_tokens": 54
+      },
+      "choice_id": "FAILURE",
+      "confidence": 0.45,
+      "status": "valid_low_confidence",
+      "confidence_status": "below_frozen_threshold",
+      "verification_status": "FAILURE",
+      "cost": {
+        "status": "reserved_actual_unknown",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0.01
+      },
+      "attempt": 2
+    }
+  ],
+  "tree_verification_enabled": true,
+  "tree_verification_policy_id": "jev-android-tree-verification-rules-v1",
+  "tree_verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-4227-53c4721645284effa5bcd2a43c5c386a",
+      "observation_version": 4227,
+      "screenshot_id": "local-shot-f0c2514fab5a4d80902d3d916661eb4b",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/969ddb83-06a2-4c04-a3f4-c6745aab6a46/screenshot-4227-before.png",
+      "captured_at": "2026-09-25T16:04:09.315315Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-4233-531abcabde4b4801b8985dd9ad34f9b9",
+      "observation_version": 4233,
+      "screenshot_id": "local-shot-f5bfdf11f24847199992a92b0a5ed96b",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/969ddb83-06a2-4c04-a3f4-c6745aab6a46/screenshot-4233-after.png",
+      "captured_at": "2026-09-25T16:04:17.871069Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-4235-f60dfc09155e4a5788505b9a34eadc5f",
+      "observation_version": 4235,
+      "screenshot_id": "local-shot-a081df9d53c24d4a9cef99c3cd6fac85",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/969ddb83-06a2-4c04-a3f4-c6745aab6a46/screenshot-4235-after.png",
+      "captured_at": "2026-09-25T16:04:18.701629Z",
+      "attempt": 3
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+      "observation_version": 4236,
+      "screenshot_id": "local-shot-d5fba48faafe45398de1c8d24351beb7",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/969ddb83-06a2-4c04-a3f4-c6745aab6a46/screenshot-4236-after.png",
+      "captured_at": "2026-09-25T16:04:19.114920Z",
+      "attempt": 4
+    },
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-4237-812f20c4ff93427282e465eb8375a2ac",
+      "observation_version": 4237,
+      "screenshot_id": "local-shot-7b8274b31f824f909ff3c1c560b7c02a",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/969ddb83-06a2-4c04-a3f4-c6745aab6a46/screenshot-4237-before.png",
+      "captured_at": "2026-09-25T16:04:23.029617Z",
+      "attempt": 5
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-4244-a3f707199e5047d7af6b75c14db7df1c",
+      "observation_version": 4244,
+      "screenshot_id": "local-shot-9d3bb414c9b84a7fafdc05cc59bbf3fd",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/969ddb83-06a2-4c04-a3f4-c6745aab6a46/screenshot-4244-recovery.png",
+      "captured_at": "2026-09-25T16:05:31.294701Z",
+      "attempt": 6
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-4250-5169fc356f7e47d596e95224e7791548",
+      "observation_version": 4250,
+      "screenshot_id": "local-shot-5e0fb82c56454228939d64fa6600101e",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/969ddb83-06a2-4c04-a3f4-c6745aab6a46/screenshot-4250-recovery.png",
+      "captured_at": "2026-09-25T16:05:51.863838Z",
+      "attempt": 7
+    }
+  ],
+  "on_demand_planning_enabled": false,
+  "planning_plan_step": -1,
+  "planning_events": [
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 1,
+      "plan_step": null,
+      "plan_age_steps": null,
+      "active_subgoal": "",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 1,
+      "previous_subgoal": "",
+      "next_subgoal": "Identify the \"视觉手势目标\" button on the screen. 2. Click on the \"视觉手势目标\" button to proceed. 3. Verify if the action has been successfully executed by checking if any further instructions are provided. 4. Perform the `answer` action to confirm completion of the task.",
+      "subgoal_changed": false
+    },
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 2,
+      "plan_step": 1,
+      "plan_age_steps": 1,
+      "active_subgoal": "Identify the \"视觉手势目标\" button on the screen. 2. Click on the \"视觉手势目标\" button to proceed. 3. Verify if the action has been successfully executed by checking if any further instructions are provided. 4. Perform the `answer` action to confirm completion of the task.",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 2,
+      "previous_subgoal": "Identify the \"视觉手势目标\" button on the screen. 2. Click on the \"视觉手势目标\" button to proceed. 3. Verify if the action has been successfully executed by checking if any further instructions are provided. 4. Perform the `answer` action to confirm completion of the task.",
+      "next_subgoal": "Finished",
+      "subgoal_changed": true
+    }
+  ],
+  "schema_version": "standalone-phone-evidence-v1",
+  "attempt": "planning25-off-visual05",
+  "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+  "apk_sha256": "3094239aec5da8c162ce4eb1a0da2ff6d3c415d3a2ed7cf035b5e92d835a937b",
+  "device": "OnePlus 8T / Android14 API34",
+  "vlm_model": "gui-plus",
+  "jev_model": "jev-1.13.0",
+  "execution_boundary": "Android app direct HTTPS; USB for setup and read-only evidence, no host orchestration; not a disconnected acceptance",
+  "final_device_state": "Dozing",
+  "final_observation_sha256": "0d55a56a2d59ecdab0fd404b7c82257654ca57d475cd42047cf1047038de2858",
+  "independent_page_evidence": [
+    {
+      "node_id": "window-418-1-node-0-0-3",
+      "text": "请输入中文",
+      "content_description": "中文输入框",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-418-1-node-0-0-4",
+      "text": "Controlled input state: empty",
+      "content_description": "Controlled input state empty",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-418-1-node-0-0-6",
+      "text": "Visual gesture state: ready",
+      "content_description": "Visual gesture state ready",
+      "label": null,
+      "role": null
+    }
+  ],
+  "elapsed_seconds": 103.402701,
+  "trial_end_state": "NEEDS_REVIEW",
+  "trial_end_reason": "overall_goal_not_verified_after_manager_finished",
+  "trial_elapsed_seconds": 17.338443,
+  "trial_history": {
+    "instruction": "点击受控页面中蓝色的视觉手势目标",
+    "plan": "Finished",
+    "completed_plan": "1. 点击“视觉手势目标”",
+    "progress_status": "No completed subgoal.",
+    "last_answer": "",
+    "important_notes": "",
+    "last_summary": "点击“视觉手势目标”",
+    "last_action_thought": "Jev selected candidate candidate-tap-window-418-1-node-0-0-9-cf14089f893f",
+    "finish_thought": "The user's request was to click on the \"视觉手势目标\" button. According to the last action description, this button has already been clicked successfully. The screenshot confirms that the button is visible and accessible. Since the task appears to be completed as per the user's instruction, no further actions are required.",
+    "error_flag_plan": false,
+    "note_requested": false,
+    "action_history": [
+      "{\"action\":\"jev_candidate\",\"candidate_id\":\"candidate-tap-window-418-1-node-0-0-9-cf14089f893f\",\"candidate_kind\":\"tap\",\"target_node_id\":\"window-418-1-node-0-0-9\",\"description\":\"点击“视觉手势目标”\",\"parameters\":{},\"selected_accessibility_target\":{\"label\":\"视觉手势目标\",\"role\":\"android.widget.Button\",\"source_screen_size_px\":{\"width_px\":1080,\"height_px\":2400},\"bounds_screen_px\":{\"left\":546,\"top\":1532,\"right\":1026,\"bottom\":1676}}}"
+    ],
+    "summary_history": [
+      "点击“视觉手势目标”"
+    ],
+    "action_outcomes": [
+      "A"
+    ],
+    "error_descriptions": [
+      "SUCCESS: visual_reflector_decision"
+    ]
+  },
+  "recovery_evidence": {
+    "debug_recovery_fault": null,
+    "recovery_review": {
+      "observation_id": "standalone-device-obs-4244-a3f707199e5047d7af6b75c14db7df1c",
+      "observation_version": 4244,
+      "captured_at": "2026-09-25T16:05:30.926376Z",
+      "scene_fingerprint": "f5204ede5beaeb178bf148e0767fc70bb35a8084cde4fe0ad4b02611b60159e1",
+      "semantic_fingerprint": "b545a17c1c2f91ec4725e2cfc2f7fecd0ca422c0af443c27a42a90793d6b1754",
+      "target_application_package": "com.jev.mobileagent",
+      "goal": "点击受控页面中蓝色的视觉手势目标",
+      "goal_outcome": "NOT_VERIFIED",
+      "valid": false,
+      "action_facts": [
+        {
+          "action_id": "local-vlm-action-969ddb83-06a2-4c04-a3f4-c6745aab6a46-1",
+          "execution_fact": "EXECUTED",
+          "phase": "verified",
+          "receipt_success": true,
+          "verification_status": "SUCCESS"
+        }
+      ],
+      "invalidated_reason": "confirmation_consumed"
+    },
+    "recovery_decisions": [
+      {
+        "decision": "end",
+        "decision_actor": "user",
+        "review_observation_id": "standalone-device-obs-4244-a3f707199e5047d7af6b75c14db7df1c",
+        "confirmation_observation_id": "standalone-device-obs-4250-5169fc356f7e47d596e95224e7791548",
+        "confirmed_at": "2026-09-25T16:05:52.027689Z",
+        "execution_facts_known": true,
+        "unresolved_postcondition_retained": false,
+        "review_goal_outcome": "NOT_VERIFIED",
+        "confirmation_goal_outcome": "NOT_VERIFIED",
+        "confirmation_sample_count": 1,
+        "step_count_before": 1,
+        "request_count_at_confirmation": 4,
+        "accounted_cost_cny_at_confirmation": 0.036044
+      }
+    ],
+    "recovery_history": null,
+    "debug_recovery_window": {
+      "expectedTargetPackage": "com.jev.mobileagent",
+      "phase": "stable_target",
+      "error": "",
+      "readinessError": "",
+      "elapsedMs": 1114,
+      "screenInteractive": true,
+      "keyguardLocked": false,
+      "capturedAt": "2026-09-25T16:05:51.469572Z",
+      "availability": "AVAILABLE",
+      "screen": {
+        "widthPx": 1080,
+        "heightPx": 2400,
+        "rotation": 0,
+        "activeWindowId": 418,
+        "activeWindowBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 2400
+        },
+        "recoverySystemBarInsets": {
+          "available": true,
+          "source": "window_metrics_system_bars",
+          "reason": "",
+          "statusBarsVisible": true,
+          "navigationBarsVisible": true,
+          "left": 0,
+          "top": 103,
+          "right": 0,
+          "bottom": 48,
+          "metricsBoundsPx": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      },
+      "windowCount": 2,
+      "windows": [
+        {
+          "id": 392,
+          "type": 3,
+          "packageName": "com.android.systemui",
+          "className": "android.widget.FrameLayout",
+          "active": false,
+          "focused": false,
+          "layer": 1,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 103
+          }
+        },
+        {
+          "id": 418,
+          "type": 1,
+          "packageName": "com.jev.mobileagent",
+          "className": "android.widget.FrameLayout",
+          "active": true,
+          "focused": true,
+          "layer": 0,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      ]
+    },
+    "completion_attribution": null,
+    "decision_actor": null,
+    "execution_actor": null
+  },
+  "actions": [
+    {
+      "action_id": "local-vlm-action-969ddb83-06a2-4c04-a3f4-c6745aab6a46-1",
+      "phase": "verified",
+      "kind": "tap",
+      "source": "jev-controlled-candidate-v1",
+      "target_node_label": "视觉手势目标",
+      "parameters": {},
+      "result": {
+        "success": true,
+        "error_code": null,
+        "message": null
+      },
+      "reflection": null,
+      "verification": {
+        "status": "SUCCESS",
+        "source": "vlm_reflector",
+        "reason": "visual_reflector_decision",
+        "evidence": {
+          "reason": "The goal was to click on the blue visual gesture target in the controlled page. The screenshot shows that the blue rectangular area, which is likely the \"视觉手势目标\" (visual gesture target), has been clicked and is now highlighted with a blue border, indicating it has been selected. This confirms that the action was successful."
+        },
+        "policy_id": "jev-android-tree-verification-rules-v1",
+        "policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+        "wait_attempts": 0,
+        "rule_attempts": [
+          {
+            "point": "initial",
+            "status": "UNKNOWN",
+            "reason": "no_supported_unique_tree_postcondition",
+            "observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+            "screenshot_available": true
+          }
+        ],
+        "before_observation_id": "standalone-device-obs-4227-53c4721645284effa5bcd2a43c5c386a",
+        "after_observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+        "before_screenshot": {
+          "status": "captured",
+          "screenshot_id": "local-shot-f0c2514fab5a4d80902d3d916661eb4b",
+          "observation_id": "standalone-device-obs-4227-53c4721645284effa5bcd2a43c5c386a",
+          "reason": ""
+        },
+        "after_screenshot": {
+          "status": "captured",
+          "screenshot_id": "local-shot-d5fba48faafe45398de1c8d24351beb7",
+          "observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+          "reason": ""
+        },
+        "jev": {
+          "status": "valid_low_confidence",
+          "verification_status": "FAILURE",
+          "confidence": 0.45,
+          "request_sent": true
+        }
+      },
+      "post_action_scene": {
+        "schema_version": "post-action-scene-v1",
+        "status": "stabilized",
+        "reason": "two_matching_samples_same_event_sequence",
+        "trigger_event_sequence": 138,
+        "initial_observation_id": "standalone-device-obs-4233-531abcabde4b4801b8985dd9ad34f9b9",
+        "initial_screenshot_id": "local-shot-f5bfdf11f24847199992a92b0a5ed96b",
+        "max_resamples": 3,
+        "settling_age_ms": 700,
+        "timeout_ms": 2000,
+        "elapsed_ms": 1705,
+        "samples": [
+          {
+            "sample": 1,
+            "observation_id": "standalone-device-obs-4234-836fd054a75c4ae7b5320a65328058b7",
+            "screenshot_id": "",
+            "event_sequence_before": 140,
+            "event_sequence_after_observation": 140,
+            "event_sequence_after_screenshot": -1,
+            "same_context_and_structure": true,
+            "same_as_previous_stable_scene": false,
+            "accepted": false,
+            "reason": "stable_candidate"
+          },
+          {
+            "sample": 2,
+            "observation_id": "standalone-device-obs-4235-f60dfc09155e4a5788505b9a34eadc5f",
+            "screenshot_id": "local-shot-a081df9d53c24d4a9cef99c3cd6fac85",
+            "event_sequence_before": 140,
+            "event_sequence_after_observation": 140,
+            "event_sequence_after_screenshot": 141,
+            "same_context_and_structure": true,
+            "same_as_previous_stable_scene": true,
+            "accepted": false,
+            "reason": "event_during_screenshot"
+          },
+          {
+            "sample": 3,
+            "observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+            "screenshot_id": "local-shot-d5fba48faafe45398de1c8d24351beb7",
+            "event_sequence_before": 141,
+            "event_sequence_after_observation": 141,
+            "event_sequence_after_screenshot": 141,
+            "same_context_and_structure": true,
+            "same_as_previous_stable_scene": true,
+            "accepted": true,
+            "reason": "stable_pair"
+          }
+        ],
+        "accepted_observation_id": "standalone-device-obs-4236-e02a6a1ef709490c985369009ce1bd19",
+        "accepted_screenshot_id": "local-shot-d5fba48faafe45398de1c8d24351beb7"
+      }
+    }
+  ],
+  "estimated_list_price_cny": 0.016044,
+  "actual_billed_cny": null,
+  "role_request_counts": {
+    "manager": 2,
+    "executor": 1,
+    "action_reflector": 1
+  },
+  "screenshot_capture_attempt_count": 7,
+  "screenshot_capture_status_counts": {
+    "captured": 7
+  },
+  "image_upload_count": 5,
+  "unique_uploaded_screenshot_count": 3
+}

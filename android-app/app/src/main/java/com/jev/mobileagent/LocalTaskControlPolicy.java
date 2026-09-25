@@ -7,9 +7,13 @@ import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 /** Safety rules for releasing app-local tasks after a control request. */
 final class LocalTaskControlPolicy {
@@ -159,6 +163,85 @@ final class LocalTaskControlPolicy {
             if (executionFact(task, actions.optJSONObject(i)) == ExecutionFact.UNKNOWN) return false;
         }
         return true;
+    }
+
+    /** A target-free cancellation is safe only when the complete durable ledger proves no dispatch. */
+    static boolean canCancelWithoutRecoveryTarget(JSONObject task) {
+        if (task == null
+                || !"standalone-vlm-task-v1".equals(task.optString("schema_version", ""))
+                || !task.has("actions")) {
+            return false;
+        }
+        JSONArray actions = task.optJSONArray("actions");
+        if (actions == null) return false;
+        Set<String> actionIds = new HashSet<>();
+        for (int i = 0; i < actions.length(); i++) {
+            JSONObject action = actions.optJSONObject(i);
+            if (action == null
+                    || !hasCompleteNotDispatchedReceipt(task, action)
+                    || !actionIds.add(action.optString("action_id", ""))
+                    || executionFact(task, action) != ExecutionFact.NOT_EXECUTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean hasCompleteNotDispatchedReceipt(JSONObject task, JSONObject entry) {
+        String actionId = entry.optString("action_id", "");
+        JSONObject contractAction = entry.optJSONObject("action");
+        JSONObject receipt = entry.optJSONObject("result");
+        String taskId = task.optString("task_id", "");
+        if (actionId.isEmpty()
+                || taskId.isEmpty()
+                || !"not_dispatched".equals(entry.optString("phase", ""))
+                || contractAction == null
+                || !actionId.equals(contractAction.optString("action_id", ""))
+                || !taskId.equals(contractAction.optString("task_id", ""))
+                || !"1.0".equals(contractAction.optString("schema_version", ""))
+                || !hasInstantTimestamp(contractAction, "created_at")
+                || contractAction.optString("kind", "").isEmpty()
+                || contractAction.optString("observation_id", "").isEmpty()
+                || contractAction.optLong("observation_version", 0L) < 1L
+                || contractAction.optInt("sequence", 0) < 1
+                || !hasInstantTimestamp(entry, "created_at")
+                || !hasInstantTimestamp(entry, "completed_at")
+                || receipt == null
+                || !(receipt.opt("success") instanceof Boolean)
+                || receipt.optBoolean("success", true)) {
+            return false;
+        }
+
+        Object errorCodeValue = receipt.opt("error_code");
+        Object messageValue = receipt.opt("message");
+        if (!(errorCodeValue instanceof String) || !(messageValue instanceof String)) return false;
+        String expectedMessage = knownNotDispatchedMessage((String) errorCodeValue);
+        return expectedMessage != null && expectedMessage.equals(messageValue);
+    }
+
+    private static boolean hasInstantTimestamp(JSONObject object, String key) {
+        Object value = object.opt(key);
+        if (!(value instanceof String)) return false;
+        try {
+            Instant.parse((String) value);
+            return true;
+        } catch (DateTimeParseException exception) {
+            return false;
+        }
+    }
+
+    /** Mirrors only codes whose production writers persist a known pre-dispatch failure receipt. */
+    private static String knownNotDispatchedMessage(String errorCode) {
+        if ("permission_unavailable".equals(errorCode)) return "无障碍权限不可用";
+        if ("action_controlled".equals(errorCode)
+                || "invalid_action".equals(errorCode)
+                || "stale_observation".equals(errorCode)
+                || "target_node_not_found".equals(errorCode)
+                || "decision_scene_changed_before_dispatch".equals(errorCode)
+                || "decision_scene_unavailable_before_dispatch".equals(errorCode)) {
+            return "本地操作失败";
+        }
+        return null;
     }
 
     static boolean allowsRecoveryDecision(String decision, JSONObject task, JSONObject review,

@@ -1,0 +1,38 @@
+{
+  "task_id": "70545eeb-6077-4549-9a9a-17e03e92844c",
+  "goal": "Tap the Open Accessibility Settings button. Do not change any permission or setting.",
+  "state": "PAUSED",
+  "state_reason": "decision_scene_changed_before_dispatch",
+  "actions": [],
+  "observations": [
+    {
+      "observation_id": "standalone-device-obs-4252-64b9b3e4d9c64d569761d0fb0614e245",
+      "observation_version": 4252,
+      "active_application_package": "",
+      "page_state": "observed",
+      "private_file": "observation-4252.json",
+      "captured_at": "2026-09-25T16:08:05.982069Z"
+    },
+    {
+      "observation_id": "standalone-device-obs-4253-ee145cf928264c92934791c4e0199b8f",
+      "observation_version": 4253,
+      "active_application_package": "",
+      "page_state": "observed",
+      "private_file": "observation-4253.json",
+      "captured_at": "2026-09-25T16:08:06.556970Z"
+    }
+  ],
+  "request_count": 0,
+  "jev_shadow_call_count": 0,
+  "accounted_cost_cny": 0,
+  "recovery_review": null,
+  "recovery_decisions": null,
+  "recovery_history": null,
+  "attempt": "recovery27-crossapp01",
+  "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+  "apk_sha256": "3094239aec5da8c162ce4eb1a0da2ff6d3c415d3a2ed7cf035b5e92d835a937b",
+  "result": "notification start left shade open; two observations contain only SystemUI and no trusted application; zero model/action pause cannot be cancelled because fresh review requires a missing target",
+  "final_device_state": "Dozing",
+  "crossapp_executed": false,
+  "preparation_deviation": "coordinator did not collapse notification shade immediately after Start; no Agent cross-app action occurred"
+}

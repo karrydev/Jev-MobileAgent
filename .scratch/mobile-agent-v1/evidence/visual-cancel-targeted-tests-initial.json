@@ -1,0 +1,47 @@
+{
+  "base_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+  "stage": "initial implementation before malformed-ledger review fix",
+  "result": "passed targeted suites; not final cancellation review acceptance",
+  "suites": [
+    {
+      "suite": "VisualChangeGuardTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "timestamp": "2026-09-25T16:33:04.951Z",
+      "xml_sha256": "5e2e2e42fda723d406c11c698cda87c0edb4b940bc9e27d8831a5121e2eb5d39"
+    },
+    {
+      "suite": "LocalTaskControlPolicyTest",
+      "tests": 28,
+      "failures": 0,
+      "errors": 0,
+      "timestamp": "2026-09-25T16:33:04.881Z",
+      "xml_sha256": "d91ea155d02c9eaa9aef7ef0cb84d38d750fc8f4834a2f41ebbe289d8dbaf934"
+    },
+    {
+      "suite": "LocalTaskStoreTest",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "timestamp": "2026-09-25T16:33:04.935Z",
+      "xml_sha256": "36fd34f4814576c13e05289fb4ef8b51fab218a670fe32a4c60270bcf82aedda"
+    },
+    {
+      "suite": "LocalRecoveryControlGateTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "timestamp": "2026-09-25T16:33:04.815Z",
+      "xml_sha256": "babbb0e816fb2d22f74863a2a770da9a044ebcb15060fd5fd3bfb1783d22c8e1"
+    },
+    {
+      "suite": "TreeActionVerifierTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "timestamp": "2026-09-25T16:33:04.946Z",
+      "xml_sha256": "041495a129da7346f9902435a9737a0af187fcb581176e4aba8c088d4d032269"
+    }
+  ]
+}

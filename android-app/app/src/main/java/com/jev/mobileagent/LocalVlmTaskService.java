@@ -320,6 +320,11 @@ public final class LocalVlmTaskService extends Service {
                         LocalTaskStore.updateState(this, taskId, unresolvedAction ? "NEEDS_REVIEW" : "PAUSED",
                                 "runtime_not_active; explicit_reconciliation_required");
                     }
+                    if (LocalTaskStore.cancelWithoutDeviceDispatch(this, taskId)) {
+                        setStatus("任务已取消；没有派发设备动作");
+                        stopAfterTerminal();
+                        return;
+                    }
                     setStatus("暂停或核对中的任务不能直接取消；请重新观察后显式结束或确认目标完成");
                     refreshNotification();
                     return;
@@ -1808,6 +1813,10 @@ public final class LocalVlmTaskService extends Service {
             }
         }
 
+        if ("vlm_reflector".equals(source)) {
+            decision = VisualChangeGuard.guardVisualDecision(decision, action,
+                    before, after, beforeShot, afterShot);
+        }
         if (!persistTreeVerification(runTaskId, action, decision, source, waits,
                 ruleAttempts, before, after, beforeShot, afterShot, jevSummary)) {
             throw new TaskFailure("action_verification_not_saved",
@@ -2676,6 +2685,9 @@ public final class LocalVlmTaskService extends Service {
             builder.addAction(0, "暂停", servicePendingIntent(ACTION_PAUSE, taskId, 3));
             builder.addAction(0, "取消", servicePendingIntent(ACTION_CANCEL, taskId, 4));
         } else if ("PAUSED".equals(state) || "NEEDS_REVIEW".equals(state)) {
+            if (!reviewRunning && LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(task)) {
+                builder.addAction(0, "取消未派发任务", servicePendingIntent(ACTION_CANCEL, taskId, 9));
+            }
             JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
             if (review == null || !review.optBoolean("valid", false)) {
                 builder.addAction(0, "重新观察核对", servicePendingIntent(ACTION_RECONCILE, taskId, 5));

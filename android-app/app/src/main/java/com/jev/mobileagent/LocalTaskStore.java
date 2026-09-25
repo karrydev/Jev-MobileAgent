@@ -395,6 +395,51 @@ public final class LocalTaskStore {
         }
     }
 
+    /** Cancel a paused task without target re-observation only when its durable ledger proves no dispatch. */
+    public static boolean cancelWithoutDeviceDispatch(Context context, String taskId) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (!applyCancellationWithoutDeviceDispatch(task)) return false;
+            SharedPreferences preferences = preferences(context);
+            SharedPreferences.Editor editor = preferences.edit().putString(taskKey(taskId), task.toString());
+            if (taskId.equals(preferences.getString(ACTIVE_TASK_ID, ""))) {
+                editor.remove(ACTIVE_TASK_ID);
+            }
+            return editor.commit();
+        }
+    }
+
+    static boolean applyCancellationWithoutDeviceDispatch(JSONObject task) {
+        if (task == null || !isReviewableState(task.optString("state", ""))
+                || !LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(task)) {
+            return false;
+        }
+        try {
+            JSONObject terminalControl = new JSONObject()
+                    .put("decision", "cancel")
+                    .put("actor", "user")
+                    .put("basis", "no_device_action_dispatched")
+                    .put("confirmed_at", Instant.now().toString())
+                    .put("action_count", task.optJSONArray("actions").length())
+                    .put("request_count_at_cancellation", task.optInt("request_count", 0))
+                    .put("accounted_cost_cny_at_cancellation",
+                            task.optDouble("accounted_cost_cny", 0.0));
+            task.put("terminal_control", terminalControl)
+                    .put("state", "CANCELLED")
+                    .put("state_reason", "user_cancelled_before_any_device_dispatch")
+                    .put("runtime_status", "用户已取消任务；没有派发设备动作");
+            JSONObject review = task.optJSONObject("recovery_review");
+            if (review != null && review.optBoolean("valid", false)) {
+                review.put("valid", false)
+                        .put("invalidated_reason", "task_cancelled_without_device_dispatch");
+            }
+            touch(task);
+            return true;
+        } catch (JSONException exception) {
+            return false;
+        }
+    }
+
     /** Mark an orphaned app-local task paused; never consults or edits the bridge task journal. */
     public static boolean markInterrupted(Context context) {
         JSONObject active = activeTask(context);

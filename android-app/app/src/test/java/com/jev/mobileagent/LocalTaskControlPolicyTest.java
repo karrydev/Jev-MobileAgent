@@ -68,6 +68,159 @@ public final class LocalTaskControlPolicyTest {
     }
 
     @Test
+    public void targetFreeCancellationRequiresCurrentLedgerAndProvesNoDispatch() throws Exception {
+        JSONObject emptyWithoutTarget = new JSONObject()
+                .put("schema_version", "standalone-vlm-task-v1")
+                .put("target_application_package", "")
+                .put("observations", new JSONArray().put(new JSONObject()
+                        .put("active_application_package", "")
+                        .put("nodes", new JSONArray().put(new JSONObject()
+                        .put("package_name", "com.android.systemui")))))
+                .put("actions", new JSONArray());
+        assertTrue(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(emptyWithoutTarget));
+
+        JSONObject notDispatched = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "decision_scene_changed_before_dispatch"));
+        assertTrue(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(notDispatched));
+    }
+
+    @Test
+    public void targetFreeCancellationRejectsIntentUnknownExecutedAndAmbiguousHistory() throws Exception {
+        JSONObject intent = taskForTargetFreeCancellation(new JSONObject()
+                .put("action_id", "a1").put("phase", "pending")
+                .put("action", contractAction("a1")).put("result", JSONObject.NULL)
+                .put("created_at", "2026-09-26T00:00:00Z"));
+        JSONObject unknown = taskForTargetFreeCancellation(notDispatchedEntry("a1", "action_failed")
+                .put("phase", "outcome_unknown"));
+        JSONObject executed = taskForTargetFreeCancellation(notDispatchedEntry("a1", "action_controlled")
+                .put("result", new JSONObject().put("success", true)
+                        .put("error_code", JSONObject.NULL).put("message", JSONObject.NULL)));
+        for (JSONObject task : new JSONObject[] {intent, unknown, executed}) {
+            assertFalse(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(task));
+        }
+
+        assertFalse(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(
+                new JSONObject().put("schema_version", "standalone-vlm-task-v1")));
+        assertFalse(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(
+                new JSONObject().put("actions", new JSONArray())));
+        assertFalse(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(
+                new JSONObject().put("schema_version", "standalone-vlm-task-v1")
+                        .put("actions", JSONObject.NULL)));
+        assertFalse(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(
+                new JSONObject().put("schema_version", "standalone-vlm-task-v1")
+                        .put("actions", new JSONArray().put(JSONObject.NULL))));
+        assertFalse(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(
+                new JSONObject().put("schema_version", "standalone-vlm-task-v1")
+                        .put("actions", new JSONArray().put(new JSONObject()
+                                .put("phase", "not_dispatched")))));
+
+        JSONObject missingReceipt = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled").put("result", JSONObject.NULL));
+        JSONObject missingErrorCode = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        missingErrorCode.getJSONArray("actions").getJSONObject(0).getJSONObject("result").remove("error_code");
+        JSONObject nullErrorCode = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        nullErrorCode.getJSONArray("actions").getJSONObject(0).getJSONObject("result")
+                .put("error_code", JSONObject.NULL);
+        JSONObject missingMessage = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        missingMessage.getJSONArray("actions").getJSONObject(0).getJSONObject("result").remove("message");
+        JSONObject nullMessage = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        nullMessage.getJSONArray("actions").getJSONObject(0).getJSONObject("result")
+                .put("message", JSONObject.NULL);
+        JSONObject missingSuccess = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        missingSuccess.getJSONArray("actions").getJSONObject(0).getJSONObject("result").remove("success");
+        JSONObject stringSuccess = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        stringSuccess.getJSONArray("actions").getJSONObject(0).getJSONObject("result")
+                .put("success", "false");
+        JSONObject mismatchedMessage = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        mismatchedMessage.getJSONArray("actions").getJSONObject(0).getJSONObject("result")
+                .put("message", "some other failure");
+        JSONObject unknownErrorCode = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_failed"));
+        JSONObject missingCompletion = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        missingCompletion.getJSONArray("actions").getJSONObject(0).remove("completed_at");
+        JSONObject nullCompletion = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled").put("completed_at", JSONObject.NULL));
+        JSONObject invalidTimestamp = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled").put("created_at", "not-a-timestamp"));
+        JSONObject emptyAction = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled").put("action", new JSONObject()));
+        JSONObject mismatchedActionId = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled").put("action", contractAction("other-action")));
+        JSONObject duplicateIds = taskForTargetFreeCancellation(
+                notDispatchedEntry("a1", "action_controlled"));
+        duplicateIds.getJSONArray("actions").put(new JSONObject(
+                duplicateIds.getJSONArray("actions").getJSONObject(0).toString()));
+        for (JSONObject task : new JSONObject[] {missingReceipt, missingErrorCode, nullErrorCode,
+                missingMessage, nullMessage, missingSuccess, stringSuccess, mismatchedMessage,
+                unknownErrorCode, missingCompletion, nullCompletion, invalidTimestamp, emptyAction,
+                mismatchedActionId, duplicateIds}) {
+            assertFalse("task=" + task, LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(task));
+        }
+    }
+
+    @Test
+    public void targetFreeCancellationDoesNotUseDebugBeforeDispatchMarkerShortcut() throws Exception {
+        JSONObject action = new JSONObject().put("action_id", "a1").put("phase", "pending")
+                .put("action", contractAction("a1")).put("result", JSONObject.NULL)
+                .put("created_at", "2026-09-26T00:00:00Z");
+        JSONObject task = taskForTargetFreeCancellation(action).put("debug_recovery_fault",
+                new JSONObject().put("status", "fired")
+                        .put("point", LocalTaskStore.DEBUG_FAULT_BEFORE_DISPATCH).put("action_id", "a1"));
+
+        assertEquals(LocalTaskControlPolicy.ExecutionFact.NOT_EXECUTED,
+                LocalTaskControlPolicy.executionFact(task, action));
+        assertFalse(LocalTaskControlPolicy.canCancelWithoutRecoveryTarget(task));
+    }
+
+    private static JSONObject taskForTargetFreeCancellation(JSONObject action) throws Exception {
+        return new JSONObject().put("schema_version", "standalone-vlm-task-v1")
+                .put("task_id", "task-1")
+                .put("actions", new JSONArray().put(action));
+    }
+
+    private static JSONObject notDispatchedEntry(String actionId, String errorCode) throws Exception {
+        return new JSONObject().put("action_id", actionId).put("phase", "not_dispatched")
+                .put("action", contractAction(actionId))
+                .put("result", new JSONObject().put("success", false).put("error_code", errorCode)
+                        .put("message", "permission_unavailable".equals(errorCode)
+                                ? "无障碍权限不可用" : "本地操作失败"))
+                .put("created_at", "2026-09-26T00:00:00Z")
+                .put("completed_at", "2026-09-26T00:00:01Z");
+    }
+
+    private static JSONObject contractAction(String actionId) throws Exception {
+        return new JSONObject().put("schema_version", "1.0")
+                .put("android_schema_version", "1.0")
+                .put("task_id", "task-1")
+                .put("device_id", "local-device")
+                .put("action_id", actionId)
+                .put("observation_id", "observation-1")
+                .put("observation_version", 1)
+                .put("sequence", 1)
+                .put("kind", "tap")
+                .put("target_node_id", "node-1")
+                .put("target_node_label", "Confirm")
+                .put("target_node_role", "button")
+                .put("expected_page_state", "tap_requested")
+                .put("parameters", new JSONObject())
+                .put("coordinate_frame", new JSONObject())
+                .put("requires_screenshot", true)
+                .put("before_screenshot_id", JSONObject.NULL)
+                .put("source", "mobileagent-v3.5-vlm-role")
+                .put("created_at", "2026-09-26T00:00:00Z")
+                .put("decision_scene_fingerprint", "scene-1")
+                .put("decision_scene_event_sequence", 0);
+    }
+
+    @Test
     public void completedGoalUsesSeparateUserObservedTerminalPolicyEvenWithUnknownAction() throws Exception {
         JSONObject action = new JSONObject().put("phase", "pending");
         JSONObject task = new JSONObject().put("actions", new JSONArray().put(action));

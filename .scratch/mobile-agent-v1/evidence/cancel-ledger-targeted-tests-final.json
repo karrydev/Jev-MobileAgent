@@ -1,0 +1,28 @@
+{
+  "scope": "final tightened cancellation ledger policy and store",
+  "suites": [
+    {
+      "name": "com.jev.mobileagent.LocalTaskControlPolicyTest",
+      "tests": "29",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-09-25T16:42:59.745Z",
+      "hostname": "liangkairuideMacBook-Pro.local",
+      "time": "0.046",
+      "xml_sha256": "67564e52cf71b76e2389edae36aa5778b5d444751d840fdc2bf7c12c688f3f3a"
+    },
+    {
+      "name": "com.jev.mobileagent.LocalTaskStoreTest",
+      "tests": "17",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-09-25T16:42:59.793Z",
+      "hostname": "liangkairuideMacBook-Pro.local",
+      "time": "0.003",
+      "xml_sha256": "000297c57927aa4364c653fece53236fec5807a26343a938e7e1123313b089d4"
+    }
+  ],
+  "review": "Sol-max CLEAR; device validation pending"
+}

@@ -1,0 +1,40 @@
+{
+  "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+  "negative_attempt": "planning25-off-visual05",
+  "positive_attempt": "planning25-on-visual07",
+  "private_inputs": [
+    {
+      "file": "hit-after.json",
+      "sha256": "6dd71f0cf08991464bccc8303fb5707370f384ff29906d632d910dd852578fcb"
+    },
+    {
+      "file": "hit-after.png",
+      "sha256": "f4a051778397fd2b09baa2529d22edd7884cf2585b9adc702ddf54dd48336928"
+    },
+    {
+      "file": "hit-before.json",
+      "sha256": "ed8233c826e0c898d67ae2adc8e95df40a62e1325dd2469b2336df90a983e8d0"
+    },
+    {
+      "file": "hit-before.png",
+      "sha256": "7343930e513876fbbca3787ce5511f9a53368ad5595cc6a4d4bbb3fed53b8a6c"
+    },
+    {
+      "file": "miss-after.json",
+      "sha256": "6dc73b191e11d3eef590f3bd16c25726497fa8c233cf266a4c33daba43fe3ecb"
+    },
+    {
+      "file": "miss-after.png",
+      "sha256": "256ec6d29d57e5bb390dddf33293f38e481bf8e653c384a6ac0d66937a8ecbfc"
+    },
+    {
+      "file": "miss-before.json",
+      "sha256": "8ef5d0bf3df211c53c448bf0ee92fb46ed424e18d88fedd7ce5927756b5543e0"
+    },
+    {
+      "file": "miss-before.png",
+      "sha256": "1b5aa981e542bbcea71db04ef5d566bb1500859cf466269ed2c72d7066b1d683"
+    }
+  ],
+  "public_raw_screenshots": false
+}

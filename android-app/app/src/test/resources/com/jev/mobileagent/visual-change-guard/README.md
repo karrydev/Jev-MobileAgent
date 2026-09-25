@@ -1,0 +1,10 @@
+# Visual change guard fixtures
+
+The four PNGs are byte-identical copies of the recovery27 static-border input screenshots. The JSON files preserve the full controlled-app node tree, both recorded windows, and the exact System UI status-bar node used for viewport grounding. To keep unrelated device content out of source control, each JSON fixture drops the System UI clock, notification/icon nodes, `task_id`/`device_id`, and the fluctuating local-task status text/state; its retained window root points only to the retained status-bar node. The original evidence remains unchanged under `/tmp/recovery27-evidence/static-border-diagnosis/` and its original SHA-256 values are in `.scratch/mobile-agent-v1/evidence/static-border-input-manifest.json`.
+
+The source observations do not contain the separate local screenshot callback record. Tests assemble only that record's metadata (`screenshot_id`, `observation_id`, `capture_type`, dimensions) from the source observation and bind it to the corresponding unmodified PNG bytes. They pass the real JSON scene through `VisualChangeGuard.frameContext()` and the real PNG pixels through its production pixel-row comparison policy.
+
+| Pair | Outcome in source screenshots | Original observation SHA-256 (before / after) | Original PNG SHA-256 (before / after) |
+|---|---|---|---|
+| miss | Exact app-content match after excluding first-party status node | `8ef5d0bf3df211c53c448bf0ee92fb46ed424e18d88fedd7ce5927756b5543e0` / `6dc73b191e11d3eef590f3bd16c25726497fa8c233cf266a4c33daba43fe3ecb` | `1b5aa981e542bbcea71db04ef5d566bb1500859cf466269ed2c72d7066b1d683` / `256ec6d29d57e5bb390dddf33293f38e481bf8e653c384a6ac0d66937a8ecbfc` |
+| hit | App-content pixels changed outside the selected accessibility action node | `ed8233c826e0c898d67ae2adc8e95df40a62e1325dd2469b2336df90a983e8d0` / `6dd71f0cf08991464bccc8303fb5707370f384ff29906d632d910dd852578fcb` | `7343930e513876fbbca3787ce5511f9a53368ad5595cc6a4d4bbb3fed53b8a6c` / `f4a051778397fd2b09baa2529d22edd7884cf2585b9adc702ddf54dd48336928` |

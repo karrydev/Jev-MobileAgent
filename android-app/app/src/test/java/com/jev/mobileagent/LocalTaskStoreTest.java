@@ -10,6 +10,60 @@ import org.junit.Test;
 
 public final class LocalTaskStoreTest {
     @Test
+    public void targetFreeCancellationPreservesTaskHistoryAndBudget() throws Exception {
+        JSONArray requests = new JSONArray().put(new JSONObject()
+                .put("purpose", "manager").put("status", "failed").put("usage_unknown", true));
+        JSONArray observations = new JSONArray().put(new JSONObject()
+                .put("observation_id", "system-ui").put("active_application_package", ""));
+        JSONObject review = new JSONObject().put("valid", true).put("observation_id", "old-review");
+        JSONObject task = new JSONObject().put("schema_version", "standalone-vlm-task-v1")
+                .put("state", "NEEDS_REVIEW").put("actions", new JSONArray())
+                .put("requests", requests).put("observations", observations)
+                .put("history", new JSONObject().put("manager", new JSONArray().put("kept")))
+                .put("recovery_review", review).put("request_count", 3).put("step_count", 2)
+                .put("accounted_cost_cny", 0.123).put("cost_status", "usage_unknown")
+                .put("budget_cny", 0.4).put("usage_missing", true);
+        String requestsBefore = requests.toString();
+        String observationsBefore = observations.toString();
+        String historyBefore = task.getJSONObject("history").toString();
+
+        assertTrue(LocalTaskStore.applyCancellationWithoutDeviceDispatch(task));
+
+        assertEquals("CANCELLED", task.optString("state"));
+        assertEquals("user_cancelled_before_any_device_dispatch", task.optString("state_reason"));
+        assertEquals("cancel", task.getJSONObject("terminal_control").optString("decision"));
+        assertEquals("no_device_action_dispatched",
+                task.getJSONObject("terminal_control").optString("basis"));
+        assertFalse(review.optBoolean("valid", true));
+        assertEquals("task_cancelled_without_device_dispatch",
+                review.optString("invalidated_reason"));
+        assertEquals(requestsBefore, task.getJSONArray("requests").toString());
+        assertEquals(observationsBefore, task.getJSONArray("observations").toString());
+        assertEquals(historyBefore, task.getJSONObject("history").toString());
+        assertEquals(3, task.optInt("request_count"));
+        assertEquals(2, task.optInt("step_count"));
+        assertEquals(0.123, task.optDouble("accounted_cost_cny"), 0.0);
+        assertEquals(0.4, task.optDouble("budget_cny"), 0.0);
+        assertEquals("usage_unknown", task.optString("cost_status"));
+        assertTrue(task.optBoolean("usage_missing"));
+    }
+
+    @Test
+    public void targetFreeCancellationRejectsActiveOrUncertainTaskWithoutMutation() throws Exception {
+        JSONObject active = new JSONObject().put("schema_version", "standalone-vlm-task-v1")
+                .put("state", "RUNNING").put("actions", new JSONArray());
+        JSONObject uncertain = new JSONObject().put("schema_version", "standalone-vlm-task-v1")
+                .put("state", "PAUSED").put("actions", new JSONArray().put(new JSONObject()
+                        .put("action_id", "a1").put("phase", "pending")
+                        .put("action", new JSONObject().put("type", "tap"))));
+        for (JSONObject task : new JSONObject[] {active, uncertain}) {
+            String before = task.toString();
+            assertFalse(LocalTaskStore.applyCancellationWithoutDeviceDispatch(task));
+            assertEquals(before, task.toString());
+        }
+    }
+
+    @Test
     public void recoveryTargetUsesLastRunningObservationAndIgnoresUntrustedRecoveryHistory() throws Exception {
         JSONObject task = new JSONObject().put("target_application_package", "com.example.first")
                 .put("last_running_target_application_package", "com.example.second")

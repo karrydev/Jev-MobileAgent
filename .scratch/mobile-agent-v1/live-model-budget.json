@@ -1719,9 +1719,71 @@
       "diagnostic_only": true,
       "source_base_commit": "09e65b0e38f80fa4ca9e6f8de9ace020c58e154b",
       "source_patch_sha256": "9f133d01cd80a220d8aa2f1b2e40c856551d8f44e327dab396cb9f8a8798071c"
+    },
+    {
+      "id": "planning25-off-input09",
+      "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+      "result": "SUCCEEDED: overall_goal_verified_after_manager_finished",
+      "budget_reservation_cny": 0.010000000000000004,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.010854,
+      "actual_billed_cny": null,
+      "requests": 3,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.020854000000000004
+    },
+    {
+      "id": "planning25-on-input06",
+      "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+      "result": "SUCCEEDED: overall_goal_verified_after_manager_finished",
+      "budget_reservation_cny": 0.009999999999999997,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.010947,
+      "actual_billed_cny": null,
+      "requests": 3,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.020946999999999997
+    },
+    {
+      "id": "planning25-on-visual07",
+      "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+      "result": "SUCCEEDED: overall_goal_verified_after_executor_finished",
+      "budget_reservation_cny": 0.010000000000000005,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0115905,
+      "actual_billed_cny": null,
+      "requests": 3,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.021590500000000006
+    },
+    {
+      "id": "planning25-off-visual05",
+      "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+      "result": "CANCELLED: user_ended_after_fresh_reconciliation",
+      "budget_reservation_cny": 0.02,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.016044,
+      "actual_billed_cny": null,
+      "requests": 4,
+      "jev_requests": 2,
+      "accounted_cny_in_app": 0.036044
+    },
+    {
+      "id": "recovery27-crossapp01",
+      "source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+      "result": "reserved before live phone task",
+      "budget_reservation_cny": 1,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 2.0749125,
+  "estimated_list_price_total_cny": 2.124348,
   "unknown_usage_request_count": 4,
   "authorization_changes": [
     {
