@@ -24,6 +24,14 @@ public final class JevShadow {
     private JevShadow() {
     }
 
+    static boolean mayContinueToVisualFallback(JSONObject report) {
+        return report == null || !"budget_denied".equals(report.optString("status", ""));
+    }
+
+    static boolean shouldRunTreeVerification(JSONObject task) {
+        return task != null && task.optBoolean("tree_verification_enabled", false);
+    }
+
     public static JSONObject runTaskAttempt(Context context, String taskId, int zeroBasedStep,
             String instruction, JSONObject observation, JSONObject vlmAction,
             JevApiClient.CancellationToken cancellationToken) throws JSONException {
@@ -476,6 +484,7 @@ public final class JevShadow {
                 .put("report_version", "jev-shadow-attempt/android-v1")
                 .put("created_at", Instant.now().toString())
                 .put("source", source)
+                .put("request_purpose", requestPurposeForSource(source))
                 .put("step", Math.max(0, zeroBasedStep) + 1)
                 .put("observation_id", observationId == null ? "" : observationId)
                 .put("observation_version", Math.max(0L, observationVersion))
@@ -483,6 +492,14 @@ public final class JevShadow {
         if (caseId != null) result.put("case_id", caseId);
         if (split != null) result.put("split", split);
         return result;
+    }
+
+    static String requestPurposeForSource(String source) {
+        if ("task_controlled".equals(source)) return "selection";
+        if ("task_verification".equals(source)) return "verification";
+        if ("task_shadow".equals(source)) return "shadow";
+        if ("debug_case".equals(source) || "debug_protocol_probe".equals(source)) return "debug";
+        return source == null ? "" : source;
     }
 
     private static JSONObject comparison(JevCandidateBuilder.CandidateSet candidates,

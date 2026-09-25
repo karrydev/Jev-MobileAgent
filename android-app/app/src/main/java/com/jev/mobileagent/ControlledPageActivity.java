@@ -372,7 +372,8 @@ public final class ControlledPageActivity extends Activity {
         VisualGestureSurface surface = new VisualGestureSurface();
         surface.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         visualStatus = label("Visual gesture state: ready", 14, Color.DKGRAY);
-        visualStatus.setContentDescription("Visual gesture state ready");
+        visualStatus.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        visualStatus.setContentDescription(null);
         content.addView(visualHeading, params());
         content.addView(surface, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(140)));

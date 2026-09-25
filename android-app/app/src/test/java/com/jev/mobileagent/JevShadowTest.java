@@ -21,6 +21,32 @@ public final class JevShadowTest {
     }
 
     @Test
+    public void treeVerificationJevEligibilityUsesItsOwnTaskFlag() throws Exception {
+        JSONObject treeOnly = new JSONObject().put("tree_verification_enabled", true)
+                .put("jev_selection_enabled", false).put("jev_shadow_enabled", false);
+        JSONObject selectionOnly = new JSONObject().put("tree_verification_enabled", false)
+                .put("jev_selection_enabled", true).put("jev_shadow_enabled", false);
+
+        assertTrue(JevShadow.shouldRunTreeVerification(treeOnly));
+        assertFalse(JevShadow.shouldRunTreeVerification(selectionOnly));
+        assertEquals("selection", JevShadow.requestPurposeForSource("task_controlled"));
+        assertEquals("verification", JevShadow.requestPurposeForSource("task_verification"));
+    }
+
+    @Test
+    public void hardBudgetDenialStopsBeforeVisualFallbackButUnavailableOrInvalidJevCanFallBack() throws Exception {
+        assertFalse(JevShadow.mayContinueToVisualFallback(
+                new JSONObject().put("status", "budget_denied")));
+        assertTrue(JevShadow.mayContinueToVisualFallback(null));
+        for (String status : new String[] {
+                "profile_missing", "unsupported_profile", "protocol_error", "request_error", "valid_low_confidence"
+        }) {
+            assertTrue(status, JevShadow.mayContinueToVisualFallback(
+                    new JSONObject().put("status", status)));
+        }
+    }
+
+    @Test
     public void validHighConfidenceChoiceCannotBypassMissingVlmCandidateCoverage() throws Exception {
         JSONObject button = new JSONObject().put("node_id", "preset-button").put("role", "button")
                 .put("enabled", true).put("actions", new JSONArray().put("tap"))

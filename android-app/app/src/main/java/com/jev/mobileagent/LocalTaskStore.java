@@ -283,12 +283,8 @@ public final class LocalTaskStore {
             if (attempts == null || attemptBase == null) {
                 return Reservation.denied("attempt_journal_invalid");
             }
-            for (int i = 0; i < attempts.length(); i++) {
-                JSONObject prior = attempts.optJSONObject(i);
-                if (prior != null && prior.optInt("step", -1) == step + 1
-                        && prior.optBoolean("request_sent", false)) {
-                    return Reservation.denied("jev_step_already_requested");
-                }
+            if (hasSentJevRequestForPurpose(attempts, step + 1, jevRequestPurpose(attemptBase))) {
+                return Reservation.denied("jev_step_already_requested");
             }
             int taskCalls = task.optInt("jev_shadow_call_count", 0);
             int globalCalls = shadowCallCount(preferences);
@@ -340,6 +336,39 @@ public final class LocalTaskStore {
             } catch (JSONException exception) {
                 return Reservation.denied("attempt_journal_invalid");
             }
+        }
+    }
+
+    static boolean hasSentJevRequestForPurpose(JSONArray attempts, int oneBasedStep,
+            String requestedPurpose) {
+        if (attempts == null) return false;
+        String requested = requestedPurpose == null ? "" : requestedPurpose.trim();
+        for (int i = 0; i < attempts.length(); i++) {
+            JSONObject prior = attempts.optJSONObject(i);
+            if (prior == null || prior.optInt("step", -1) != oneBasedStep
+                    || !prior.optBoolean("request_sent", false)) {
+                continue;
+            }
+            String priorPurpose = jevRequestPurpose(prior);
+            // Legacy records without a recognizable purpose conservatively block every replay.
+            if (requested.isEmpty() || priorPurpose.isEmpty() || requested.equals(priorPurpose)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String jevRequestPurpose(JSONObject attempt) {
+        if (attempt == null) return "";
+        String purpose = attempt.optString("request_purpose", "").trim();
+        if (!purpose.isEmpty()) return purpose;
+        switch (attempt.optString("source", "").trim()) {
+            case "task_controlled": return "selection";
+            case "task_verification": return "verification";
+            case "task_shadow": return "shadow";
+            case "debug_case":
+            case "debug_protocol_probe": return "debug";
+            default: return "";
         }
     }
 

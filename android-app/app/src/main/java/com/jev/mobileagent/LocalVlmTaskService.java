@@ -730,10 +730,16 @@ public final class LocalVlmTaskService extends Service {
                                 .put("after_screenshot_available", TreeActionVerifier.hasImage(afterShot)));
                 source = "screenshot_unavailable";
             } else {
-                if (task.optBoolean("jev_selection_enabled", false)
-                        || task.optBoolean("jev_shadow_enabled", false)) {
+                if (JevShadow.shouldRunTreeVerification(task)) {
                     jevSummary = runTreeVerificationWithJev(task, runTaskId, step,
                             action, before, after, rule);
+                    if (!JevShadow.mayContinueToVisualFallback(jevSummary)) {
+                        JSONObject error = jevSummary.optJSONObject("error");
+                        String reason = error == null ? "budget_gate"
+                                : error.optString("code", "budget_gate");
+                        throw new TaskFailure("jev_verification_" + reason,
+                                "Jev 树核验预算门禁拒绝；已停止视觉回退及后续请求，任务已暂停");
+                    }
                     TreeActionVerifier.Status jevStatus = jevSummary == null
                             ? TreeActionVerifier.Status.UNKNOWN
                             : TreeActionVerifier.parseModelStatus(jevSummary.optString("verification_status", ""));
