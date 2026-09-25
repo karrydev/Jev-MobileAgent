@@ -1,0 +1,15 @@
+{
+  "source_commit": "8d3bcc52aa10c86188f8d4b2b2ab09159e55de8e",
+  "apk_path": "/tmp/recovery27-evidence/guard-recovery-candidate.apk",
+  "apk_sha256": "9c66e641c1c61e29889703ff423a8a053074767dafe4f4a58dcd2bad1fc84a1a",
+  "build_command": "./gradlew --offline --no-daemon --console plain assembleDebug",
+  "build_result": "BUILD SUCCESSFUL in 8s",
+  "install": "adb install -r: Success",
+  "certificate_sha256": "38dd45369017a980dae905841d8f76aff025fa5e3a434ed3aa421239343194c6",
+  "signing": "Android Debug; upgrade compatible test candidate",
+  "device_validation": "Luna original paused zero-dispatch task cancellation passed; visual guard and cross-application validation pending",
+  "valid_targeted_test_count": 66,
+  "review": "Independent gpt-6-sol max CLEAR, including final malformed-ledger tightening",
+  "prior_source_commit": "c4a718b2fe532eb79e4c7fc3963ad04e2f51cc1e",
+  "remote_push": "8d3bcc5 pushed to origin/codex/v1-standalone-recovery"
+}

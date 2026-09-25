@@ -24,6 +24,23 @@ public final class MobileAgentVlmRoles {
             "\n\n---\n### Bounded baseline coordinate convention ###\n"
                     + "For coordinate and coordinate2 values, use normalized x/y values from 0 to 1000.";
 
+    private static final String REQUEST_FIDELITY_GUIDELINES =
+            "Treat the complete user request above as the authoritative target specification. "
+                    + "In every initial or revised plan and each subgoal, preserve all qualifiers "
+                    + "that distinguish the requested target or result, including visual, semantic, "
+                    + "spatial, relational, textual, quantity, and state details. Do not omit, "
+                    + "weaken, or replace a qualifier with a broader label match.\n"
+                    + "A matching label or similar wording is only partial evidence; it does not "
+                    + "satisfy the other requested details. Use the screenshot and available "
+                    + "interface evidence to confirm the complete target description.\n"
+                    + "Keep the requested content or result distinct from interface text that only "
+                    + "describes or configures a task, preset, template, example, or setting. "
+                    + "Changing that description or configuration does not satisfy a request to "
+                    + "create, select, or operate on the described content unless the user asked "
+                    + "for that change. If any requested qualifier or the requested result itself "
+                    + "remains unresolved or unverified from current evidence, keep it in the plan; "
+                    + "do not mark the plan Finished.";
+
     private static final String DEFAULT_EXECUTOR_GUIDELINES =
             "General:\n"
                     + "- For any pop-up window, such as a permission request, you need to close it (e.g., by clicking `Don't Allow` or `Accept & continue`) before proceeding. Never choose to add any account or log in.\n"
@@ -75,6 +92,8 @@ public final class MobileAgentVlmRoles {
                 .append("Your goal is to track progress and devise high-level plans to achieve ")
                 .append("the user's requests.\n\n");
         prompt.append("### User Request ###\n").append(instruction).append("\n\n");
+        prompt.append("### Request Fidelity Constraints ###\n")
+                .append(REQUEST_FIDELITY_GUIDELINES).append("\n\n");
         if (plan.isEmpty()) {
             prompt.append("---\nMake a high-level plan to achieve the user's request. If the request ")
                     .append("is complex, break it down into subgoals. The screenshot displays the ")
@@ -113,7 +132,7 @@ public final class MobileAgentVlmRoles {
             }
             prompt.append("---\nCarefully assess the current status and the provided screenshot. Check if the current plan needs to be revised.\n")
                     .append("Determine if the user request has been fully completed. If you are confident that no further actions are required, mark the plan as \"Finished\" in your output. If the user request is not finished, update the plan. If you are stuck with errors, think step by step about whether the overall plan needs to be revised to address the error.\n")
-                    .append("NOTE: 1. If the current situation prevents proceeding with the original plan or requires clarification from the user, make reasonable assumptions and revise the plan accordingly. Act as though you are the user in such cases. 2. Please refer to the helpful information and steps in the Guidelines first for planning. 3. If the first subgoal in plan has been completed, please update the plan in time according to the screenshot and progress to ensure that the next subgoal is always the first item in the plan. 4. If the first subgoal is not completed, please copy the previous round's plan or update the plan based on the completion of the subgoal.\n")
+                    .append("NOTE: 1. If the current situation prevents proceeding with the original plan or a requested detail cannot be verified, do not guess away that detail or substitute a similar target. Preserve the full request, describe what remains unresolved in the plan, and use a safe information-gathering step when one is available. 2. Please refer to the helpful information and steps in the Guidelines first for planning. 3. If the first subgoal in plan has been completed, please update the plan in time according to the screenshot and progress to ensure that the next subgoal is always the first item in the plan. 4. If the first subgoal is not completed, please copy the previous round's plan or update the plan based on the completion of the subgoal.\n")
                     .append("IMPORTANT: If the next steps require an `answer` action, make sure that there is a plan to perform the `answer` action. In this case, you should not mark the plan as \"Finished\" unless the last action is `answer`.\n")
                     .append("Provide your output in the following format, which contains three parts:\n\n")
                     .append("### Thought ###\nAn explanation of your rationale for the updated plan and current subgoal.\n\n")
@@ -135,6 +154,23 @@ public final class MobileAgentVlmRoles {
                 .append("### User Request ###\n").append(instruction).append("\n\n")
                 .append("### Overall Plan ###\n").append(plan).append("\n\n")
                 .append("### Current Subgoal ###\n").append(currentGoal(plan)).append("\n\n")
+                .append("### Request Fidelity and Plan Check ###\n")
+                .append("Before choosing an action, compare the current subgoal and planned target "
+                        + "with the complete original user request above. The original request takes "
+                        + "precedence: if the plan omits, weakens, or conflicts with a requested "
+                        + "qualifier, disregard that conflicting plan text and derive the action "
+                        + "from the original request and current evidence. A node label or text "
+                        + "similarity alone does not prove a target matches the request's other "
+                        + "visual, semantic, spatial, relational, textual, quantity, or state details; "
+                        + "check the screenshot and available interface evidence for the whole target.\n"
+                        + "Keep requested content or results distinct from labels or text that only "
+                        + "describe or configure a task, preset, template, example, or setting. Do "
+                        + "not choose or change those in place of the requested target or content "
+                        + "unless the user asked for it. If current evidence does not distinguish "
+                        + "possible targets, do not operate on a merely similar target or report it "
+                        + "as progress or completion. Use an existing safe action to gather more "
+                        + "evidence when relevant; otherwise keep the ambiguity explicit in Thought "
+                        + "and do not claim that the target was selected or completed.\n\n")
                 .append("### Progress Status ###\n")
                 .append(progressStatus.isEmpty() ? "No progress yet.\n\n" : progressStatus + "\n\n")
                 .append("### Guidelines ###\n").append(DEFAULT_EXECUTOR_GUIDELINES).append("\n\n---\n")

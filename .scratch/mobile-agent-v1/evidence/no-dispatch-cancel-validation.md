@@ -7,3 +7,5 @@
 取消前仍保留原任务，不手动修改偏好、清空任务或重置预算。Luna 实现，独立 Sol-max 只读审查，随后 Luna 在原位升级后的手机用正常通知按钮验收。定向测试、审查与真机结果尚待写入，不能将本说明当成已验收完成。
 
 2026-09-26 最终源码验证：独立 Sol-max 定向审查 CLEAR。取消账本边界收紧后，LocalTaskControlPolicyTest 29 项、LocalTaskStoreTest 17 项通过（2026-09-25T16:42:59Z，零失败/错误）；其余未变的视觉/恢复门禁/树核验 20 项沿用前次通过结果，共 66 项有效定向测试。APK 构建与原位真机验收仍待执行，不能据此关闭票。
+
+真机回归通过：Luna 在 8d3bcc5 / APK 9c66e641… 原位升级后，经正常 Main 重建恢复通知，点击“取消未派发任务”。原 task 70545eeb-6077-4549-9a9a-17e03e92844c 从 PAUSED 变为 CANCELLED/user_cancelled_before_any_device_dispatch，active_task_id 清空，新增 terminal_control 明确 user/no_device_action_dispatched；历史、观察、动作、请求及预算字段保持。0 请求/动作/费用，Jev 全局仍66，结束后Dozing。原始c4试验结果与新版本清理证据分开保留，见 [原任务与修复回归](recovery27-crossapp01.json)。

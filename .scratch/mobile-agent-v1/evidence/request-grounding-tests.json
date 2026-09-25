@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "com.jev.mobileagent.MobileAgentVlmRolesTest",
+      "tests": "15",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-09-25T17:51:34Z",
+      "hostname": "liangkairuideMacBook-Pro.local",
+      "time": "0.026",
+      "xml_sha256": "aef4d5f631b970df8ffda3f0b952220f0b735640ee8492fc7db23e854d4ab93c"
+    },
+    {
+      "name": "com.jev.mobileagent.VlmCoordinateProtocolTest",
+      "tests": "5",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-09-25T17:51:34.028Z",
+      "hostname": "liangkairuideMacBook-Pro.local",
+      "time": "0.0",
+      "xml_sha256": "c58446db1821f1d0cb1592720445c684040b0f90654670ac4b35d4587452622b"
+    }
+  ],
+  "scope": "final role-request fidelity guidance; existing action JSON and coordinate protocol preserved",
+  "live_model_validation": "not run: remaining planning-stage budget below full per-task reservation"
+}

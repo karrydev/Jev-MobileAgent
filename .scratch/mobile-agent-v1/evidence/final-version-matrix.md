@@ -12,7 +12,7 @@
 | 独立App仅VLM | 373da44；APK800dc859… | 用户物理拔线，中文/蓝框成功，9/5请求 | standalone-baseline.md、standalone-usb-*.json |
 | Jev受控选择 | 0d01ec5；APK11959578… | 同APK4项配对均成功；中文Jev实际输入，视觉因候选不足回退 | jev-controlled-validation.md、jev23-*.json |
 | 树优先核验 | 8c112d5；APKe76edabe… | 同APK4项配对成功；中文少一次Reflector，视觉开销反增；五类边界另记 | tree-verification-validation.md、tree24-*.json |
-| 按需规划 | c4a718b；APK3094239a…；最终版本待定 | 两侧中文与ON蓝框自动成功；OFF蓝框误点预设，整体门禁拒绝；逐步视觉误判仍在诊断 | fresh-capture-paired-validation.md、on-demand-planning-plan.md |
-| 独立恢复 | 多个精确版本见各JSON，最终修复待集成 | 三种进程窗口、断网、锁屏、撤权和真实重启已留证；锁屏停止及显式恢复已留证，原始触摸覆盖有限；输入旧树缓存已修；正常Agent跨应用与最终拔线待补，新增零动作取消死锁待修 | standalone-recovery-validation.md、recovery27-*.json |
+| 按需规划 | 8d3bcc5；APK9c66e641…；后续目标约束候选待复测 | 两侧中文和OFF蓝框成功，ON蓝框错误预设被新guard拦截为UNKNOWN；质量门槛未过 | visual-cancel-final-paired-validation.md、request-grounding-validation.md |
+| 独立恢复 | 多个精确版本见各JSON，最终修复待集成 | 三种进程窗口、断网、锁屏、撤权和真实重启已留证；锁屏停止及显式恢复已留证，原始触摸覆盖有限；输入旧树缓存已修；8d3bcc5正常Agent跨应用fresh明确结束及零动作取消回归已通过，最终拔线待补 | standalone-recovery-validation.md、recovery27-*.json |
 
 历史主模型为gui-plus-2026-02-26，因免费额度限制，用户明确改用gui-plus；新配对两侧统一gui-plus。模型变化、任务变化和设备通道变化均不能混算为规划/Jev收益。所有受控成功只证明对应目标；AndroidWorld真实失败、未知结果和费用不得从最终报告删除。最终留出及拔线版本尚未完成，不能用上述历史成功替代。

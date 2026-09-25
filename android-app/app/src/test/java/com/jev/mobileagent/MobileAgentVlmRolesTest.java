@@ -12,6 +12,35 @@ import org.junit.Test;
 
 public final class MobileAgentVlmRolesTest {
     @Test
+    public void planningAndExecutionPromptsKeepTheOriginalRequestAuthoritative() {
+        MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
+        String request = "Choose the target that matches every requested detail";
+        roles.instruction = request;
+
+        String initialManagerPrompt = roles.managerPrompt();
+        assertTrue(initialManagerPrompt.contains(request));
+        assertTrue(initialManagerPrompt.contains("preserve all qualifiers"));
+        assertTrue(initialManagerPrompt.contains("A matching label or similar wording is only partial evidence"));
+        assertTrue(initialManagerPrompt.contains("task, preset, template, example, or setting"));
+        assertTrue(initialManagerPrompt.contains("do not mark the plan Finished"));
+
+        roles.plan = "1. Choose a target with a matching label.";
+        String revisedManagerPrompt = roles.managerPrompt();
+        assertTrue(revisedManagerPrompt.contains(request));
+        assertTrue(revisedManagerPrompt.contains("Preserve the full request"));
+        assertTrue(revisedManagerPrompt.contains("A matching label or similar wording is only partial evidence"));
+
+        String executorPrompt = roles.executorPrompt();
+        assertTrue(executorPrompt.contains(request));
+        assertTrue(executorPrompt.contains("The original request takes precedence"));
+        assertTrue(executorPrompt.contains("disregard that conflicting plan text"));
+        assertTrue(executorPrompt.contains("do not operate on a merely similar target"));
+        assertTrue(executorPrompt.contains("valid JSON format specifying the `action`"));
+        assertFalse(executorPrompt.contains("leave Action empty"));
+        assertTrue(executorPrompt.contains("task, preset, template, example, or setting"));
+    }
+
+    @Test
     public void guiPlusPromptUsesExactPreparedImageDimensionsAndPixelCoordinates() throws Exception {
         JSONArray screenshots = new JSONArray().put(new JSONObject()
                 .put("screenshot_id", "shot-original")

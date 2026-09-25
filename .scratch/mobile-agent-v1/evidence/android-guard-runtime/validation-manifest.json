@@ -1,0 +1,13 @@
+{
+  "source_commit": "8d3bcc52aa10c86188f8d4b2b2ab09159e55de8e",
+  "runner_dex_sha256": "fd30c693b1ec295408781977809fe44bc828e09af54149cd9ec9098bbf3cc57b",
+  "runner_class_count": 1,
+  "runner_class": "com.jev.mobileagent.VisualGuardRuntimeRunner",
+  "production_classes_in_runner_dex": false,
+  "execution": "Luna ran app_process on OnePlus8T Android14 with installed production base.apk",
+  "api_calls": 0,
+  "global_jev_after": 72,
+  "app_global_accounted_cny_after": 2.462322,
+  "final_device_state": "Dozing",
+  "active_task_id_after": null
+}

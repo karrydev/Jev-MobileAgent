@@ -49,3 +49,5 @@ Gate: 按需规划完成任务并处理计划失效
 2026-09-25继续排障：09e65b0补齐Jev所选节点的真实可视位置并纠正动作描述/后置状态混用，14项定向单测与Sol审查通过。保留旧prompt和首版prompt两次错误SUCCESS；最终相同截图负例UNKNOWN、真实命中正例SUCCESS，4次host-only探针共¥0.0198735，未新增Jev。见[定位与效果归因](../evidence/visual-reflector-grounding-validation.md)。这不是手机任务验收；无障碍输入节点陈旧仍在正式路径取证，状态不变，无需新增额度或配置授权。
 
 2026-09-26：c4a718b已修复Android无障碍子节点缓存，149项单测、构建、Sol定向审查通过；同APK两侧中文和ON蓝框自动成功，OFF蓝框仍被模型误读既有蓝边，整体门禁拒绝并fresh结束。Jev66/150，金额限额不变，见[四项结果](../evidence/fresh-capture-paired-validation.md)。视觉限制正在有界诊断；27新增无可信目标且零动作任务不能取消的死锁，保留原任务等待源码修复，不清数据绕过。
+
+2026-09-26：8d3bcc5同APK严格四配对中文OFF/ON和蓝框OFF自动成功，蓝框ON的Manager误把视觉限定目标认作灰色同名预设，错误点击后新视觉守卫在真实Android路径拦截静态SUCCESS，NEEDS_REVIEW后明确未决结束。失败不改写，质量门槛未过；见[四配对记录](../evidence/visual-cancel-final-paired-validation.md)。Jev72/150，规划阶段¥1.0226505，剩余不足下一完整¥1预留；按code-this继续离线目标约束修复，不越过金额门禁。

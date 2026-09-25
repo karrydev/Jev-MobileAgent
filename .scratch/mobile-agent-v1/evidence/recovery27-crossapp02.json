@@ -1,0 +1,866 @@
+{
+  "task_id": "10fff62e-f840-4253-bd15-2f7e2bcdcec4",
+  "goal": "Tap the Open Accessibility Settings button. Do not change any permission or setting.",
+  "state": "ENDED_WITH_UNRESOLVED",
+  "state_reason": "user_ended_after_review_acknowledging_unresolved_postcondition",
+  "created_at": "2026-09-25T16:59:31.357338Z",
+  "updated_at": "2026-09-25T17:07:19.967797Z",
+  "step_count": 1,
+  "request_count": 3,
+  "jev_shadow_enabled": false,
+  "jev_selection_enabled": true,
+  "jev_shadow_call_count": 1,
+  "jev_shadow_reserved_cny": 0.01,
+  "accounted_cost_cny": 0.021538,
+  "usage_missing": false,
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 1620,
+        "output_tokens": 120,
+        "total_tokens": 1740
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.00297,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-2f6cffe6a1334ae89b8f2d917649aff0"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-2f6cffe6a1334ae89b8f2d917649aff0",
+          "observation_id": "standalone-device-obs-4254-5922b863c5904356a74b3eacb8fed0cd",
+          "observation_version": 4254,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "role": "executor",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2487,
+        "output_tokens": 133,
+        "total_tokens": 2620
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.004329,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-2f6cffe6a1334ae89b8f2d917649aff0"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-2f6cffe6a1334ae89b8f2d917649aff0",
+          "observation_id": "standalone-device-obs-4254-5922b863c5904356a74b3eacb8fed0cd",
+          "observation_version": 4254,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "role": "executor",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2523,
+        "output_tokens": 101,
+        "total_tokens": 2624
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.004239,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-aefd1a9e989d4b3f9fbdd3e92183e28d"
+      ],
+      "image_uploads": [
+        {
+          "screenshot_id": "local-shot-aefd1a9e989d4b3f9fbdd3e92183e28d",
+          "observation_id": "standalone-device-obs-4260-58d196e3bace4525938618089d3c0eaa",
+          "observation_version": 4260,
+          "capture_type": "BEFORE",
+          "source_width_px": 1080,
+          "source_height_px": 2400,
+          "upload_width_px": 672,
+          "upload_height_px": 1484,
+          "image_transform": "gui-plus-28px-maxpixels-v1:resize"
+        }
+      ]
+    }
+  ],
+  "jev_shadow_attempts": [
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T17:01:25.123948Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 1,
+      "observation_id": "standalone-device-obs-4254-5922b863c5904356a74b3eacb8fed0cd",
+      "observation_version": 4254,
+      "candidate_count": 13,
+      "instruction_language": "other",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 13,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-437-0-node-0-0-0-1-2368011a557d",
+            "kind": "tap",
+            "target_node_id": "window-437-0-node-0-0-0-1",
+            "parameters": {},
+            "description": "点击“手电筒”",
+            "equivalence_group": "node:window-437-0-node-0-0-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-437-0-node-0-0-0-2-2cae49a73322",
+            "kind": "tap",
+            "target_node_id": "window-437-0-node-0-0-0-2",
+            "parameters": {},
+            "description": "点击“定位服务开启。”",
+            "equivalence_group": "node:window-437-0-node-0-0-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-437-0-node-0-0-0-3-b25eba408c5f",
+            "kind": "tap",
+            "target_node_id": "window-437-0-node-0-0-0-3",
+            "parameters": {},
+            "description": "点击“飞行模式”",
+            "equivalence_group": "node:window-437-0-node-0-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-437-0-node-0-0-0-4-4ce1e55006d9",
+            "kind": "tap",
+            "target_node_id": "window-437-0-node-0-0-0-4",
+            "parameters": {},
+            "description": "点击“自动旋转屏幕”",
+            "equivalence_group": "node:window-437-0-node-0-0-0-4"
+          },
+          {
+            "candidate_id": "candidate-tap-window-437-0-node-0-0-2-cabd88a7867f",
+            "kind": "tap",
+            "target_node_id": "window-437-0-node-0-0-2",
+            "parameters": {},
+            "description": "点击“蓝牙。”",
+            "equivalence_group": "node:window-437-0-node-0-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-25-9165c2fb943f",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-25",
+            "parameters": {},
+            "description": "点击“启用按需规划（默认关闭）”",
+            "equivalence_group": "node:window-442-1-node-0-0-25"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-29-249a45e7e96b",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-29",
+            "parameters": {},
+            "description": "点击“运行一次中文有效协议探针”",
+            "equivalence_group": "node:window-442-1-node-0-0-29"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-30-c9b88c7f9eef",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-30",
+            "parameters": {},
+            "description": "点击“运行一次显式无效协议探针”",
+            "equivalence_group": "node:window-442-1-node-0-0-30"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-31-9f7260766ba3",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-31",
+            "parameters": {},
+            "description": "点击“运行私有 INPUT.JSON 单 CASE”",
+            "equivalence_group": "node:window-442-1-node-0-0-31"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-35-3c54fae1179d",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-35",
+            "parameters": {},
+            "description": "点击“打开无障碍设置”",
+            "equivalence_group": "node:window-442-1-node-0-0-35"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-37-d34cd0dcf21f",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-37",
+            "parameters": {},
+            "description": "Tap Tap the Open Accessibility Settings button. Do not change any permission or setting.",
+            "equivalence_group": "node:window-442-1-node-0-0-37"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-38-d661868873e9",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-38",
+            "parameters": {},
+            "description": "点击“填入中文输入测试目标”",
+            "equivalence_group": "node:window-442-1-node-0-0-38"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-39-80975566634e",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-39",
+            "parameters": {},
+            "description": "点击“准备在其他应用中运行”",
+            "equivalence_group": "node:window-442-1-node-0-0-39"
+          }
+        ],
+        "missing_parameters": [
+          "direction",
+          "direction",
+          "text"
+        ],
+        "warnings": [
+          {
+            "node_id": "window-437-0-node-0-0-11",
+            "reason": "missing_required_parameter",
+            "parameter": "direction"
+          },
+          {
+            "node_id": "window-442-1-node-0-0",
+            "reason": "missing_required_parameter",
+            "parameter": "direction"
+          },
+          {
+            "node_id": "window-442-1-node-0-0-37",
+            "reason": "missing_required_parameter",
+            "parameter": "text"
+          }
+        ]
+      },
+      "action_dispatched": false,
+      "comparison": {
+        "status": "vlm_candidate_missing"
+      },
+      "known_parameter_source": "none",
+      "candidate_coverage_status": "vlm_candidate_missing",
+      "status": "fallback",
+      "selection_status": "fallback",
+      "fallback_reason": "candidate_coverage_vlm_candidate_missing",
+      "fallback_target": "existing_vlm_action",
+      "request_sent": false,
+      "protocol_status": "not_run",
+      "usage": {
+        "status": "not_requested",
+        "input_tokens": null,
+        "output_tokens": null
+      },
+      "cost": {
+        "status": "not_incurred",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0
+      },
+      "attempt": 1,
+      "dispatch_status": "fallback_vlm"
+    },
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T17:01:29.836323Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 2,
+      "observation_id": "standalone-device-obs-4260-58d196e3bace4525938618089d3c0eaa",
+      "observation_version": 4260,
+      "candidate_count": 8,
+      "instruction_language": "other",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 8,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-25-9165c2fb943f",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-25",
+            "parameters": {},
+            "description": "点击“启用按需规划（默认关闭）”",
+            "equivalence_group": "node:window-442-1-node-0-0-25"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-29-249a45e7e96b",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-29",
+            "parameters": {},
+            "description": "点击“运行一次中文有效协议探针”",
+            "equivalence_group": "node:window-442-1-node-0-0-29"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-30-c9b88c7f9eef",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-30",
+            "parameters": {},
+            "description": "点击“运行一次显式无效协议探针”",
+            "equivalence_group": "node:window-442-1-node-0-0-30"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-31-9f7260766ba3",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-31",
+            "parameters": {},
+            "description": "点击“运行私有 INPUT.JSON 单 CASE”",
+            "equivalence_group": "node:window-442-1-node-0-0-31"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-35-3c54fae1179d",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-35",
+            "parameters": {},
+            "description": "点击“打开无障碍设置”",
+            "equivalence_group": "node:window-442-1-node-0-0-35"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-37-d34cd0dcf21f",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-37",
+            "parameters": {},
+            "description": "Tap Tap the Open Accessibility Settings button. Do not change any permission or setting.",
+            "equivalence_group": "node:window-442-1-node-0-0-37"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-38-d661868873e9",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-38",
+            "parameters": {},
+            "description": "点击“填入中文输入测试目标”",
+            "equivalence_group": "node:window-442-1-node-0-0-38"
+          },
+          {
+            "candidate_id": "candidate-tap-window-442-1-node-0-0-39-80975566634e",
+            "kind": "tap",
+            "target_node_id": "window-442-1-node-0-0-39",
+            "parameters": {},
+            "description": "点击“准备在其他应用中运行”",
+            "equivalence_group": "node:window-442-1-node-0-0-39"
+          }
+        ],
+        "missing_parameters": [
+          "direction",
+          "text"
+        ],
+        "warnings": [
+          {
+            "node_id": "window-442-1-node-0-0",
+            "reason": "missing_required_parameter",
+            "parameter": "direction"
+          },
+          {
+            "node_id": "window-442-1-node-0-0-37",
+            "reason": "missing_required_parameter",
+            "parameter": "text"
+          }
+        ]
+      },
+      "action_dispatched": true,
+      "comparison": {
+        "status": "same_action",
+        "jev_choice_id": "candidate-tap-window-442-1-node-0-0-35-3c54fae1179d",
+        "vlm_equivalent_candidate_id": "candidate-tap-window-442-1-node-0-0-35-3c54fae1179d"
+      },
+      "known_parameter_source": "none",
+      "candidate_coverage_status": "matched",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "question_id": "next_action",
+      "elapsed_ms": 1216,
+      "request_sent": true,
+      "http_status": 200,
+      "protocol_status": "valid",
+      "usage": {
+        "status": "known",
+        "input_tokens": 801,
+        "output_tokens": 333
+      },
+      "choice_id": "candidate-tap-window-442-1-node-0-0-35-3c54fae1179d",
+      "confidence": 0.8,
+      "status": "valid_recommendation",
+      "confidence_status": "meets_frozen_threshold",
+      "cost": {
+        "status": "reserved_actual_unknown",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0.01
+      },
+      "attempt": 2,
+      "selection_status": "selected",
+      "selected_candidate_id": "candidate-tap-window-442-1-node-0-0-35-3c54fae1179d",
+      "dispatch_status": "executed",
+      "action_id": "local-vlm-action-10fff62e-f840-4253-bd15-2f7e2bcdcec4-2",
+      "action_source": "jev-controlled-candidate-v1"
+    }
+  ],
+  "tree_verification_enabled": true,
+  "tree_verification_policy_id": "jev-android-tree-verification-rules-v1",
+  "tree_verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-4254-5922b863c5904356a74b3eacb8fed0cd",
+      "observation_version": 4254,
+      "screenshot_id": "local-shot-2f6cffe6a1334ae89b8f2d917649aff0",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/10fff62e-f840-4253-bd15-2f7e2bcdcec4/screenshot-4254-before.png",
+      "captured_at": "2026-09-25T17:01:17.249213Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-4260-58d196e3bace4525938618089d3c0eaa",
+      "observation_version": 4260,
+      "screenshot_id": "local-shot-aefd1a9e989d4b3f9fbdd3e92183e28d",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/10fff62e-f840-4253-bd15-2f7e2bcdcec4/screenshot-4260-before.png",
+      "captured_at": "2026-09-25T17:01:26.582002Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-4262-9ce7aabc85104785955df5a6e18fd720",
+      "observation_version": 4262,
+      "screenshot_id": "local-shot-f8cf16d6cbb347c38a0da3d31910a15f",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/10fff62e-f840-4253-bd15-2f7e2bcdcec4/screenshot-4262-after.png",
+      "captured_at": "2026-09-25T17:01:32.343539Z",
+      "attempt": 3
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-4267-dcdd5f0739384bd586a0d070e2ba16e7",
+      "observation_version": 4267,
+      "screenshot_id": "local-shot-cbf628577c6249788aeffa6e0744adc8",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/10fff62e-f840-4253-bd15-2f7e2bcdcec4/screenshot-4267-recovery.png",
+      "captured_at": "2026-09-25T17:05:10.163042Z",
+      "attempt": 4
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-4272-88a803ab1c354820a96951d7c8f9baf7",
+      "observation_version": 4272,
+      "screenshot_id": "local-shot-b023d6080269475ba1ee8e1a5b1130fb",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/10fff62e-f840-4253-bd15-2f7e2bcdcec4/screenshot-4272-recovery.png",
+      "captured_at": "2026-09-25T17:07:19.675338Z",
+      "attempt": 5
+    }
+  ],
+  "on_demand_planning_enabled": false,
+  "planning_plan_step": -1,
+  "planning_events": [
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 1,
+      "plan_step": null,
+      "plan_age_steps": null,
+      "active_subgoal": "",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 1,
+      "previous_subgoal": "",
+      "next_subgoal": "Identify the \"Open Accessibility Settings\" button on the current screen. 2. Tap the \"Open Accessibility Settings\" button. 3. Perform the `answer` action.",
+      "subgoal_changed": false
+    },
+    {
+      "event": "planner_decision",
+      "decision": "reuse_plan",
+      "reason": "plan_current",
+      "step": 2,
+      "plan_step": 1,
+      "plan_age_steps": 1,
+      "active_subgoal": "Identify the \"Open Accessibility Settings\" button on the current screen. 2. Tap the \"Open Accessibility Settings\" button. 3. Perform the `answer` action.",
+      "on_demand_enabled": false
+    }
+  ],
+  "schema_version": "standalone-phone-evidence-v1",
+  "attempt": "recovery27-crossapp02",
+  "source_commit": "8d3bcc52aa10c86188f8d4b2b2ab09159e55de8e",
+  "apk_sha256": "9c66e641c1c61e29889703ff423a8a053074767dafe4f4a58dcd2bad1fc84a1a",
+  "device": "OnePlus 8T / Android14 API34",
+  "vlm_model": "gui-plus",
+  "jev_model": "jev-1.13.0",
+  "execution_boundary": "Android app direct HTTPS; USB for setup and read-only evidence, no host orchestration; not a disconnected acceptance",
+  "final_device_state": "Dozing",
+  "final_observation_sha256": "d92327ddc16b5da7305883d7213b7f4ee3122929d815a6c7fc6d4cfb54ce6a59",
+  "independent_page_evidence": [],
+  "elapsed_seconds": 468.610459,
+  "trial_end_state": "NEEDS_REVIEW",
+  "trial_end_reason": "control_during_device_action_or_verification:post_action_scene_context_changed",
+  "trial_elapsed_seconds": 122.003442,
+  "trial_history": {
+    "instruction": "Tap the Open Accessibility Settings button. Do not change any permission or setting.",
+    "plan": "1. Identify the \"Open Accessibility Settings\" button on the current screen. 2. Tap the \"Open Accessibility Settings\" button. 3. Perform the `answer` action.",
+    "completed_plan": "No completed subgoal.",
+    "progress_status": "",
+    "last_answer": "",
+    "important_notes": "",
+    "last_summary": "Scroll up to reveal more content on the screen.",
+    "last_action_thought": "The user's request is to tap the \"Open Accessibility Settings\" button. However, the current screen does not show this button directly. The text at the bottom of the screen provides instructions that match the user's request, indicating that there might be a button labeled \"Open Accessibility Settings\" further down the page. Therefore, I need to scroll down to locate and tap the correct button.",
+    "finish_thought": "",
+    "error_flag_plan": false,
+    "note_requested": false,
+    "action_history": [
+      "{\"action\":\"invalid\"}"
+    ],
+    "summary_history": [
+      "Scroll up to reveal more content on the screen."
+    ],
+    "action_outcomes": [
+      "C"
+    ],
+    "error_descriptions": [
+      "本地操作失败"
+    ]
+  },
+  "recovery_evidence": {
+    "debug_recovery_fault": null,
+    "recovery_review": {
+      "observation_id": "standalone-device-obs-4267-dcdd5f0739384bd586a0d070e2ba16e7",
+      "observation_version": 4267,
+      "captured_at": "2026-09-25T17:05:09.415019Z",
+      "scene_fingerprint": "fee1105141bccaeaa2af80cb9dcdb15a340c905866eff7448951dc85a0406f88",
+      "semantic_fingerprint": "4513630819fb039a0d3682dcb2a49ae191ab1a99f8d8b084bc3d87cfc5ca0e27",
+      "target_application_package": "com.android.settings",
+      "goal": "Tap the Open Accessibility Settings button. Do not change any permission or setting.",
+      "goal_outcome": "UNKNOWN",
+      "valid": false,
+      "action_facts": [
+        {
+          "action_id": "local-vlm-action-10fff62e-f840-4253-bd15-2f7e2bcdcec4-1",
+          "execution_fact": "NOT_EXECUTED",
+          "phase": "not_dispatched",
+          "receipt_success": false,
+          "verification_status": "UNKNOWN"
+        },
+        {
+          "action_id": "local-vlm-action-10fff62e-f840-4253-bd15-2f7e2bcdcec4-2",
+          "execution_fact": "EXECUTED",
+          "phase": "executed",
+          "receipt_success": true,
+          "verification_status": "UNKNOWN"
+        }
+      ],
+      "invalidated_reason": "confirmation_consumed"
+    },
+    "recovery_decisions": [
+      {
+        "decision": "end",
+        "decision_actor": "user",
+        "review_observation_id": "standalone-device-obs-4267-dcdd5f0739384bd586a0d070e2ba16e7",
+        "confirmation_observation_id": "standalone-device-obs-4272-88a803ab1c354820a96951d7c8f9baf7",
+        "confirmed_at": "2026-09-25T17:07:19.897558Z",
+        "execution_facts_known": true,
+        "unresolved_postcondition_retained": true,
+        "review_goal_outcome": "UNKNOWN",
+        "confirmation_goal_outcome": "UNKNOWN",
+        "confirmation_sample_count": 1,
+        "step_count_before": 1,
+        "request_count_at_confirmation": 3,
+        "accounted_cost_cny_at_confirmation": 0.021538
+      }
+    ],
+    "recovery_history": null,
+    "debug_recovery_window": {
+      "expectedTargetPackage": "com.android.settings",
+      "phase": "stable_target",
+      "error": "",
+      "readinessError": "",
+      "elapsedMs": 1558,
+      "screenInteractive": true,
+      "keyguardLocked": false,
+      "capturedAt": "2026-09-25T17:07:19.049478Z",
+      "availability": "AVAILABLE",
+      "screen": {
+        "widthPx": 1080,
+        "heightPx": 2400,
+        "rotation": 0,
+        "activeWindowId": 443,
+        "activeWindowBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 2400
+        },
+        "recoverySystemBarInsets": {
+          "available": true,
+          "source": "window_metrics_system_bars",
+          "reason": "",
+          "statusBarsVisible": true,
+          "navigationBarsVisible": true,
+          "left": 0,
+          "top": 103,
+          "right": 0,
+          "bottom": 48,
+          "metricsBoundsPx": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      },
+      "windowCount": 2,
+      "windows": [
+        {
+          "id": 429,
+          "type": 3,
+          "packageName": "com.android.systemui",
+          "className": "android.widget.FrameLayout",
+          "active": false,
+          "focused": false,
+          "layer": 1,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 103
+          }
+        },
+        {
+          "id": 443,
+          "type": 1,
+          "packageName": "com.android.settings",
+          "className": "android.widget.FrameLayout",
+          "active": true,
+          "focused": true,
+          "layer": 0,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      ]
+    },
+    "completion_attribution": null,
+    "decision_actor": null,
+    "execution_actor": null
+  },
+  "actions": [
+    {
+      "action_id": "local-vlm-action-10fff62e-f840-4253-bd15-2f7e2bcdcec4-1",
+      "phase": "not_dispatched",
+      "kind": "swipe",
+      "source": "mobileagent-v3.5-vlm-role",
+      "target_node_label": "",
+      "parameters": {
+        "x1": 540,
+        "y1": 1200,
+        "x2": 540,
+        "y2": 1800,
+        "duration_ms": 600
+      },
+      "result": {
+        "success": false,
+        "error_code": "stale_observation",
+        "message": "本地操作失败"
+      },
+      "reflection": null,
+      "verification": null,
+      "post_action_scene": null
+    },
+    {
+      "action_id": "local-vlm-action-10fff62e-f840-4253-bd15-2f7e2bcdcec4-2",
+      "phase": "executed",
+      "kind": "tap",
+      "source": "jev-controlled-candidate-v1",
+      "target_node_label": "打开无障碍设置",
+      "parameters": {},
+      "result": {
+        "success": true,
+        "error_code": null,
+        "message": null
+      },
+      "reflection": null,
+      "verification": null,
+      "post_action_scene": {
+        "schema_version": "post-action-scene-v1",
+        "status": "rejected",
+        "reason": "context_or_structure_changed",
+        "trigger_event_sequence": 16,
+        "initial_observation_id": "standalone-device-obs-4262-9ce7aabc85104785955df5a6e18fd720",
+        "initial_screenshot_id": "local-shot-f8cf16d6cbb347c38a0da3d31910a15f",
+        "max_resamples": 3,
+        "settling_age_ms": 700,
+        "timeout_ms": 2000,
+        "elapsed_ms": 1286,
+        "samples": [
+          {
+            "sample": 1,
+            "observation_id": "standalone-device-obs-4263-24ba041537ee42689151ba9df511a082",
+            "screenshot_id": "",
+            "event_sequence_before": 23,
+            "event_sequence_after_observation": 24,
+            "event_sequence_after_screenshot": -1,
+            "same_context_and_structure": false,
+            "same_as_previous_stable_scene": false,
+            "accepted": false,
+            "reason": "context_or_structure_changed"
+          }
+        ]
+      }
+    }
+  ],
+  "estimated_list_price_cny": 0.011538,
+  "actual_billed_cny": null,
+  "role_request_counts": {
+    "manager": 1,
+    "executor": 2
+  },
+  "screenshot_capture_attempt_count": 5,
+  "screenshot_capture_status_counts": {
+    "captured": 5
+  },
+  "image_upload_count": 3,
+  "unique_uploaded_screenshot_count": 2,
+  "observations": [
+    {
+      "observation_id": "standalone-device-obs-4254-5922b863c5904356a74b3eacb8fed0cd",
+      "observation_version": 4254,
+      "active_application_package": "com.jev.mobileagent",
+      "page_state": "observed",
+      "private_file": "observation-4254.json",
+      "captured_at": "2026-09-25T17:01:16.483035Z"
+    },
+    {
+      "observation_id": "standalone-device-obs-4260-58d196e3bace4525938618089d3c0eaa",
+      "observation_version": 4260,
+      "active_application_package": "com.jev.mobileagent",
+      "page_state": "observed",
+      "private_file": "observation-4260.json",
+      "captured_at": "2026-09-25T17:01:26.045088Z",
+      "trusted_running_target_application_package": "com.jev.mobileagent"
+    },
+    {
+      "observation_id": "standalone-device-obs-4262-9ce7aabc85104785955df5a6e18fd720",
+      "observation_version": 4262,
+      "active_application_package": "",
+      "page_state": "observed",
+      "private_file": "observation-4262.json",
+      "captured_at": "2026-09-25T17:01:31.895803Z"
+    },
+    {
+      "observation_id": "standalone-device-obs-4263-24ba041537ee42689151ba9df511a082",
+      "observation_version": 4263,
+      "active_application_package": "com.android.settings",
+      "page_state": "observed",
+      "private_file": "observation-4263.json",
+      "captured_at": "2026-09-25T17:01:32.506759Z",
+      "trusted_running_target_application_package": "com.android.settings"
+    },
+    {
+      "observation_id": "standalone-device-obs-4267-dcdd5f0739384bd586a0d070e2ba16e7",
+      "observation_version": 4267,
+      "active_application_package": "com.android.settings",
+      "page_state": "observed",
+      "private_file": "observation-4267.json",
+      "captured_at": "2026-09-25T17:05:09.415019Z"
+    },
+    {
+      "observation_id": "standalone-device-obs-4272-88a803ab1c354820a96951d7c8f9baf7",
+      "observation_version": 4272,
+      "active_application_package": "com.android.settings",
+      "page_state": "observed",
+      "private_file": "observation-4272.json",
+      "captured_at": "2026-09-25T17:07:18.822124Z"
+    }
+  ],
+  "recovery_reviews": [
+    {
+      "observation_id": "standalone-device-obs-4267-dcdd5f0739384bd586a0d070e2ba16e7",
+      "observation_version": 4267,
+      "captured_at": "2026-09-25T17:05:09.415019Z",
+      "scene_fingerprint": "fee1105141bccaeaa2af80cb9dcdb15a340c905866eff7448951dc85a0406f88",
+      "semantic_fingerprint": "4513630819fb039a0d3682dcb2a49ae191ab1a99f8d8b084bc3d87cfc5ca0e27",
+      "target_application_package": "com.android.settings",
+      "goal": "Tap the Open Accessibility Settings button. Do not change any permission or setting.",
+      "goal_outcome": "UNKNOWN",
+      "valid": true,
+      "action_facts": [
+        {
+          "action_id": "local-vlm-action-10fff62e-f840-4253-bd15-2f7e2bcdcec4-1",
+          "execution_fact": "NOT_EXECUTED",
+          "phase": "not_dispatched",
+          "receipt_success": false,
+          "verification_status": "UNKNOWN"
+        },
+        {
+          "action_id": "local-vlm-action-10fff62e-f840-4253-bd15-2f7e2bcdcec4-2",
+          "execution_fact": "EXECUTED",
+          "phase": "executed",
+          "receipt_success": true,
+          "verification_status": "UNKNOWN"
+        }
+      ]
+    }
+  ],
+  "recovery_decisions": [
+    {
+      "decision": "end",
+      "decision_actor": "user",
+      "review_observation_id": "standalone-device-obs-4267-dcdd5f0739384bd586a0d070e2ba16e7",
+      "confirmation_observation_id": "standalone-device-obs-4272-88a803ab1c354820a96951d7c8f9baf7",
+      "confirmed_at": "2026-09-25T17:07:19.897558Z",
+      "execution_facts_known": true,
+      "unresolved_postcondition_retained": true,
+      "review_goal_outcome": "UNKNOWN",
+      "confirmation_goal_outcome": "UNKNOWN",
+      "confirmation_sample_count": 1,
+      "step_count_before": 1,
+      "request_count_at_confirmation": 3,
+      "accounted_cost_cny_at_confirmation": 0.021538
+    }
+  ],
+  "lock_unlock_no_auto_resume": true,
+  "tester": "gpt-6-luna max",
+  "actual_effect": "Agent tapped Open Accessibility Settings; Android accessibility settings opened; tester did not modify settings",
+  "result_boundary": "Recovery target correctly migrated to Settings; explicit unresolved end, not automatic whole-task success"
+}

@@ -60,3 +60,7 @@ Gate: 独立 App 中断后核对并手动恢复
 2026-09-25继续排障：09e65b0补齐Jev所选节点的真实可视位置并纠正动作描述/后置状态混用，14项定向单测与Sol审查通过。保留旧prompt和首版prompt两次错误SUCCESS；最终相同截图负例UNKNOWN、真实命中正例SUCCESS，4次host-only探针共¥0.0198735，未新增Jev。见[定位与效果归因](../evidence/visual-reflector-grounding-validation.md)。这不是手机任务验收；无障碍输入节点陈旧仍在正式路径取证，状态不变，无需新增额度或配置授权。
 
 2026-09-26：c4a718b已修复Android无障碍子节点缓存，149项单测、构建、Sol定向审查通过；同APK两侧中文和ON蓝框自动成功，OFF蓝框仍被模型误读既有蓝边，整体门禁拒绝并fresh结束。Jev66/150，金额限额不变，见[四项结果](../evidence/fresh-capture-paired-validation.md)。视觉限制正在有界诊断；27新增无可信目标且零动作任务不能取消的死锁，保留原任务等待源码修复，不清数据绕过。
+
+2026-09-26：8d3bcc5 修复零派发无目标任务无法取消，Luna-max 实现、Sol-max 最终定向 CLEAR，29+17 取消相关测试通过，构建升级成功。Luna 用原卡住任务和正常通知入口验证取消/释放占用，历史与费用保持、Jev仍66/150，见[取消真机证据](../evidence/no-dispatch-cancel-validation.md)。正常跨应用测试继续；拔线与最终验收未完成，状态保持。
+
+2026-09-26：同8d3bcc5已由Luna完成正常Agent打开Settings后的恢复验证，可信目标迁移、锁屏解锁不自动续跑、fresh在Settings核对、明确未决结束并释放占用均有证据。原自动结果NEEDS_REVIEW保留，不宣称通用目标自动成功；见[跨应用恢复](../evidence/normal-crossapp-recovery-validation.md)。Jev67/150，新增¥0.021538，最终物理拔线仍未完成。
