@@ -1,0 +1,10 @@
+{
+  "credential_entered_through_app_ui": true,
+  "profile_provider": "TypeSafe",
+  "profile_model": "jev-1.13.0",
+  "https_endpoint": "https://api.typesafe.ai/v1/systemone",
+  "encrypted_key_present": true,
+  "plaintext_key_absent_from_profile_file": true,
+  "model_requests": 0,
+  "device_locked": true
+}
