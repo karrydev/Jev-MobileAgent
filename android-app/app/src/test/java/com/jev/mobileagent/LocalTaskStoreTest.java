@@ -109,4 +109,60 @@ public final class LocalTaskStoreTest {
                 new JSONObject().put("status", "MAYBE")));
         assertEquals("executed", action.optString("phase"));
     }
+
+    @Test
+    public void debugRecoveryAfterFaultWaitsForMatchingDurableSetTextAction() throws Exception {
+        JSONObject task = armedSetTextRecoveryFault();
+        JSONArray actions = task.getJSONArray("actions");
+
+        assertFalse(LocalTaskStore.shouldFireDebugRecoveryFault(task,
+                LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT, "focus-action"));
+        assertEquals("armed", task.getJSONObject("debug_recovery_fault").optString("status"));
+
+        actions.put(new JSONObject().put("action_id", "focus-action")
+                .put("action", new JSONObject().put("kind", "coordinate_tap")));
+        assertFalse(LocalTaskStore.shouldFireDebugRecoveryFault(task,
+                LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT, "focus-action"));
+        assertEquals("armed", task.getJSONObject("debug_recovery_fault").optString("status"));
+        task.getJSONObject("debug_recovery_fault").put("point", LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT);
+        assertFalse(LocalTaskStore.shouldFireDebugRecoveryFault(task,
+                LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT, "focus-action"));
+        assertEquals("armed", task.getJSONObject("debug_recovery_fault").optString("status"));
+
+        actions.put(new JSONObject().put("action_id", "text-action")
+                .put("action", new JSONObject().put("kind", "set_text")));
+        assertTrue(LocalTaskStore.shouldFireDebugRecoveryFault(task,
+                LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT, "text-action"));
+    }
+
+    @Test
+    public void debugRecoveryFaultWithoutActionFilterKeepsLegacyFirstActionBehavior() throws Exception {
+        JSONObject task = new JSONObject().put("debug_recovery_fault", new JSONObject()
+                .put("point", LocalTaskStore.DEBUG_FAULT_BEFORE_DISPATCH).put("status", "armed"));
+
+        assertTrue(LocalTaskStore.shouldFireDebugRecoveryFault(task,
+                LocalTaskStore.DEBUG_FAULT_BEFORE_DISPATCH, "first-action"));
+    }
+
+    @Test
+    public void firedDebugRecoveryFaultCannotTriggerAgainAfterReload() throws Exception {
+        JSONObject task = armedSetTextRecoveryFault();
+        task.getJSONArray("actions").put(new JSONObject().put("action_id", "text-action")
+                .put("action", new JSONObject().put("kind", "set_text")));
+        assertTrue(LocalTaskStore.shouldFireDebugRecoveryFault(task,
+                LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT, "text-action"));
+
+        JSONObject reloaded = new JSONObject(task.toString());
+        reloaded.getJSONObject("debug_recovery_fault").put("status", "fired");
+        reloaded.getJSONObject("debug_recovery_fault").put("action_id", "text-action");
+        assertFalse(LocalTaskStore.shouldFireDebugRecoveryFault(reloaded,
+                LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT, "text-action"));
+    }
+
+    private static JSONObject armedSetTextRecoveryFault() throws Exception {
+        return new JSONObject().put("actions", new JSONArray())
+                .put("debug_recovery_fault", new JSONObject()
+                        .put("point", LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT)
+                        .put("status", "armed").put("action_kind", "set_text"));
+    }
 }

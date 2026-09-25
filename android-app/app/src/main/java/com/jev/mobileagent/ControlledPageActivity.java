@@ -252,8 +252,13 @@ public final class ControlledPageActivity extends Activity {
             return;
         }
         taskId = task.optString("task_id", "");
+        String debugRecoveryFaultActionKind = debugRecoveryFixturePage
+                && (LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT.equals(debugRecoveryFaultPoint)
+                || LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT.equals(debugRecoveryFaultPoint))
+                ? "set_text" : "";
         if (BuildConfig.DEBUG && debugFixturePage && !debugRecoveryFaultPoint.isEmpty()
-                && !LocalTaskStore.armDebugRecoveryFault(this, taskId, debugRecoveryFaultPoint)) {
+                && !LocalTaskStore.armDebugRecoveryFault(this, taskId, debugRecoveryFaultPoint,
+                        debugRecoveryFaultActionKind)) {
             LocalTaskStore.updateState(this, taskId, "PAUSED", "debug_recovery_fault_could_not_be_armed");
             taskStatus.setText("本地任务：调试中断点未能可靠预置，未启动");
             return;
@@ -551,16 +556,26 @@ public final class ControlledPageActivity extends Activity {
     private void addDebugRecoveryFaultControls(LinearLayout content) {
         if (!BuildConfig.DEBUG) return;
         content.addView(label("恢复中断点（仅 Debug，一次性，开始任务前选择）", 14, Color.DKGRAY), params());
+        if (debugRecoveryFixturePage) {
+            content.addView(label("派发前中断作用于首个动作；两个执行后中断只在真实 set_text 输入动作后触发，前序聚焦动作会继续。",
+                    13, Color.DKGRAY), params());
+        }
         String[] points = {
                 LocalTaskStore.DEBUG_FAULT_BEFORE_DISPATCH,
                 LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT,
                 LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT
         };
-        String[] titles = {
-                "预置：派发前中断",
-                "预置：设备动作后、回执前中断",
-                "预置：持久回执后、核验前中断"
-        };
+        String[] titles = debugRecoveryFixturePage
+                ? new String[] {
+                    "预置：派发前中断",
+                    "预置：真实文字输入后、回执前中断",
+                    "预置：文字输入持久回执后、核验前中断"
+                }
+                : new String[] {
+                    "预置：派发前中断",
+                    "预置：设备动作后、回执前中断",
+                    "预置：持久回执后、核验前中断"
+                };
         Button[] controls = new Button[points.length];
         for (int i = 0; i < points.length; i++) {
             final int selected = i;

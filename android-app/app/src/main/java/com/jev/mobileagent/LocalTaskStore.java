@@ -300,16 +300,29 @@ public final class LocalTaskStore {
 
     /** Arm a single recovery interruption from the Debug controlled-page UI before task start. */
     public static boolean armDebugRecoveryFault(Context context, String taskId, String point) {
+        return armDebugRecoveryFault(context, taskId, point, "");
+    }
+
+    /** Arm a single recovery interruption, optionally waiting for one durable action kind. */
+    public static boolean armDebugRecoveryFault(Context context, String taskId, String point,
+            String actionKind) {
         if (!BuildConfig.DEBUG || !isDebugRecoveryFaultPoint(point)) return false;
+        String requiredActionKind = actionKind == null ? "" : actionKind.trim();
+        if (!requiredActionKind.isEmpty()
+                && (!isAfterActionDebugRecoveryFaultPoint(point) || !"set_text".equals(requiredActionKind))) {
+            return false;
+        }
         synchronized (LOCK) {
             JSONObject task = task(context, taskId);
             if (task == null || !"ARMED".equals(task.optString("state", ""))) return false;
             try {
-                task.put("debug_recovery_fault", new JSONObject()
+                JSONObject fault = new JSONObject()
                         .put("point", point)
                         .put("status", "armed")
                         .put("configured_before_task_start", true)
-                        .put("armed_at", Instant.now().toString()));
+                        .put("armed_at", Instant.now().toString());
+                if (!requiredActionKind.isEmpty()) fault.put("action_kind", requiredActionKind);
+                task.put("debug_recovery_fault", fault);
                 touch(task);
                 return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
             } catch (JSONException exception) {
@@ -323,9 +336,8 @@ public final class LocalTaskStore {
         if (!BuildConfig.DEBUG || !isDebugRecoveryFaultPoint(point)) return false;
         synchronized (LOCK) {
             JSONObject task = task(context, taskId);
-            JSONObject fault = task == null ? null : task.optJSONObject("debug_recovery_fault");
-            if (fault == null || !"armed".equals(fault.optString("status", ""))
-                    || !point.equals(fault.optString("point", ""))) return false;
+            if (!shouldFireDebugRecoveryFault(task, point, actionId)) return false;
+            JSONObject fault = task.optJSONObject("debug_recovery_fault");
             try {
                 fault.put("status", "fired")
                         .put("action_id", actionId == null ? "" : actionId)
@@ -338,6 +350,34 @@ public final class LocalTaskStore {
                 return false;
             }
         }
+    }
+
+    static boolean shouldFireDebugRecoveryFault(JSONObject task, String point, String actionId) {
+        JSONObject fault = task == null ? null : task.optJSONObject("debug_recovery_fault");
+        if (fault == null || !"armed".equals(fault.optString("status", ""))
+                || point == null || !point.equals(fault.optString("point", ""))) return false;
+        String requiredActionKind = fault.optString("action_kind", "");
+        return requiredActionKind.isEmpty()
+                || hasDurableActionKind(task, actionId, requiredActionKind);
+    }
+
+    private static boolean hasDurableActionKind(JSONObject task, String actionId, String actionKind) {
+        if (task == null || actionId == null || actionId.isEmpty() || actionKind == null || actionKind.isEmpty()) {
+            return false;
+        }
+        JSONArray actions = task.optJSONArray("actions");
+        if (actions == null) return false;
+        for (int i = 0; i < actions.length(); i++) {
+            JSONObject entry = actions.optJSONObject(i);
+            if (entry == null || !actionId.equals(entry.optString("action_id", ""))) continue;
+            JSONObject action = entry.optJSONObject("action");
+            return action != null && actionKind.equals(action.optString("kind", ""));
+        }
+        return false;
+    }
+
+    private static boolean isAfterActionDebugRecoveryFaultPoint(String point) {
+        return DEBUG_FAULT_AFTER_SIDE_EFFECT.equals(point) || DEBUG_FAULT_AFTER_RECEIPT.equals(point);
     }
 
     private static boolean isDebugRecoveryFaultPoint(String point) {
