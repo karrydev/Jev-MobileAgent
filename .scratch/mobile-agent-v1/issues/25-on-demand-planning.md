@@ -43,3 +43,5 @@ Gate: 按需规划完成任务并处理计划失效
 2026-09-25：2915ed9新增有界post-action观察关联与Jev70上限，Policy24定向通过，assemble成功，Sol时序意见已修复。四项同APK复测仅中文OFF自动SUCCEEDED，中文ON需fresh确认、两项蓝框未命中且已结束；仍不放行。状态栏节点1px移动导致结构拒绝及截图期间事件需后续定向处理，详见[最新证据](../evidence/post-action-scene-validation.md)。已恢复规划OFF，Jev46/70，费用上限不变。
 
 2026-09-25：352835e升级已保留计数并启用用户授权150总上限，27项定向测试/构建/聚焦Sol审查通过。四项同APK复测中文OFF自动成功，中文ON首次输入成功但重复输入后暂停，两蓝框未完成；51/150调用，费用上限未变。全部原始失败和人工结束分别保留，见[最新实测](../evidence/scene-scope-repair-validation.md)。未关闭本票，手机已锁屏、规划OFF。
+
+2026-09-25：b84d1b8补齐Jev不同动作经SUCCESS后的计划失效交接，13项定向测试/构建/Sol审查通过。新版四配对中文均需fresh人工确认，蓝框OFF自动成功、ON未命中；仍不放行。Jev60/150，累计估算与未知预留¥3.7455340、规划阶段¥0.7912585；全部费用限额不变。见[规划交接及最新实测](../evidence/planning-selected-action-validation.md)。
