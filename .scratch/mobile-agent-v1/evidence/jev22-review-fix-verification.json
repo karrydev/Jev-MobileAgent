@@ -1,0 +1,38 @@
+{
+  "initial_review": "Sol-max reviewed 18420a4..0142589; protocol, credential and budget boundary had no blocking finding",
+  "fix_commit": "83b711e",
+  "targeted_tests": {
+    "passed": 12,
+    "failed": 0,
+    "suites": [
+      "JevCandidateBuilderTest",
+      "JevShadowTest"
+    ]
+  },
+  "second_sol_review": "could not start: repeated agent thread limit reached; not represented as passed",
+  "main_fix_verification": [
+    {
+      "finding": "cross-kind / unequal parameters classified equivalent",
+      "resolution": "sameActionParameters checks action kind and sameParameters checks full key count/value; targeted negative tests pass; original phone tap/input_text comparison independently marked different"
+    },
+    {
+      "finding": "overlapping coordinate targets pick first",
+      "resolution": "uniqueMatch returns vlm_candidate_ambiguous whenever more than one candidate matches"
+    },
+    {
+      "finding": "missing VLM candidate classified selection difference",
+      "resolution": "matchingVlmCandidate returns vlm_candidate_missing, propagated by compareRecommendation"
+    },
+    {
+      "finding": "global Back hides empty or missing parameter set",
+      "resolution": "capability-driven Back injection removed; physical empty01/missing01 both fallback without network"
+    },
+    {
+      "finding": "generated VLM text omitted from known parameters",
+      "resolution": "bounded nonempty parsed set_text text used only when user quoted text absent; known_parameter_source recorded; two parameter-source tests pass"
+    }
+  ],
+  "scope": "report-only candidate/known-parameter fixes; provider, credential, budget and device dispatch code unchanged",
+  "heldout_requests_unchanged": 4,
+  "new_paid_requests_after_fix": 0
+}

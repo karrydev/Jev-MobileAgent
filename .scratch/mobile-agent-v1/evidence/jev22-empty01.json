@@ -1,0 +1,57 @@
+{
+  "report_version": "jev-shadow-debug-report/android-v1",
+  "created_at": "2026-09-25T06:06:42.891414Z",
+  "mode": "private_case",
+  "task_id": "4c56d199-bc0a-414c-9fc1-68d35f8330e0",
+  "attempt": {
+    "report_version": "jev-shadow-attempt/android-v1",
+    "created_at": "2026-09-25T06:06:42.754191Z",
+    "source": "debug_case",
+    "step": 1,
+    "observation_id": "jev22-empty",
+    "observation_version": 1,
+    "candidate_count": 0,
+    "case_id": "jev22-dev-empty-with-back",
+    "split": "dev",
+    "instruction_language": "zh-CN",
+    "candidate_policy_id": "jev-android-current-observation-v1",
+    "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+    "confidence_threshold": 0.5,
+    "candidate_metadata": {
+      "candidate_count": 0,
+      "candidates": [],
+      "missing_parameters": [],
+      "warnings": []
+    },
+    "action_dispatched": false,
+    "comparison": {
+      "status": "not_compared"
+    },
+    "status": "fallback",
+    "fallback_reason": "empty_candidates",
+    "fallback_target": "existing_vlm_action",
+    "request_sent": false,
+    "protocol_status": "not_run",
+    "usage": {
+      "status": "not_requested",
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    "cost": {
+      "status": "not_incurred",
+      "currency": "USD",
+      "amount_usd": null,
+      "fx_status": "not_converted",
+      "actual_bill_status": "unknown",
+      "reserved_cny": 0
+    }
+  },
+  "action_dispatched": false,
+  "case_id": "jev22-dev-empty-with-back",
+  "split": "dev",
+  "source_commit": "83b711e",
+  "apk_sha256": "c8a99aad855c736b8ecacc56aa1752b050b6c0a792714e6380e035385d8b3c52",
+  "phone_locked_after": true,
+  "global_jev_calls_after_both_negative_checks": 11,
+  "global_jev_calls_before_both_negative_checks": 11
+}

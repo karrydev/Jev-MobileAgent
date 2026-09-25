@@ -1,0 +1,90 @@
+{
+  "check": "candidate_id_description_parameters_match_original_0142589",
+  "result": "PASS",
+  "method": "temporary local JUnit assertion against each recorded attempt; substituted only the $RUN_START_ISO_UTC placeholder in captured_at for age validation",
+  "inputs": ".scratch/mobile-agent-v1/evidence/jev-shadow-heldout-inputs.json",
+  "truth_file_read": false,
+  "jev_api_requests": 0,
+  "cases": [
+    {
+      "case_id": "jev22-heldout-music-pause",
+      "original_output": ".scratch/mobile-agent-v1/evidence/jev22-heldout101.json",
+      "candidate_count": 2,
+      "candidate_identity_match": true,
+      "candidates": [
+        {
+          "candidate_id": "candidate-tap-pause-2d372bd111b4",
+          "description": "点击“暂停”",
+          "parameters": {}
+        },
+        {
+          "candidate_id": "candidate-tap-next-track-57de51b0d710",
+          "description": "点击“下一首”",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "case_id": "jev22-heldout-completed-tab",
+      "original_output": ".scratch/mobile-agent-v1/evidence/jev22-heldout201.json",
+      "candidate_count": 3,
+      "candidate_identity_match": true,
+      "candidates": [
+        {
+          "candidate_id": "candidate-tap-pending-tab-d000a2f8f776",
+          "description": "点击“待办”",
+          "parameters": {}
+        },
+        {
+          "candidate_id": "candidate-tap-completed-tab-29cbb7e22740",
+          "description": "点击“已完成”",
+          "parameters": {}
+        },
+        {
+          "candidate_id": "candidate-tap-delete-task-75ab5c520dcb",
+          "description": "点击“删除任务”",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "case_id": "jev22-heldout-keep-draft",
+      "original_output": ".scratch/mobile-agent-v1/evidence/jev22-heldout301.json",
+      "candidate_count": 2,
+      "candidate_identity_match": true,
+      "candidates": [
+        {
+          "candidate_id": "candidate-tap-discard-68c91f203f43",
+          "description": "点击“丢弃草稿”",
+          "parameters": {}
+        },
+        {
+          "candidate_id": "candidate-tap-keep-and-back-8a2c69c1cbd7",
+          "description": "点击“保留草稿并返回”",
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "case_id": "jev22-heldout-city-text",
+      "original_output": ".scratch/mobile-agent-v1/evidence/jev22-heldout401.json",
+      "candidate_count": 2,
+      "candidate_identity_match": true,
+      "candidates": [
+        {
+          "candidate_id": "candidate-input_text-city-input-2f7c7e7b4b34",
+          "description": "在“城市”中输入“上海”",
+          "parameters": {
+            "text": "上海"
+          }
+        },
+        {
+          "candidate_id": "candidate-tap-submit-771bedb0d6c6",
+          "description": "点击“提交”",
+          "parameters": {}
+        }
+      ]
+    }
+  ],
+  "corrected_source_commit": "83b711e"
+}
