@@ -153,6 +153,19 @@ public class MainActivity extends Activity {
         root.addView(label("启用后，新任务每步最多发送一次 Jev HTTPS 请求。每次请求前从任务和全局预算各预留 ¥0.01；美元 usage 单独记录，实际账单与汇率未知。费用预留不足会在后续 VLM 或设备请求前暂停。", 12,
                 Color.DKGRAY), widthMatchWrap());
 
+        CheckBox jevSelection = new CheckBox(this);
+        jevSelection.setText("启用 Jev 受控候选选择（默认关闭）");
+        jevSelection.setChecked(LocalTaskStore.isJevSelectionEnabled(this));
+        jevSelection.setOnCheckedChangeListener((button, checked) -> {
+            if (!LocalTaskStore.setJevSelectionEnabled(this, checked)) {
+                button.setChecked(!checked);
+                settingsStatus.setText("Jev 选择设置未能保存；任务保持原配置。");
+            }
+        });
+        root.addView(jevSelection, marginTop(widthMatchWrap(), 10));
+        root.addView(label("开启后仍由原 VLM Executor 按原频率提出当前动作；只有该动作能唯一匹配当前观察中的完整候选时才请求 Jev。覆盖不足、建议无效或置信度不足时沿用原 VLM 动作；预算门控拒绝时安全暂停。每步至多一次 Jev 请求，任务创建时固定此开关。", 12,
+                Color.DKGRAY), widthMatchWrap());
+
         if (BuildConfig.DEBUG) {
             root.addView(label("Jev 协议验收（仅 Debug）", 18, Color.rgb(35, 50, 65)),
                     marginTop(widthMatchWrap(), 16));
@@ -397,12 +410,27 @@ public class MainActivity extends Activity {
         org.json.JSONArray jevAttempts = task.optJSONArray("jev_shadow_attempts");
         if (jevAttempts != null && jevAttempts.length() > 0) {
             int valid = 0;
+            int controlled = 0;
+            int dispatched = 0;
+            int fallback = 0;
             for (int i = 0; i < jevAttempts.length(); i++) {
                 JSONObject attempt = jevAttempts.optJSONObject(i);
-                if (attempt != null && ("valid_recommendation".equals(attempt.optString("status", ""))
-                        || "valid_low_confidence".equals(attempt.optString("status", "")))) valid++;
+                if (attempt == null) continue;
+                if ("valid_recommendation".equals(attempt.optString("status", ""))
+                        || "valid_low_confidence".equals(attempt.optString("status", ""))) valid++;
+                if ("task_controlled".equals(attempt.optString("source", ""))) {
+                    controlled++;
+                    if (attempt.optBoolean("action_dispatched", false)) dispatched++;
+                    String selectionStatus = attempt.optString("selection_status", "");
+                    if ("fallback".equals(selectionStatus) || "blocked".equals(selectionStatus)) fallback++;
+                }
             }
-            result += "\nJev 影子：" + jevAttempts.length() + " 次尝试，" + valid + " 条合法建议；从未执行 Jev 动作";
+            if (controlled > 0 || task.optBoolean("jev_selection_enabled", false)) {
+                result += "\nJev 受控选择：" + controlled + " 次尝试，" + dispatched
+                        + " 个候选动作已派发，" + fallback + " 次回退或门控停止；" + valid + " 条合法协议选择";
+            } else {
+                result += "\nJev 影子：" + jevAttempts.length() + " 次尝试，" + valid + " 条合法建议；从未执行 Jev 动作";
+            }
         }
         return result;
     }

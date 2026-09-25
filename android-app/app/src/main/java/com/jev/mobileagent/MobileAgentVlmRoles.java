@@ -374,6 +374,136 @@ public final class MobileAgentVlmRoles {
         return new ActionCommand(raw, action, false);
     }
 
+    /** Builds the same observation-bound action envelope for a Jev-selected live candidate. */
+    public ActionCommand actionForCandidate(JevCandidateBuilder.Candidate candidate,
+            JSONObject observation, String taskId, int sequence, String beforeScreenshotId)
+            throws JSONException {
+        if (candidate == null || observation == null) {
+            throw new JSONException("Jev candidate and current observation are required");
+        }
+        JSONObject screen = observation.optJSONObject("screen");
+        int width = screen == null ? 0 : screen.optInt("width_px", 0);
+        int height = screen == null ? 0 : screen.optInt("height_px", 0);
+        if (width < 1 || height < 1 || candidate.nodeId == null || candidate.nodeId.isEmpty()) {
+            throw new JSONException("Jev candidate is missing its current target or screen frame");
+        }
+
+        JSONObject sourceNode = candidate.sourceNodeSnapshot();
+        if (sourceNode == null || !candidate.nodeId.equals(sourceNode.optString("node_id", ""))) {
+            throw new JSONException("Jev candidate is not bound to an observed node");
+        }
+        String contractKind;
+        JSONObject parameters = new JSONObject(candidate.parameters.toString());
+        switch (candidate.kind) {
+            case "tap":
+                contractKind = "tap";
+                break;
+            case "input_text":
+                contractKind = "set_text";
+                if (!(parameters.opt("text") instanceof String)
+                        || parameters.optString("text", "").isEmpty()) {
+                    throw new JSONException("Jev text candidate is missing its known text");
+                }
+                break;
+            case "back":
+                contractKind = "system_back";
+                parameters = new JSONObject();
+                break;
+            case "long_press":
+                contractKind = "long_press";
+                break;
+            case "scroll":
+                contractKind = "swipe";
+                parameters = swipeParameters(candidate, sourceNode, width, height);
+                break;
+            default:
+                throw new JSONException("unsupported Jev candidate kind");
+        }
+
+        String targetLabel = sourceNode.optString("content_description", "");
+        if (targetLabel.isEmpty()) targetLabel = sourceNode.optString("text", "");
+        String targetRole = sourceNode.optString("role", sourceNode.optString("class_name", ""));
+        String targetId = "system_back".equals(contractKind) ? "" : candidate.nodeId;
+        JSONObject frame = new JSONObject(screen.toString())
+                .put("screen_width_px", width)
+                .put("screen_height_px", height)
+                .put("model_width_px", width)
+                .put("model_height_px", height)
+                .put("coordinate_space", "screen");
+        JSONObject action = new JSONObject()
+                .put("schema_version", "1.0")
+                .put("android_schema_version", "1.0")
+                .put("task_id", taskId)
+                .put("device_id", observation.optString("device_id", "local-device"))
+                .put("action_id", "local-vlm-action-" + taskId + "-" + sequence)
+                .put("observation_id", observation.optString("observation_id", ""))
+                .put("observation_version", observation.optLong("observation_version", 0L))
+                .put("sequence", sequence)
+                .put("kind", contractKind)
+                .put("target_node_id", targetId)
+                .put("target_node_label", targetLabel)
+                .put("target_node_role", targetRole)
+                .put("expected_page_state", contractKind + "_requested")
+                .put("parameters", parameters)
+                .put("coordinate_frame", frame)
+                .put("requires_screenshot", true)
+                .put("before_screenshot_id", beforeScreenshotId == null
+                        ? JSONObject.NULL : beforeScreenshotId)
+                .put("source", "jev-controlled-candidate-v1")
+                .put("selection_source", "jev")
+                .put("jev_candidate_id", candidate.id)
+                .put("created_at", java.time.Instant.now().toString());
+        JSONObject original = new JSONObject()
+                .put("action", "jev_candidate")
+                .put("candidate_id", candidate.id)
+                .put("candidate_kind", candidate.kind)
+                .put("target_node_id", candidate.nodeId)
+                .put("description", candidate.description)
+                .put("parameters", new JSONObject(parameters.toString()));
+        return new ActionCommand(original, action, false);
+    }
+
+    private static JSONObject swipeParameters(JevCandidateBuilder.Candidate candidate,
+            JSONObject sourceNode, int screenWidth, int screenHeight) throws JSONException {
+        JSONObject bounds = sourceNode.optJSONObject("bounds");
+        if (bounds == null) throw new JSONException("Jev scroll candidate has no observed bounds");
+        double left = Math.max(0.0, bounds.optDouble("left", Double.NaN));
+        double top = Math.max(0.0, bounds.optDouble("top", Double.NaN));
+        double right = Math.min(screenWidth - 1.0, bounds.optDouble("right", Double.NaN));
+        double bottom = Math.min(screenHeight - 1.0, bounds.optDouble("bottom", Double.NaN));
+        if (!Double.isFinite(left) || !Double.isFinite(top) || !Double.isFinite(right)
+                || !Double.isFinite(bottom) || right <= left || bottom <= top) {
+            throw new JSONException("Jev scroll candidate bounds are invalid for this screen");
+        }
+        String direction = candidate.parameters.optString("direction", "");
+        double x1 = (left + right) / 2.0;
+        double y1 = (top + bottom) / 2.0;
+        double x2 = x1;
+        double y2 = y1;
+        switch (direction) {
+            case "up":
+                y1 = bottom - Math.max(1.0, (bottom - top) / 5.0);
+                y2 = top + Math.max(1.0, (bottom - top) / 5.0);
+                break;
+            case "down":
+                y1 = top + Math.max(1.0, (bottom - top) / 5.0);
+                y2 = bottom - Math.max(1.0, (bottom - top) / 5.0);
+                break;
+            case "left":
+                x1 = right - Math.max(1.0, (right - left) / 5.0);
+                x2 = left + Math.max(1.0, (right - left) / 5.0);
+                break;
+            case "right":
+                x1 = left + Math.max(1.0, (right - left) / 5.0);
+                x2 = right - Math.max(1.0, (right - left) / 5.0);
+                break;
+            default:
+                throw new JSONException("Jev scroll candidate direction is invalid");
+        }
+        return new JSONObject().put("x1", Math.round(x1)).put("y1", Math.round(y1))
+                .put("x2", Math.round(x2)).put("y2", Math.round(y2)).put("duration_ms", 600L);
+    }
+
     public void recordInvalid(String summary, String reason) {
         actionHistory.add("{\"action\":\"invalid\"}");
         summaryHistory.add(summary == null ? "" : summary);

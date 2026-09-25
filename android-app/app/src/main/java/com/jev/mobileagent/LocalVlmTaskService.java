@@ -279,13 +279,18 @@ public final class LocalVlmTaskService extends Service {
                 String[] selected = roles.parseExecutor(executorResponse);
                 roles.lastActionThought = selected[0];
                 roles.lastSummary = selected[2];
+                String actionSummary = selected[2];
                 MobileAgentVlmRoles.ActionCommand command;
                 try {
                     command = roles.action(selected[1], before, runTaskId, step + 1,
                             beforeShot.optString("screenshot_id", ""));
                 } catch (JSONException exception) {
-                    runJevShadowForDecision(task, runTaskId, step, before, null);
-                    roles.recordInvalid(selected[2], "invalid action format; no device action was sent");
+                    if (task.optBoolean("jev_selection_enabled", false)) {
+                        runJevControlledForDecision(task, runTaskId, step, before, null);
+                    } else {
+                        runJevShadowForDecision(task, runTaskId, step, before, null);
+                    }
+                    roles.recordInvalid(actionSummary, "invalid action format; no device action was sent");
                     finishStep(runTaskId, roles, ++step);
                     continue;
                 }
@@ -310,11 +315,39 @@ public final class LocalVlmTaskService extends Service {
                     break;
                 }
 
-                runJevShadowForDecision(task, runTaskId, step, before, command.contractAction);
+                boolean jevActionSelected = false;
+                if (task.optBoolean("jev_selection_enabled", false)) {
+                    JevShadow.ControlledAttempt controlled = runJevControlledForDecision(
+                            task, runTaskId, step, before, command.contractAction);
+                    if (controlled.selectedCandidate != null) {
+                        try {
+                            command = roles.actionForCandidate(controlled.selectedCandidate, before,
+                                    runTaskId, step + 1, beforeShot.optString("screenshot_id", ""));
+                            actionSummary = controlled.selectedCandidate.description;
+                            roles.lastActionThought = "Jev selected candidate "
+                                    + controlled.selectedCandidate.id;
+                            roles.lastSummary = actionSummary;
+                            jevActionSelected = true;
+                        } catch (JSONException exception) {
+                            if (!JevShadow.markControlledFallback(this, runTaskId, step,
+                                    "candidate_action_unavailable")) {
+                                throw new TaskFailure("jev_control_report_failed",
+                                        "Jev 候选动作不可用且回退记录无法保存；任务已暂停");
+                            }
+                        }
+                    }
+                } else {
+                    runJevShadowForDecision(task, runTaskId, step, before, command.contractAction);
+                }
 
                 JSONObject action = command.contractAction;
                 if (!LocalTaskStore.recordActionIntent(this, runTaskId, action)) {
                     throw new TaskFailure("action_journal_failed", "无法保存动作记录，未执行设备操作");
+                }
+                if (jevActionSelected && !annotateJevDispatch(runTaskId, step, action,
+                        false, "action_journaled")) {
+                    throw new TaskFailure("jev_control_report_failed",
+                            "Jev 动作已记录，但选择报告无法更新；任务已暂停");
                 }
                 setStatus("正在执行与第 " + (step + 1) + " 次观察绑定的设备动作");
                 deviceActionUnresolved = true;
@@ -326,6 +359,9 @@ public final class LocalVlmTaskService extends Service {
                     LocalTaskStore.recordActionResult(this, runTaskId,
                             action.optString("action_id", ""), "outcome_unknown",
                             ActionResult.failure("action_outcome_unknown", "设备动作结果无法确认").toJson());
+                    if (jevActionSelected) {
+                        annotateJevDispatch(runTaskId, step, action, null, "outcome_unknown");
+                    }
                     throw stopped;
                 }
                 if (hasControlRequest()) {
@@ -333,6 +369,11 @@ public final class LocalVlmTaskService extends Service {
                     boolean saved = LocalTaskStore.recordActionResult(this, runTaskId,
                             action.optString("action_id", ""), notDispatched ? "not_dispatched" : "controlled",
                             actionResult.toJson());
+                    if (jevActionSelected) {
+                        annotateJevDispatch(runTaskId, step, action,
+                                notDispatched ? false : null,
+                                notDispatched ? "not_dispatched" : "outcome_unknown");
+                    }
                     deviceActionUnresolved = !saved || !notDispatched;
                     throw new TaskStopped();
                 }
@@ -345,12 +386,19 @@ public final class LocalVlmTaskService extends Service {
                         deviceActionUnresolved = true;
                         throw new TaskFailure("action_outcome_not_saved", "设备动作结果无法写入本地记录；任务待核对");
                     }
+                    if (jevActionSelected && !annotateJevDispatch(runTaskId, step, action,
+                            knownNotDispatched ? false : null,
+                            knownNotDispatched ? "not_dispatched" : "outcome_unknown")) {
+                        deviceActionUnresolved = true;
+                        throw new TaskFailure("jev_control_report_failed",
+                                "Jev 动作结果已保存，但选择报告无法更新；任务待核对");
+                    }
                     if (!knownNotDispatched) {
                         deviceActionUnresolved = true;
                         throw new TaskFailure("action_outcome_needs_review",
                                 "设备动作返回结果不明确；任务待核对，请检查当前手机页面");
                     }
-                    roles.recordInvalid(selected[2], actionResult.safeMessage);
+                    roles.recordInvalid(actionSummary, actionResult.safeMessage);
                     finishStep(runTaskId, roles, ++step);
                     continue;
                 }
@@ -358,6 +406,11 @@ public final class LocalVlmTaskService extends Service {
                 if (!LocalTaskStore.recordActionResult(this, runTaskId,
                         action.optString("action_id", ""), "executed", actionResult.toJson())) {
                     throw new TaskFailure("action_outcome_not_saved", "设备动作已执行但本地结果无法保存；任务需人工检查");
+                }
+                if (jevActionSelected && !annotateJevDispatch(runTaskId, step, action,
+                        true, "executed")) {
+                    throw new TaskFailure("jev_control_report_failed",
+                            "Jev 动作已执行，但选择报告无法更新；任务需人工检查");
                 }
 
                 JSONObject after;
@@ -370,7 +423,7 @@ public final class LocalVlmTaskService extends Service {
                     throw new TaskFailure("action_outcome_needs_review",
                             "设备动作已执行但后续页面无法验证；任务已暂停，请检查当前手机页面");
                 }
-                roles.lastSummary = selected[2];
+                roles.lastSummary = actionSummary;
                 roles.setActionForReflection(command.original);
                 String reflection = requestRole(profile, runTaskId, "action_reflector", step,
                         roles.reflectorPrompt(), new JSONArray().put(beforeShot).put(afterShot));
@@ -384,7 +437,7 @@ public final class LocalVlmTaskService extends Service {
                     throw new TaskFailure("action_verification_not_saved",
                             "设备动作复核结果无法保存；任务待核对");
                 }
-                roles.recordAction(command.original, selected[2], normalizedOutcome, reflected[1]);
+                roles.recordAction(command.original, actionSummary, normalizedOutcome, reflected[1]);
                 roles.clearActionForReflection();
                 finishStep(runTaskId, roles, ++step);
                 deviceActionNeedsVerification = false;
@@ -656,6 +709,56 @@ public final class LocalVlmTaskService extends Service {
             String reason = error == null ? "budget_gate" : error.optString("code", "budget_gate");
             throw new TaskFailure("jev_shadow_" + reason,
                     "Jev 影子预算预留失败；停止本步后续模型与设备请求");
+        }
+    }
+
+    private JevShadow.ControlledAttempt runJevControlledForDecision(JSONObject task,
+            String runTaskId, int step, JSONObject observation, JSONObject vlmAction)
+            throws TaskFailure, TaskStopped {
+        if (task == null || !task.optBoolean("jev_selection_enabled", false)) return null;
+        if (hasControlRequest()) throw new TaskStopped();
+        setStatus("正在核对 VLM 动作的候选覆盖并运行 Jev 选择");
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        activeRequestCancellation = cancelled;
+        JevShadow.ControlledAttempt attempt;
+        try {
+            attempt = JevShadow.runControlledTaskAttempt(this, runTaskId, step,
+                    task.optString("goal", ""), observation, vlmAction, cancelled::get);
+        } catch (JSONException exception) {
+            throw new TaskFailure("jev_control_report_failed", "Jev 选择报告无法保存在本机；任务已暂停");
+        } finally {
+            activeRequestCancellation = null;
+        }
+        if (hasControlRequest()) {
+            try {
+                LocalTaskStore.annotateJevSelectionAttempt(this, runTaskId, step,
+                        new JSONObject().put("dispatch_status", "cancelled_before_action")
+                                .put("action_dispatched", false));
+            } catch (JSONException ignored) {
+                // The task is already stopping; the action journal remains authoritative.
+            }
+            throw new TaskStopped();
+        }
+        if ("budget_denied".equals(attempt.report.optString("status", ""))) {
+            JSONObject error = attempt.report.optJSONObject("error");
+            String reason = error == null ? "budget_gate" : error.optString("code", "budget_gate");
+            throw new TaskFailure("jev_control_" + reason,
+                    "Jev 预算预留不足；停止本步后续模型与设备请求");
+        }
+        return attempt;
+    }
+
+    private boolean annotateJevDispatch(String taskId, int step, JSONObject action,
+            Boolean dispatched, String status) {
+        try {
+            JSONObject annotations = new JSONObject()
+                    .put("dispatch_status", status)
+                    .put("action_id", action.optString("action_id", ""))
+                    .put("action_source", action.optString("source", ""));
+            annotations.put("action_dispatched", dispatched == null ? JSONObject.NULL : dispatched);
+            return LocalTaskStore.annotateJevSelectionAttempt(this, taskId, step, annotations);
+        } catch (JSONException exception) {
+            return false;
         }
     }
 

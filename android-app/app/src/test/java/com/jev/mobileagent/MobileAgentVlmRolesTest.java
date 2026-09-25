@@ -2,6 +2,7 @@ package com.jev.mobileagent;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -39,6 +40,48 @@ public final class MobileAgentVlmRolesTest {
         assertTrue(latestSection.contains("Action: " + currentAction));
         assertFalse(latestSection.contains(previousAction.toString()));
         assertEquals(1, roles.actionHistory.size());
+    }
+
+    @Test
+    public void jevCandidateReplacesVlmDraftInBoundActionReflectorAndRoleHistory() throws Exception {
+        JSONObject node = new JSONObject().put("node_id", "search-box").put("role", "text_field")
+                .put("content_description", "搜索框").put("enabled", true)
+                .put("actions", new JSONArray().put("input_text"))
+                .put("bounds", new JSONObject().put("left", 10).put("top", 20)
+                        .put("right", 210).put("bottom", 70));
+        JSONObject observation = new JSONObject().put("observation_id", "obs-jev")
+                .put("observation_version", 7).put("captured_at", 100).put("expires_at", 400)
+                .put("page_state", "observed")
+                .put("screen", new JSONObject().put("width_px", 400).put("height_px", 800))
+                .put("nodes", new JSONArray().put(node));
+        JevCandidateBuilder.CandidateSet candidates = JevCandidateBuilder.build(
+                observation, new JSONObject().put("text", "独立手机测试成功"), 300L);
+        JSONObject vlmDraft = new JSONObject().put("kind", "system_back");
+        MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
+        roles.setActionForReflection(vlmDraft);
+
+        MobileAgentVlmRoles.ActionCommand command = roles.actionForCandidate(
+                candidates.candidates.get(0), observation, "task-1", 3, "before-1");
+
+        assertEquals("set_text", command.contractAction.optString("kind"));
+        assertEquals("search-box", command.contractAction.optString("target_node_id"));
+        assertEquals("独立手机测试成功",
+                command.contractAction.getJSONObject("parameters").optString("text"));
+        assertEquals("obs-jev", command.contractAction.optString("observation_id"));
+        assertEquals(7, command.contractAction.optInt("observation_version"));
+        assertEquals("local-vlm-action-task-1-3", command.contractAction.optString("action_id"));
+        assertEquals("jev-controlled-candidate-v1", command.contractAction.optString("source"));
+        assertEquals(candidates.candidates.get(0).id,
+                command.contractAction.optString("jev_candidate_id"));
+
+        roles.setActionForReflection(command.original);
+        String reflector = roles.reflectorPrompt();
+        assertTrue(reflector.contains(candidates.candidates.get(0).id));
+        assertFalse(reflector.contains(vlmDraft.toString()));
+        roles.recordAction(command.original, candidates.candidates.get(0).description, "A", "None");
+        assertTrue(roles.toJson().optJSONArray("action_history").optString(0)
+                .contains(candidates.candidates.get(0).id));
+        assertNotNull(command.original);
     }
 
     @Test
