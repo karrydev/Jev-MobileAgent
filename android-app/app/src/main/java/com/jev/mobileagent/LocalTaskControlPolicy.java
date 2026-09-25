@@ -7,12 +7,19 @@ import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Locale;
 
 /** Safety rules for releasing app-local tasks after a control request. */
 final class LocalTaskControlPolicy {
     private static final String LOCAL_APP_PACKAGE = "com.jev.mobileagent";
     private static final String LOCAL_TASK_STATUS_DESCRIPTION = "Local VLM task status";
+    static final int POST_ACTION_SCENE_MAX_RESAMPLES = 3;
+    static final long POST_ACTION_SCENE_SETTLING_AGE_MS = 700L;
+    static final long POST_ACTION_SCENE_SAMPLE_INTERVAL_MS = 100L;
+    static final long POST_ACTION_SCENE_CONTROL_POLL_MS = 50L;
+    static final long POST_ACTION_SCENE_TIMEOUT_MS = 2000L;
 
     enum RecoveryConfirmationSample {
         MATCH,
@@ -24,6 +31,87 @@ final class LocalTaskControlPolicy {
     static long recoveryConfirmationResampleDelayMs(int completedSampleNumber) {
         if (completedSampleNumber < 1 || completedSampleNumber >= 5) return 0L;
         return 100L + (completedSampleNumber - 1L) * 25L;
+    }
+
+    /** Time and pair-acceptance rules shared by post-action production sampling and behavior tests. */
+    static final class PostActionSceneSampler {
+        enum Decision {
+            CONTINUE,
+            ACCEPT,
+            CONTEXT_CHANGED,
+            LIMIT_REACHED
+        }
+
+        private int sampleCount;
+        private long lastSampleElapsedMs = -1L;
+        private long previousStableSampleElapsedMs = -1L;
+        private long previousStableEventSequence = -1L;
+        private boolean hasPreviousStableSample;
+
+        int sampleCount() {
+            return sampleCount;
+        }
+
+        boolean shouldContinue(long elapsedMs) {
+            return sampleCount < POST_ACTION_SCENE_MAX_RESAMPLES
+                    && elapsedMs >= 0L
+                    && elapsedMs < POST_ACTION_SCENE_TIMEOUT_MS;
+        }
+
+        boolean canTakeSampleAt(long elapsedMs) {
+            if (!shouldContinue(elapsedMs) || elapsedMs < POST_ACTION_SCENE_SETTLING_AGE_MS) {
+                return false;
+            }
+            return lastSampleElapsedMs < 0L
+                    || elapsedMs - lastSampleElapsedMs >= POST_ACTION_SCENE_SAMPLE_INTERVAL_MS;
+        }
+
+        /** Delay in one control-responsive slice before the next eligible tree sample. */
+        long delayUntilNextSampleMs(long elapsedMs) {
+            if (elapsedMs < 0L || elapsedMs >= POST_ACTION_SCENE_TIMEOUT_MS
+                    || sampleCount >= POST_ACTION_SCENE_MAX_RESAMPLES) {
+                return 0L;
+            }
+            long nextSampleAt = Math.max(POST_ACTION_SCENE_SETTLING_AGE_MS,
+                    lastSampleElapsedMs < 0L ? POST_ACTION_SCENE_SETTLING_AGE_MS
+                            : lastSampleElapsedMs + POST_ACTION_SCENE_SAMPLE_INTERVAL_MS);
+            return Math.min(POST_ACTION_SCENE_CONTROL_POLL_MS,
+                    Math.max(0L, nextSampleAt - elapsedMs));
+        }
+
+        Decision recordSample(long elapsedMs, long eventSequenceBefore, long eventSequenceAfter,
+                boolean sameContextAndStructure, boolean sameAsPreviousScene) {
+            if (!shouldContinue(elapsedMs)) return Decision.LIMIT_REACHED;
+            sampleCount++;
+            lastSampleElapsedMs = elapsedMs;
+
+            if (!sameContextAndStructure) {
+                invalidateStablePair();
+                return Decision.CONTEXT_CHANGED;
+            }
+            if (elapsedMs < POST_ACTION_SCENE_SETTLING_AGE_MS
+                    || eventSequenceBefore != eventSequenceAfter) {
+                invalidateStablePair();
+                return Decision.CONTINUE;
+            }
+
+            boolean stablePair = hasPreviousStableSample
+                    && sameAsPreviousScene
+                    && previousStableEventSequence == eventSequenceBefore
+                    && elapsedMs - previousStableSampleElapsedMs >= POST_ACTION_SCENE_SAMPLE_INTERVAL_MS;
+            if (stablePair) return Decision.ACCEPT;
+
+            hasPreviousStableSample = true;
+            previousStableSampleElapsedMs = elapsedMs;
+            previousStableEventSequence = eventSequenceAfter;
+            return Decision.CONTINUE;
+        }
+
+        void invalidateStablePair() {
+            hasPreviousStableSample = false;
+            previousStableSampleElapsedMs = -1L;
+            previousStableEventSequence = -1L;
+        }
     }
 
     enum ExecutionFact {
@@ -134,6 +222,124 @@ final class LocalTaskControlPolicy {
                 && current != null && "AVAILABLE".equals(current.optString("availability", ""))
                 && !activeApplicationPackage(current).isEmpty()
                 && expectedFingerprint.equals(sceneFingerprint(current, ""));
+    }
+
+    /**
+     * Keep action-after resampling within one unchanged app/window/layout frame. Text semantics may
+     * settle after an action; focus, geometry, node identity, actionability, and overlays may not.
+     */
+    static boolean samePostActionSceneContextAndStructure(JSONObject expected, JSONObject current) {
+        if (expected == null || current == null
+                || !"AVAILABLE".equals(expected.optString("availability", ""))
+                || !"AVAILABLE".equals(current.optString("availability", ""))
+                || !expected.optString("page_state", "").equals(current.optString("page_state", ""))) {
+            return false;
+        }
+        String expectedPackage = activeApplicationPackage(expected);
+        if (expectedPackage.isEmpty() || !expectedPackage.equals(activeApplicationPackage(current))) {
+            return false;
+        }
+        JSONObject expectedScreen = expected.optJSONObject("screen");
+        JSONObject currentScreen = current.optJSONObject("screen");
+        JSONArray expectedWindows = expected.optJSONArray("windows");
+        JSONArray currentWindows = current.optJSONArray("windows");
+        JSONArray expectedNodes = expected.optJSONArray("nodes");
+        JSONArray currentNodes = current.optJSONArray("nodes");
+        if (!hasNonNullFields(expectedScreen, "width_px", "height_px", "rotation",
+                "active_window_id", "active_window_bounds")
+                || !hasNonNullFields(currentScreen, "width_px", "height_px", "rotation",
+                        "active_window_id", "active_window_bounds")
+                || expectedWindows == null || expectedWindows.length() == 0
+                || currentWindows == null || currentWindows.length() == 0
+                || expectedNodes == null || expectedNodes.length() == 0
+                || currentNodes == null || currentNodes.length() == 0) {
+            return false;
+        }
+        if (!sameFields(expectedScreen, currentScreen, "width_px", "height_px", "rotation",
+                "system_bar_insets", "recovery_system_bar_insets", "window_offset",
+                "content_width_px", "content_height_px", "active_window_id", "active_window_bounds")) {
+            return false;
+        }
+        return sameObjectArrayById(expectedWindows, currentWindows,
+                "window_id", new String[] {"window_type", "title", "class_name", "package_name",
+                        "active", "focused", "layer", "bounds", "root_node_id"})
+                && sameObjectArrayById(expectedNodes, currentNodes,
+                        "node_id", new String[] {"parent_node_id", "package_name", "class_name",
+                                "view_id_resource_name", "enabled", "visible_to_user", "clickable",
+                                "focusable", "focused", "selected", "scrollable", "editable",
+                                "bounds", "child_node_ids"});
+    }
+
+    private static boolean hasNonNullFields(JSONObject object, String... fields) {
+        if (object == null) return false;
+        for (String field : fields) {
+            if (!object.has(field) || object.opt(field) == null || object.opt(field) == JSONObject.NULL) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean sameObjectArrayById(JSONArray expected, JSONArray current,
+            String idField, String[] comparedFields) {
+        if (expected == null || current == null || expected.length() != current.length()) return false;
+        for (int i = 0; i < expected.length(); i++) {
+            JSONObject expectedObject = expected.optJSONObject(i);
+            if (expectedObject == null || !expectedObject.has(idField)) return false;
+            String expectedId = expectedObject.optString(idField, "");
+            if (expectedId.isEmpty()) return false;
+            JSONObject currentObject = uniqueObjectById(current, idField, expectedId);
+            if (currentObject == null || !sameFields(expectedObject, currentObject, comparedFields)) return false;
+        }
+        return true;
+    }
+
+    private static JSONObject uniqueObjectById(JSONArray objects, String idField, String id) {
+        JSONObject found = null;
+        for (int i = 0; objects != null && i < objects.length(); i++) {
+            JSONObject candidate = objects.optJSONObject(i);
+            if (candidate == null || !id.equals(candidate.optString(idField, ""))) continue;
+            if (found != null) return null;
+            found = candidate;
+        }
+        return found;
+    }
+
+    private static boolean sameFields(JSONObject expected, JSONObject current, String... fields) {
+        if (expected == null || current == null) return expected == current;
+        for (String field : fields) {
+            if (expected.has(field) != current.has(field)
+                    || !canonicalJsonValue(expected.opt(field)).equals(canonicalJsonValue(current.opt(field)))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String canonicalJsonValue(Object value) {
+        if (value == null || value == JSONObject.NULL) return "null";
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            ArrayList<String> keys = new ArrayList<>();
+            for (java.util.Iterator<String> iterator = object.keys(); iterator.hasNext();) {
+                keys.add(iterator.next());
+            }
+            Collections.sort(keys);
+            StringBuilder canonical = new StringBuilder("{");
+            for (String key : keys) {
+                canonical.append(key).append(':').append(canonicalJsonValue(object.opt(key))).append(';');
+            }
+            return canonical.append('}').toString();
+        }
+        if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            StringBuilder canonical = new StringBuilder("[");
+            for (int i = 0; i < array.length(); i++) {
+                canonical.append(canonicalJsonValue(array.opt(i))).append(';');
+            }
+            return canonical.append(']').toString();
+        }
+        return value.toString();
     }
 
     static boolean sameReviewedScene(JSONObject task, JSONObject currentObservation,

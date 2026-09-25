@@ -157,7 +157,9 @@ public class MainActivity extends Activity {
             }
         });
         root.addView(jevShadow, marginTop(widthMatchWrap(), 10));
-        root.addView(label("启用后，新任务每步最多发送一次 Jev HTTPS 请求。每次请求前从任务和全局预算各预留 ¥0.01；美元 usage 单独记录，实际账单与汇率未知。费用预留不足会在后续 VLM 或设备请求前暂停。", 12,
+        root.addView(label("启用后，新任务每步最多发送一次 Jev HTTPS 请求；每任务最多 "
+                + JevShadowBudgetPolicy.MAX_CALLS_PER_TASK + " 次、全局累计最多 "
+                + JevShadowBudgetPolicy.MAX_TOTAL_CALLS + " 次。每次请求前从任务和全局预算各预留 ¥0.01；美元 usage 单独记录，实际账单与汇率未知。费用预留不足会在后续 VLM 或设备请求前暂停。", 12,
                 Color.DKGRAY), widthMatchWrap());
 
         CheckBox jevSelection = new CheckBox(this);

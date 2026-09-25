@@ -1189,6 +1189,8 @@ public final class LocalVlmTaskService extends Service {
                         action.optString("action_id", ""), "executed", actionResult.toJson())) {
                     throw new TaskFailure("action_outcome_not_saved", "设备动作已执行但本地结果无法保存；任务需人工检查");
                 }
+                long actionReceiptElapsedMs = SystemClock.elapsedRealtime();
+                long actionReceiptEventSequence = decisionSceneEventSequence();
                 crashAtDebugFault(LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT,
                         action.optString("action_id", ""));
                 if (jevActionSelected && !annotateJevDispatch(runTaskId, step, action,
@@ -1200,16 +1202,49 @@ public final class LocalVlmTaskService extends Service {
                 JSONObject after;
                 JSONObject afterShot;
                 boolean treeVerificationEnabled = task.optBoolean("tree_verification_enabled", false);
-                long[] afterSceneEventBaseline = {decisionSceneEventSequence()};
+                long[] afterSceneEventBaseline = {actionReceiptEventSequence};
                 try {
-                    after = observe(runTaskId, false);
+                    long afterRemainingMs = postActionSceneRemainingMs(actionReceiptElapsedMs);
+                    if (afterRemainingMs <= 0L) {
+                        throw new TaskFailure("post_action_scene_deadline_before_initial_observation",
+                                "动作后观察已超过稳定核验时限；动作结果待核对");
+                    }
+                    after = observe(runTaskId, false, afterRemainingMs);
                     persistObservation(runTaskId, after, loopGeneration);
+                    afterRemainingMs = postActionSceneRemainingMs(actionReceiptElapsedMs);
+                    if (afterRemainingMs <= 0L) {
+                        throw new TaskFailure("post_action_scene_deadline_before_initial_screenshot",
+                                "动作后观察耗尽稳定核验时限；动作结果待核对");
+                    }
                     afterShot = treeVerificationEnabled
-                            ? captureScreenshotForTreeVerification(runTaskId, after, "AFTER")
-                            : captureScreenshot(runTaskId, after, "AFTER");
+                            ? captureScreenshotForTreeVerification(runTaskId, after, "AFTER", afterRemainingMs)
+                            : captureScreenshot(runTaskId, after, "AFTER", afterRemainingMs);
                 } catch (TaskFailure failure) {
-                    throw new TaskFailure("action_outcome_needs_review",
-                            "设备动作已执行但后续页面无法验证；任务已暂停，请检查当前手机页面");
+                    JSONObject failedAudit = postActionSceneAudit("rejected",
+                            "initial_after_sample_failed:" + failure.code, afterSceneEventBaseline[0],
+                            actionReceiptElapsedMs, null, null, new JSONArray());
+                    if (!LocalTaskStore.recordActionSceneAssociation(this, runTaskId,
+                            action.optString("action_id", ""), failedAudit)) {
+                        throw new TaskFailure("post_action_scene_audit_not_saved",
+                                "动作后观察失败记录无法保存；动作结果待核对");
+                    }
+                    throw new TaskFailure("post_action_scene_initial_sample_failed",
+                            "设备动作已执行，但首个 AFTER 观察或截图失败（" + failure.code + "）；任务待核对");
+                }
+                PostActionSceneResult sceneResult = stabilizePostActionScene(runTaskId, action,
+                        after, afterShot, actionReceiptElapsedMs, actionReceiptEventSequence,
+                        loopGeneration);
+                if (!LocalTaskStore.recordActionSceneAssociation(this, runTaskId,
+                        action.optString("action_id", ""), sceneResult.audit)) {
+                    throw new TaskFailure("post_action_scene_audit_not_saved",
+                            "动作后页面关联记录无法保存；动作结果待核对");
+                }
+                after = sceneResult.observation;
+                afterShot = sceneResult.screenshot;
+                afterSceneEventBaseline[0] = sceneResult.eventSequence;
+                if (!sceneResult.accepted) {
+                    requestControl("pause", sceneResult.rejectionReason);
+                    throw new TaskStopped();
                 }
                 ensureDecisionSceneCurrent(runTaskId, after, loopGeneration, afterSceneEventBaseline);
                 roles.lastSummary = actionSummary;
@@ -1325,7 +1360,10 @@ public final class LocalVlmTaskService extends Service {
             if (deviceActionUnresolved || deviceActionNeedsVerification
                     || LocalTaskStore.hasUnresolvedDeviceAction(this, runTaskId)) {
                 finalState = "NEEDS_REVIEW";
-                finalReason = "control_during_device_action_or_verification";
+                String controlReason = recoveryControl.reason();
+                finalReason = controlReason.isEmpty()
+                        ? "control_during_device_action_or_verification"
+                        : "control_during_device_action_or_verification:" + controlReason;
             } else {
                 finalState = "cancel".equals(requested) ? "CANCELLED" : "PAUSED";
                 finalReason = "cancel".equals(requested) ? "cancelled_by_user"
@@ -1410,6 +1448,11 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private JSONObject observe(String runTaskId, boolean first) throws TaskFailure, TaskStopped, InterruptedException {
+        return observe(runTaskId, first, TimeUnit.SECONDS.toMillis(CALLBACK_TIMEOUT_SECONDS));
+    }
+
+    private JSONObject observe(String runTaskId, boolean first, long callbackTimeoutMs)
+            throws TaskFailure, TaskStopped, InterruptedException {
         if (hasControlRequest()) {
             throw new TaskStopped();
         }
@@ -1432,7 +1475,7 @@ public final class LocalVlmTaskService extends Service {
                 } else {
                     ObservationAccessibilityService.requestLocalObservation(runTaskId, serviceCallback);
                 }
-            }, "本地无障碍观察失败");
+            }, "本地无障碍观察失败", callbackTimeoutMs);
             if (!"AVAILABLE".equals(observation.optString("availability", ""))) {
                 throw new TaskFailure("observation_unavailable", "当前页面没有可用的无障碍观察；任务已暂停");
             }
@@ -1490,6 +1533,12 @@ public final class LocalVlmTaskService extends Service {
 
     private JSONObject captureScreenshot(String runTaskId, JSONObject observation, String type)
             throws TaskFailure, TaskStopped, InterruptedException {
+        return captureScreenshot(runTaskId, observation, type,
+                TimeUnit.SECONDS.toMillis(CALLBACK_TIMEOUT_SECONDS));
+    }
+
+    private JSONObject captureScreenshot(String runTaskId, JSONObject observation, String type,
+            long callbackTimeoutMs) throws TaskFailure, TaskStopped, InterruptedException {
         if (hasControlRequest()) {
             throw new TaskStopped();
         }
@@ -1506,7 +1555,7 @@ public final class LocalVlmTaskService extends Service {
                         public void onError(String code, String message) {
                             callback.failure(code, message);
                         }
-                    }), "本地截图失败");
+                    }), "本地截图失败", callbackTimeoutMs);
         } catch (TaskFailure failure) {
             boolean logged = LocalTaskStore.recordScreenshotCapture(this, runTaskId,
                     screenshotCaptureRecord(observation, type, null, "unavailable", failure.code));
@@ -1556,8 +1605,14 @@ public final class LocalVlmTaskService extends Service {
 
     private JSONObject captureScreenshotForTreeVerification(String runTaskId, JSONObject observation,
             String type) throws TaskFailure, TaskStopped, InterruptedException {
+        return captureScreenshotForTreeVerification(runTaskId, observation, type,
+                TimeUnit.SECONDS.toMillis(CALLBACK_TIMEOUT_SECONDS));
+    }
+
+    private JSONObject captureScreenshotForTreeVerification(String runTaskId, JSONObject observation,
+            String type, long callbackTimeoutMs) throws TaskFailure, TaskStopped, InterruptedException {
         try {
-            return captureScreenshot(runTaskId, observation, type);
+            return captureScreenshot(runTaskId, observation, type, callbackTimeoutMs);
         } catch (TaskFailure failure) {
             if (!isRecoverableScreenshotFailure(failure.code)) throw failure;
             JSONObject missing = new JSONObject();
@@ -1881,6 +1936,216 @@ public final class LocalVlmTaskService extends Service {
         }
     }
 
+    private PostActionSceneResult stabilizePostActionScene(String runTaskId, JSONObject action,
+            JSONObject initialObservation, JSONObject initialScreenshot, long receiptElapsedMs,
+            long receiptEventSequence, long loopGeneration)
+            throws TaskFailure, TaskStopped, InterruptedException, JSONException {
+        JSONArray samples = new JSONArray();
+        LocalTaskControlPolicy.PostActionSceneSampler sampler =
+                new LocalTaskControlPolicy.PostActionSceneSampler();
+        JSONObject previousStableObservation = null;
+        while (sampler.shouldContinue(SystemClock.elapsedRealtime() - receiptElapsedMs)) {
+            if (!recoveryControl.isCurrent(loopGeneration) || hasControlRequest()) {
+                recordInterruptedPostActionScene(runTaskId, action, receiptEventSequence,
+                        receiptElapsedMs, initialObservation, initialScreenshot, samples);
+                throw new TaskStopped();
+            }
+            long elapsedMs = Math.max(0L, SystemClock.elapsedRealtime() - receiptElapsedMs);
+            long delayMs = sampler.delayUntilNextSampleMs(elapsedMs);
+            long remainingMs = postActionSceneRemainingMs(receiptElapsedMs);
+            if (remainingMs <= 0L) break;
+            if (delayMs > 0L) {
+                Thread.sleep(Math.min(delayMs, remainingMs));
+                continue;
+            }
+
+            elapsedMs = Math.max(0L, SystemClock.elapsedRealtime() - receiptElapsedMs);
+            if (!sampler.canTakeSampleAt(elapsedMs)) continue;
+            remainingMs = postActionSceneRemainingMs(receiptElapsedMs);
+            if (remainingMs <= 0L) break;
+            long eventSequenceBefore = decisionSceneEventSequence();
+            int sampleNumber = sampler.sampleCount() + 1;
+            JSONObject candidate;
+            try {
+                candidate = observe(runTaskId, false, remainingMs);
+                persistObservation(runTaskId, candidate, loopGeneration);
+            } catch (TaskStopped stopped) {
+                recordInterruptedPostActionScene(runTaskId, action, receiptEventSequence,
+                        receiptElapsedMs, initialObservation, initialScreenshot, samples);
+                throw stopped;
+            } catch (TaskFailure failure) {
+                JSONObject trace = postActionSampleTrace(sampleNumber, null, null,
+                        eventSequenceBefore, decisionSceneEventSequence(), -1L,
+                        false, false, false, "observation_failed:" + failure.code);
+                samples.put(trace);
+                JSONObject audit = postActionSceneAudit("rejected",
+                        "observation_failed:" + failure.code, receiptEventSequence, receiptElapsedMs,
+                        initialObservation, initialScreenshot, samples);
+                if (!LocalTaskStore.recordActionSceneAssociation(this, runTaskId,
+                        action.optString("action_id", ""), audit)) {
+                    throw new TaskFailure("post_action_scene_audit_not_saved",
+                        "动作后观察失败记录无法保存；动作结果待核对");
+                }
+                throw new TaskFailure("post_action_scene_observation_failed",
+                        "动作后页面稳定观察失败（" + failure.code + "）；动作结果待核对");
+            }
+            if (!recoveryControl.isCurrent(loopGeneration) || hasControlRequest()) {
+                recordInterruptedPostActionScene(runTaskId, action, receiptEventSequence,
+                        receiptElapsedMs, initialObservation, initialScreenshot, samples);
+                throw new TaskStopped();
+            }
+            long eventSequenceAfterObservation = decisionSceneEventSequence();
+            boolean sameContext = LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                    initialObservation, candidate);
+            boolean sameAsPrevious = previousStableObservation != null
+                    && LocalTaskControlPolicy.sameDecisionScene(previousStableObservation, candidate);
+            LocalTaskControlPolicy.PostActionSceneSampler.Decision sampleDecision = sampler.recordSample(
+                    elapsedMs, eventSequenceBefore, eventSequenceAfterObservation,
+                    sameContext, sameAsPrevious);
+            if (!sameContext) {
+                samples.put(postActionSampleTrace(sampleNumber,
+                        candidate, null, eventSequenceBefore, eventSequenceAfterObservation, -1L,
+                        false, false, false, "context_or_structure_changed"));
+                JSONObject audit = postActionSceneAudit("rejected", "context_or_structure_changed",
+                        receiptEventSequence, receiptElapsedMs, initialObservation, initialScreenshot, samples);
+                return new PostActionSceneResult(initialObservation, initialScreenshot,
+                        eventSequenceAfterObservation, false, "post_action_scene_context_changed", audit);
+            }
+            if (eventSequenceAfterObservation != eventSequenceBefore) {
+                samples.put(postActionSampleTrace(sampleNumber,
+                        candidate, null, eventSequenceBefore, eventSequenceAfterObservation, -1L,
+                        true, false, false, "event_during_observation"));
+                previousStableObservation = null;
+                continue;
+            }
+            if (sampleDecision == LocalTaskControlPolicy.PostActionSceneSampler.Decision.ACCEPT) {
+                remainingMs = postActionSceneRemainingMs(receiptElapsedMs);
+                if (remainingMs <= 0L) {
+                    samples.put(postActionSampleTrace(sampleNumber, candidate, null,
+                            eventSequenceBefore, eventSequenceAfterObservation, -1L,
+                            true, true, false, "sampling_deadline_before_screenshot"));
+                    break;
+                }
+                JSONObject candidateScreenshot;
+                try {
+                    candidateScreenshot = captureScreenshotForTreeVerification(runTaskId, candidate,
+                            "AFTER", remainingMs);
+                } catch (TaskStopped stopped) {
+                    recordInterruptedPostActionScene(runTaskId, action, receiptEventSequence,
+                            receiptElapsedMs, initialObservation, initialScreenshot, samples);
+                    throw stopped;
+                } catch (TaskFailure failure) {
+                    samples.put(postActionSampleTrace(sampleNumber,
+                            candidate, null, eventSequenceBefore, eventSequenceAfterObservation,
+                            decisionSceneEventSequence(), true, true, false,
+                            "screenshot_failed:" + failure.code));
+                    JSONObject audit = postActionSceneAudit("rejected",
+                            "screenshot_failed:" + failure.code, receiptEventSequence, receiptElapsedMs,
+                            initialObservation, initialScreenshot, samples);
+                    if (!LocalTaskStore.recordActionSceneAssociation(this, runTaskId,
+                            action.optString("action_id", ""), audit)) {
+                        throw new TaskFailure("post_action_scene_audit_not_saved",
+                                "动作后截图失败记录无法保存；动作结果待核对");
+                    }
+                    throw new TaskFailure("post_action_scene_screenshot_failed",
+                            "动作后页面截图失败（" + failure.code + "）；动作结果待核对");
+                }
+                if (!recoveryControl.isCurrent(loopGeneration) || hasControlRequest()) {
+                    recordInterruptedPostActionScene(runTaskId, action, receiptEventSequence,
+                            receiptElapsedMs, initialObservation, initialScreenshot, samples);
+                    throw new TaskStopped();
+                }
+                long eventSequenceAfterScreenshot = decisionSceneEventSequence();
+                boolean frameUnchanged = eventSequenceAfterScreenshot == eventSequenceBefore;
+                remainingMs = postActionSceneRemainingMs(receiptElapsedMs);
+                if (remainingMs <= 0L) {
+                    samples.put(postActionSampleTrace(sampleNumber,
+                            candidate, candidateScreenshot, eventSequenceBefore, eventSequenceAfterObservation,
+                            eventSequenceAfterScreenshot, true, true, false,
+                            "sampling_deadline_after_screenshot"));
+                    break;
+                }
+                samples.put(postActionSampleTrace(sampleNumber,
+                        candidate, candidateScreenshot, eventSequenceBefore, eventSequenceAfterObservation,
+                        eventSequenceAfterScreenshot, true, true, frameUnchanged,
+                        frameUnchanged ? "stable_pair" : "event_during_screenshot"));
+                if (frameUnchanged) {
+                    JSONObject audit = postActionSceneAudit("stabilized",
+                            "two_matching_samples_same_event_sequence",
+                            receiptEventSequence, receiptElapsedMs, initialObservation, initialScreenshot, samples)
+                            .put("accepted_observation_id", candidate.optString("observation_id", ""))
+                            .put("accepted_screenshot_id", candidateScreenshot.optString("screenshot_id", ""));
+                    return new PostActionSceneResult(candidate, candidateScreenshot,
+                            eventSequenceAfterScreenshot, true, "", audit);
+                }
+                sampler.invalidateStablePair();
+                previousStableObservation = null;
+                continue;
+            }
+            samples.put(postActionSampleTrace(sampleNumber, candidate, null,
+                    eventSequenceBefore, eventSequenceAfterObservation, -1L,
+                    true, sameAsPrevious, false,
+                    sameAsPrevious ? "event_sequence_changed_since_previous_sample" : "stable_candidate"));
+            previousStableObservation = candidate;
+        }
+
+        String reason = SystemClock.elapsedRealtime() - receiptElapsedMs >= LocalTaskControlPolicy.POST_ACTION_SCENE_TIMEOUT_MS
+                ? "sampling_deadline_exceeded" : "no_two_settled_matching_samples";
+        JSONObject audit = postActionSceneAudit("rejected", reason, receiptEventSequence,
+                receiptElapsedMs, initialObservation, initialScreenshot, samples);
+        return new PostActionSceneResult(initialObservation, initialScreenshot,
+                decisionSceneEventSequence(), false, "post_action_scene_" + reason, audit);
+    }
+
+    private void recordInterruptedPostActionScene(String runTaskId, JSONObject action,
+            long receiptEventSequence, long receiptElapsedMs, JSONObject initialObservation,
+            JSONObject initialScreenshot, JSONArray samples) throws TaskFailure, JSONException {
+        JSONObject audit = postActionSceneAudit("interrupted", "control_or_generation_changed",
+                receiptEventSequence, receiptElapsedMs, initialObservation, initialScreenshot, samples);
+        if (!LocalTaskStore.recordActionSceneAssociation(this, runTaskId,
+                action.optString("action_id", ""), audit)) {
+            throw new TaskFailure("post_action_scene_audit_not_saved",
+                    "动作后观察中断记录无法保存；动作结果待核对");
+        }
+    }
+
+    private long postActionSceneRemainingMs(long receiptElapsedMs) {
+        return LocalTaskControlPolicy.POST_ACTION_SCENE_TIMEOUT_MS
+                - Math.max(0L, SystemClock.elapsedRealtime() - receiptElapsedMs);
+    }
+
+    private static JSONObject postActionSceneAudit(String status, String reason,
+            long receiptEventSequence, long receiptElapsedMs, JSONObject initialObservation,
+            JSONObject initialScreenshot, JSONArray samples) throws JSONException {
+        return new JSONObject().put("schema_version", "post-action-scene-v1")
+                .put("status", status).put("reason", reason)
+                .put("trigger_event_sequence", receiptEventSequence)
+                .put("initial_observation_id", initialObservation == null ? ""
+                        : initialObservation.optString("observation_id", ""))
+                .put("initial_screenshot_id", initialScreenshot == null ? ""
+                        : initialScreenshot.optString("screenshot_id", ""))
+                .put("max_resamples", LocalTaskControlPolicy.POST_ACTION_SCENE_MAX_RESAMPLES)
+                .put("settling_age_ms", LocalTaskControlPolicy.POST_ACTION_SCENE_SETTLING_AGE_MS)
+                .put("timeout_ms", LocalTaskControlPolicy.POST_ACTION_SCENE_TIMEOUT_MS)
+                .put("elapsed_ms", Math.max(0L, SystemClock.elapsedRealtime() - receiptElapsedMs))
+                .put("samples", samples);
+    }
+
+    private static JSONObject postActionSampleTrace(int sampleNumber, JSONObject observation,
+            JSONObject screenshot, long eventBefore, long eventAfterObservation, long eventAfterScreenshot,
+            boolean sameContext, boolean sameAsPrevious, boolean accepted, String reason)
+            throws JSONException {
+        return new JSONObject().put("sample", sampleNumber)
+                .put("observation_id", observation == null ? "" : observation.optString("observation_id", ""))
+                .put("screenshot_id", screenshot == null ? "" : screenshot.optString("screenshot_id", ""))
+                .put("event_sequence_before", eventBefore)
+                .put("event_sequence_after_observation", eventAfterObservation)
+                .put("event_sequence_after_screenshot", eventAfterScreenshot)
+                .put("same_context_and_structure", sameContext)
+                .put("same_as_previous_stable_scene", sameAsPrevious)
+                .put("accepted", accepted).put("reason", reason == null ? "" : reason);
+    }
+
     private void ensureDecisionSceneCurrent(String runTaskId, JSONObject expectedObservation,
             long loopGeneration, long[] eventBaseline)
             throws TaskFailure, TaskStopped, InterruptedException {
@@ -2147,6 +2412,14 @@ public final class LocalVlmTaskService extends Service {
 
     private <T> T await(AsyncStart<T> start, String timeoutMessage)
             throws TaskFailure, TaskStopped, InterruptedException {
+        return await(start, timeoutMessage, TimeUnit.SECONDS.toMillis(CALLBACK_TIMEOUT_SECONDS));
+    }
+
+    private <T> T await(AsyncStart<T> start, String timeoutMessage, long timeoutMs)
+            throws TaskFailure, TaskStopped, InterruptedException {
+        if (timeoutMs <= 0L) {
+            throw new TaskFailure("local_callback_timeout", timeoutMessage + "；任务已暂停");
+        }
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<T> result = new AtomicReference<>();
         AtomicReference<String> errorCode = new AtomicReference<>();
@@ -2165,13 +2438,19 @@ public final class LocalVlmTaskService extends Service {
                 latch.countDown();
             }
         });
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(CALLBACK_TIMEOUT_SECONDS);
-        while (!latch.await(200L, TimeUnit.MILLISECONDS)) {
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+        long pollIntervalMs = timeoutMs <= LocalTaskControlPolicy.POST_ACTION_SCENE_TIMEOUT_MS
+                ? 50L : 200L;
+        while (true) {
+            long remainingNanos = deadline - System.nanoTime();
+            if (remainingNanos <= 0L) {
+                throw new TaskFailure("local_callback_timeout", timeoutMessage + "；任务已暂停");
+            }
+            long waitMs = Math.max(1L, Math.min(pollIntervalMs,
+                    TimeUnit.NANOSECONDS.toMillis(remainingNanos)));
+            if (latch.await(waitMs, TimeUnit.MILLISECONDS)) break;
             if (hasControlRequest()) {
                 throw new TaskStopped();
-            }
-            if (System.nanoTime() >= deadline) {
-                throw new TaskFailure("local_callback_timeout", timeoutMessage + "；任务已暂停");
             }
         }
         // A successful callback can race with pause/lock arriving just before its latch release.
@@ -2564,6 +2843,25 @@ public final class LocalVlmTaskService extends Service {
         TaskFailure(String code, String safeMessage) {
             this.code = code;
             this.safeMessage = safeMessage;
+        }
+    }
+
+    private static final class PostActionSceneResult {
+        final JSONObject observation;
+        final JSONObject screenshot;
+        final long eventSequence;
+        final boolean accepted;
+        final String rejectionReason;
+        final JSONObject audit;
+
+        PostActionSceneResult(JSONObject observation, JSONObject screenshot, long eventSequence,
+                boolean accepted, String rejectionReason, JSONObject audit) {
+            this.observation = observation;
+            this.screenshot = screenshot;
+            this.eventSequence = eventSequence;
+            this.accepted = accepted;
+            this.rejectionReason = rejectionReason;
+            this.audit = audit;
         }
     }
 

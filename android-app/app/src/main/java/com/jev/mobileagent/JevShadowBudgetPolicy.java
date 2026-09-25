@@ -9,7 +9,7 @@ public final class JevShadowBudgetPolicy {
     public static final String REVIEWED_PROVIDER = "TypeSafe";
     public static final String REVIEWED_MODEL = "jev-1.13.0";
     public static final String REVIEWED_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
-    public static final int MAX_TOTAL_CALLS = 40;
+    public static final int MAX_TOTAL_CALLS = 70;
     public static final int MAX_CALLS_PER_TASK = LocalTaskStore.MAX_STEPS;
     public static final double RESERVATION_CNY_PER_CALL = 0.01;
     public static final String FX_STATUS = "not_converted";

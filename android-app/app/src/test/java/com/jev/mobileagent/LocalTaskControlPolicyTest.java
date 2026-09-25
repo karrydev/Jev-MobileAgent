@@ -440,6 +440,119 @@ public final class LocalTaskControlPolicyTest {
         assertFalse(LocalTaskControlPolicy.matchesDecisionScene("", expected));
     }
 
+    @Test
+    public void postActionSamplingOnlyAllowsSemanticTextToSettleInsideSameStructure() throws Exception {
+        JSONObject expected = sceneObservation();
+        JSONObject withTextChanges = new JSONObject(expected.toString());
+        withTextChanges.getJSONArray("nodes").getJSONObject(0)
+                .put("text", "Action result").put("content_description", "Updated result")
+                .put("state_description", "Completed");
+
+        assertTrue(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, withTextChanges));
+        assertFalse(LocalTaskControlPolicy.sameDecisionScene(expected, withTextChanges));
+
+        JSONObject changedFocus = new JSONObject(expected.toString());
+        changedFocus.getJSONArray("nodes").getJSONObject(0).put("focused", true);
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, changedFocus));
+
+        JSONObject changedActionability = new JSONObject(expected.toString());
+        changedActionability.getJSONArray("nodes").getJSONObject(0).put("clickable", false);
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, changedActionability));
+
+        JSONObject movedNode = new JSONObject(expected.toString());
+        movedNode.getJSONArray("nodes").getJSONObject(0)
+                .put("bounds", "10,20,301,80");
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, movedNode));
+    }
+
+    @Test
+    public void postActionSamplingRejectsPackageWindowGeometryAndLayoutChanges() throws Exception {
+        JSONObject expected = sceneObservation();
+
+        JSONObject anotherPackage = new JSONObject(expected.toString());
+        anotherPackage.getJSONArray("windows").getJSONObject(0).put("package_name", "com.example.other");
+        anotherPackage.getJSONArray("nodes").getJSONObject(0).put("package_name", "com.example.other");
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, anotherPackage));
+
+        JSONObject anotherWindow = new JSONObject(expected.toString());
+        anotherWindow.getJSONObject("screen").put("active_window_id", 2);
+        anotherWindow.getJSONArray("windows").getJSONObject(0).put("window_id", 2);
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, anotherWindow));
+
+        JSONObject geometryChanged = new JSONObject(expected.toString());
+        geometryChanged.getJSONObject("screen").put("rotation", 1);
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, geometryChanged));
+
+        JSONObject pageStateChanged = new JSONObject(expected.toString()).put("page_state", "different_page");
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, pageStateChanged));
+
+        JSONObject overlay = new JSONObject(expected.toString());
+        overlay.getJSONArray("windows").put(new JSONObject().put("window_id", 9)
+                .put("window_type", 3).put("title", "Permission dialog")
+                .put("class_name", "android.app.Dialog").put("package_name", "com.android.permissioncontroller")
+                .put("active", false).put("focused", false).put("layer", 2)
+                .put("bounds", new JSONObject().put("left", 100).put("top", 200)
+                        .put("right", 900).put("bottom", 800)));
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, overlay));
+
+        JSONObject layoutChanged = new JSONObject(expected.toString());
+        layoutChanged.getJSONArray("nodes").put(new JSONObject().put("node_id", "new-node")
+                .put("package_name", "com.jev.mobileagent").put("class_name", "android.widget.TextView"));
+        assertFalse(LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, layoutChanged));
+    }
+
+    @Test
+    public void postActionSamplerWaitsAndResamplesEvenWhenNoEventArrives() throws Exception {
+        LocalTaskControlPolicy.PostActionSceneSampler sampler =
+                new LocalTaskControlPolicy.PostActionSceneSampler();
+        JSONObject firstSample = sceneObservation();
+        JSONObject secondSample = new JSONObject(firstSample.toString());
+
+        assertFalse(sampler.canTakeSampleAt(0L));
+        assertEquals(50L, sampler.delayUntilNextSampleMs(0L));
+        assertFalse(sampler.canTakeSampleAt(699L));
+        assertTrue(sampler.canTakeSampleAt(700L));
+
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTINUE,
+                sampler.recordSample(700L, 12L, 12L, true, false));
+        assertEquals(1, sampler.sampleCount());
+        assertFalse(sampler.canTakeSampleAt(799L));
+        assertTrue(sampler.canTakeSampleAt(800L));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.ACCEPT,
+                sampler.recordSample(800L, 12L, 12L, true,
+                        LocalTaskControlPolicy.sameDecisionScene(firstSample, secondSample)));
+        assertEquals(2, sampler.sampleCount());
+        assertFalse(sampler.shouldContinue(LocalTaskControlPolicy.POST_ACTION_SCENE_TIMEOUT_MS));
+    }
+
+    @Test
+    public void earlyMatchingOldFramesAfterEventCannotReleasePostActionScene() throws Exception {
+        LocalTaskControlPolicy.PostActionSceneSampler sampler =
+                new LocalTaskControlPolicy.PostActionSceneSampler();
+        JSONObject earlyOldFrame = sceneObservation();
+        JSONObject secondOldFrame = new JSONObject(earlyOldFrame.toString());
+        JSONObject thirdOldFrame = new JSONObject(earlyOldFrame.toString());
+        boolean oldFramesMatch = LocalTaskControlPolicy.sameDecisionScene(earlyOldFrame, secondOldFrame);
+        assertTrue(oldFramesMatch);
+
+        // Receipt event sequence 6 advanced to 7 while the stale semantic tree remains visible.
+        assertFalse(sampler.canTakeSampleAt(140L));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTINUE,
+                sampler.recordSample(140L, 7L, 7L, true, false));
+        assertFalse(sampler.canTakeSampleAt(280L));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTINUE,
+                sampler.recordSample(280L, 7L, 7L, true, oldFramesMatch));
+        assertEquals(2, sampler.sampleCount());
+        assertFalse(sampler.canTakeSampleAt(399L));
+
+        // A matching third old frame at the settling boundary still cannot stand in for a settled pair.
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTINUE,
+                sampler.recordSample(700L, 7L, 7L, true,
+                        LocalTaskControlPolicy.sameDecisionScene(earlyOldFrame, thirdOldFrame)));
+        assertEquals(3, sampler.sampleCount());
+        assertFalse(sampler.shouldContinue(700L));
+    }
+
     private static JSONObject sceneObservation() throws Exception {
         return new JSONObject()
                 .put("availability", "AVAILABLE")

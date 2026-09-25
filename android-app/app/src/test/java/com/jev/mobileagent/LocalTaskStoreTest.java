@@ -136,6 +136,28 @@ public final class LocalTaskStoreTest {
     }
 
     @Test
+    public void postActionSceneAuditStaysBesideSuccessfulReceiptWithoutResolvingIt() throws Exception {
+        JSONObject receipt = new JSONObject().put("success", true).put("receipt_id", "device-1");
+        JSONObject action = new JSONObject().put("phase", "executed").put("result", receipt)
+                .put("completed_at", "receipt-time");
+        JSONObject audit = new JSONObject().put("status", "stabilized")
+                .put("initial_observation_id", "after-first")
+                .put("accepted_observation_id", "after-stable");
+
+        assertTrue(LocalTaskStore.applyActionSceneAssociation(action, audit));
+        assertEquals("executed", action.optString("phase"));
+        assertEquals("receipt-time", action.optString("completed_at"));
+        assertEquals("device-1", action.getJSONObject("result").optString("receipt_id"));
+        assertEquals("after-stable", action.getJSONObject("post_action_scene")
+                .optString("accepted_observation_id"));
+        assertFalse(LocalTaskStore.applyActionSceneAssociation(action, audit));
+
+        JSONObject unresolved = new JSONObject().put("phase", "executed")
+                .put("result", new JSONObject().put("success", false));
+        assertFalse(LocalTaskStore.applyActionSceneAssociation(unresolved, audit));
+    }
+
+    @Test
     public void reflectionCannotResolveAnActionWithoutItsExecutionReceipt() throws Exception {
         JSONObject action = new JSONObject().put("phase", "executed");
 

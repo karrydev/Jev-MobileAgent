@@ -1,0 +1,67 @@
+{
+  "source_commit": "717b174d67c93be8251b0abd370d3ad04c00c6dc",
+  "scope": "Original successful receipt followed by early AFTER observation and later fresh mismatch; no replay and no host UI control during each run",
+  "pairs": [
+    {
+      "attempt": "input04",
+      "early_observation_id": "standalone-device-obs-3765-a9a74a6b9d8246678335cebd199b4587",
+      "fresh_observation_id": "standalone-device-obs-3766-a398fdf4224641fd98dd2f75b85e4ed7",
+      "early_captured_at": "2026-09-25T12:51:07.347501Z",
+      "fresh_captured_at": "2026-09-25T12:51:07.746479Z",
+      "same_screen": true,
+      "same_windows": true,
+      "same_node_ids": true,
+      "node_count": 27,
+      "changed_nodes": [
+        {
+          "node_id": "window-211-1-node-0-0-3",
+          "changes": {
+            "text": {
+              "before": "请输入中文",
+              "after": "独立手机测试成功"
+            }
+          }
+        },
+        {
+          "node_id": "window-211-1-node-0-0-4",
+          "changes": {
+            "content_description": {
+              "before": "Controlled input state empty",
+              "after": "Controlled input state 独立手机测试成功"
+            },
+            "text": {
+              "before": "Controlled input state: empty",
+              "after": "Controlled input state: 独立手机测试成功"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "attempt": "visual03",
+      "early_observation_id": "standalone-device-obs-3831-1a09087d6bd24b3ab5942bfef41cc56e",
+      "fresh_observation_id": "standalone-device-obs-3832-6d3428d001ea44deacda4728e00e6658",
+      "early_captured_at": "2026-09-25T13:01:13.388121Z",
+      "fresh_captured_at": "2026-09-25T13:01:13.722334Z",
+      "same_screen": true,
+      "same_windows": true,
+      "same_node_ids": true,
+      "node_count": 27,
+      "changed_nodes": [
+        {
+          "node_id": "window-221-1-node-0-0-6",
+          "changes": {
+            "content_description": {
+              "before": "Visual gesture state ready",
+              "after": "Visual gesture state coordinate tap completed"
+            },
+            "text": {
+              "before": "Visual gesture state: ready",
+              "after": "Visual gesture state: coordinate tap completed"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

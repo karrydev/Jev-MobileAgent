@@ -1316,6 +1316,47 @@ public final class LocalTaskStore {
         }
     }
 
+    /** Record how a successful action receipt was associated with its stable AFTER scene. */
+    public static boolean recordActionSceneAssociation(Context context, String taskId,
+            String actionId, JSONObject association) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            JSONArray actions = task == null ? null : task.optJSONArray("actions");
+            if (actions == null || actionId == null || actionId.isEmpty() || association == null) {
+                return false;
+            }
+            for (int i = 0; i < actions.length(); i++) {
+                JSONObject entry = actions.optJSONObject(i);
+                if (entry == null || !actionId.equals(entry.optString("action_id", ""))) continue;
+                if (!applyActionSceneAssociation(entry, association)) return false;
+                try {
+                    task.put("actions", actions);
+                    touch(task);
+                    return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+                } catch (JSONException exception) {
+                    return false;
+                }
+            }
+            return false;
+        }
+    }
+
+    static boolean applyActionSceneAssociation(JSONObject entry, JSONObject association) {
+        JSONObject receipt = entry == null ? null : entry.optJSONObject("result");
+        if (entry == null || association == null
+                || !"executed".equals(entry.optString("phase", ""))
+                || receipt == null || !receipt.optBoolean("success", false)
+                || entry.has("post_action_scene")) {
+            return false;
+        }
+        try {
+            entry.put("post_action_scene", new JSONObject(association.toString()));
+            return true;
+        } catch (JSONException exception) {
+            return false;
+        }
+    }
+
     /** Persist the reflector's result alongside, never in place of, the device receipt. */
     public static boolean recordActionReflection(Context context, String taskId, String actionId,
             String outcome, String errorDescription) {

@@ -35,6 +35,42 @@ public final class TreeActionVerifierTest {
     }
 
     @Test
+    public void unrelatedTextChangeCannotProveSetTextPostcondition() throws Exception {
+        JSONObject beforeTarget = inputNode("before", "");
+        JSONObject afterTarget = inputNode("after", "");
+        JSONObject before = observation("before-observation", beforeTarget);
+        JSONObject after = observation("after-observation", afterTarget);
+        before.getJSONArray("nodes").put(new JSONObject().put("node_id", "status")
+                .put("class_name", "android.widget.TextView").put("text", "Ready"));
+        after.getJSONArray("nodes").put(new JSONObject().put("node_id", "status")
+                .put("class_name", "android.widget.TextView").put("text", "Updated status"));
+
+        TreeActionVerifier.Result result = TreeActionVerifier.verify(
+                before, after, setTextAction("before", "Expected text"), image("before"), image("after"));
+
+        assertEquals(TreeActionVerifier.Status.FAILURE, result.status);
+        assertEquals("exact_text_postcondition_not_met", result.reason);
+    }
+
+    @Test
+    public void visualActionWithChangingStatusTextStillHasNoTreePostcondition() throws Exception {
+        JSONObject before = observation("before-observation", inputNode("before", ""));
+        JSONObject after = observation("after-observation", inputNode("after", ""));
+        before.getJSONArray("nodes").put(new JSONObject().put("node_id", "gesture-state")
+                .put("class_name", "android.widget.TextView").put("text", "Visual gesture state: ready"));
+        after.getJSONArray("nodes").put(new JSONObject().put("node_id", "gesture-state")
+                .put("class_name", "android.widget.TextView")
+                .put("text", "Visual gesture state: coordinate tap completed"));
+
+        TreeActionVerifier.Result result = TreeActionVerifier.verify(before, after,
+                new JSONObject().put("kind", "coordinate_tap").put("target_node_id", "gesture-state"),
+                image("before"), image("after"));
+
+        assertEquals(TreeActionVerifier.Status.UNKNOWN, result.status);
+        assertEquals("no_supported_unique_tree_postcondition", result.reason);
+    }
+
+    @Test
     public void ambiguousOrSimilarLookingTargetsNeverSupplyTextTruth() throws Exception {
         JSONObject before = observation("before-observation", inputNode("before", ""));
         JSONObject after = observation("after-observation", inputNode("after", "独立手机测试成功"));
