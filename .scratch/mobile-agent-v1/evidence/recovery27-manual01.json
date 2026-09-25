@@ -316,5 +316,6 @@
       "actions": []
     }
   ],
-  "scope_limit": "External adb input tap targeted the input field while Manager request was reserved; after 1.5 seconds state remained RUNNING. Safety power lock caused screen_locked pause. This does not pass automatic manual-intervention detection and does not assert physical-finger event coverage. No device action was dispatched; explicit fresh review/end later released task."
+  "scope_limit": "External adb input tap targeted the input field while Manager request was reserved; after 1.5 seconds state remained RUNNING. Safety power lock caused screen_locked pause. This does not pass automatic manual-intervention detection and does not assert physical-finger event coverage. No device action was dispatched; explicit fresh review/end later released task.",
+  "fixture_scope_followup": "ControlledPageActivity starts debug task by requesting focus on fixtureTextInput, whose setShowSoftInputOnFocus is false. Thus tapping it again need not change semantic scene or open keyboard. This test proves missing immediate raw-touch pause only; no stale-scene dispatch occurred or was proved. Subsequent coverage must actually change the page/text."
 }

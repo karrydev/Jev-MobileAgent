@@ -184,10 +184,17 @@ public class ObservationAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        int eventType = event == null ? 0 : event.getEventType();
+        if (isDecisionSceneEvent(eventType) && LocalVlmTaskService.isTaskLoopActive()) {
+            // Accessibility events have no reliable human-vs-app attribution. Treat
+            // them only as a reason to compare a fresh local tree with the model's
+            // decision scene before another request or device action.
+            LocalVlmTaskService.notePotentialDecisionSceneChange();
+        }
         // A physical touch while a model decision is in flight is a human
         // intervention. Pause the local task and require a fresh observation;
         // Accessibility-dispatched actions are bracketed by the task service.
-        if (event != null && event.getEventType() == AccessibilityEvent.TYPE_TOUCH_INTERACTION_START
+        if (eventType == AccessibilityEvent.TYPE_TOUCH_INTERACTION_START
                 && LocalVlmTaskService.isTaskLoopActive()
                 && !LocalVlmTaskService.isDeviceActionDispatchActive()) {
             JSONObject active = LocalTaskStore.activeTask(this);
@@ -198,6 +205,19 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
         // Observation remains requested by the app-local task service. Events
         // never trigger bridge traffic or unsolicited screenshot capture.
+    }
+
+    private static boolean isDecisionSceneEvent(int eventType) {
+        return eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                || eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                || eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+                || eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED
+                || eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+                || eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
+                || eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
+                || eventType == AccessibilityEvent.TYPE_VIEW_LONG_CLICKED
+                || eventType == AccessibilityEvent.TYPE_VIEW_SELECTED
+                || eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED;
     }
 
     @Override
@@ -283,6 +303,29 @@ public class ObservationAccessibilityService extends AccessibilityService {
             return;
         }
         service.mainHandler.post(() -> service.captureLocalObservation(taskId, callback));
+    }
+
+    /** Capture a fresh comparison tree without replacing action-bound node handles or observation version. */
+    public static void requestLocalDecisionSceneObservation(final String taskId,
+            final LocalObservationCallback callback) {
+        final ObservationAccessibilityService service = instance;
+        if (service == null) {
+            reportLocalObservationError(callback, "permission_unavailable", "Accessibility service is not running");
+            return;
+        }
+        service.mainHandler.post(() -> {
+            try {
+                BridgeConfig identity = new BridgeConfig("", "", "standalone-device", taskId);
+                JSONObject observation = service.captureOnServiceThread(identity, false);
+                if (callback != null) callback.onSuccess(observation);
+            } catch (SecurityException exception) {
+                reportLocalObservationError(callback, "permission_unavailable",
+                        "Accessibility permission is unavailable");
+            } catch (JSONException | RuntimeException exception) {
+                reportLocalObservationError(callback, "capture_failed",
+                        "Fresh decision-scene observation failed");
+            }
+        });
     }
 
     /** Return to the task's original app without launching or recreating an Activity, then wait for a stable tree. */
@@ -1049,6 +1092,30 @@ public class ObservationAccessibilityService extends AccessibilityService {
                 reportActionError(callback, "action_controlled", "the task was paused or cancelled before action dispatch");
                 return;
             }
+            String expectedSceneFingerprint = action.optString("decision_scene_fingerprint", "");
+            if (!expectedSceneFingerprint.isEmpty()) {
+                try {
+                    BridgeConfig identity = config != null ? config : new BridgeConfig("", "",
+                            action.optString("device_id", "standalone-device"),
+                            action.optString("task_id", ""));
+                    JSONObject currentScene = captureOnServiceThread(identity, false);
+                    if (!LocalTaskControlPolicy.matchesDecisionScene(expectedSceneFingerprint, currentScene)) {
+                        try {
+                            LocalTaskStore.saveObservation(this,
+                                    action.optString("task_id", ""), currentScene);
+                        } catch (java.io.IOException exception) {
+                            Log.w(TAG, "Could not save the changed decision scene before rejecting action", exception);
+                        }
+                        reportActionError(callback, "decision_scene_changed_before_dispatch",
+                                "the visible application, focus, or content changed after the model decision; task paused for review");
+                        return;
+                    }
+                } catch (JSONException | RuntimeException exception) {
+                    reportActionError(callback, "decision_scene_unavailable_before_dispatch",
+                            "a fresh decision-scene check failed; action was not dispatched");
+                    return;
+                }
+            }
             String kind = action.optString("kind", "");
             String targetId = action.optString("target_node_id", "");
             long expectedVersion = action.optLong("observation_version", -1L);
@@ -1622,9 +1689,13 @@ public class ObservationAccessibilityService extends AccessibilityService {
     }
 
     private JSONObject captureOnServiceThread(BridgeConfig config) throws JSONException {
-        clearNodeBindings();
+        return captureOnServiceThread(config, true);
+    }
+
+    private JSONObject captureOnServiceThread(BridgeConfig config, boolean bindForActions) throws JSONException {
+        if (bindForActions) clearNodeBindings();
         long version = BridgeConfig.nextObservationVersion(this);
-        lastCapturedVersion = version;
+        if (bindForActions) lastCapturedVersion = version;
         JSONObject observation = ObservationPayload.base(this, config, version);
         JSONArray windowsJson = new JSONArray();
         JSONArray nodesJson = new JSONArray();
@@ -1660,7 +1731,8 @@ public class ObservationAccessibilityService extends AccessibilityService {
                     String nodePrefix = "window-" + windowId + "-" + windowIndex;
                     String rootId = null;
                     if (root != null && nodesJson.length() < MAX_NODES) {
-                        rootId = appendNode(root, nodePrefix + "-node-0", null, nodesJson, windowId);
+                        rootId = appendNode(root, nodePrefix + "-node-0", null, nodesJson, windowId,
+                                bindForActions);
                         if (rootId != null) {
                             rootIds.put(rootId);
                         }
@@ -1682,7 +1754,8 @@ public class ObservationAccessibilityService extends AccessibilityService {
             AccessibilityNodeInfo root = getRootInActiveWindow();
             try {
                 if (root != null && nodesJson.length() < MAX_NODES) {
-                    String rootId = appendNode(root, "window-0-node-0", null, nodesJson, 0);
+                    String rootId = appendNode(root, "window-0-node-0", null, nodesJson, 0,
+                            bindForActions);
                     if (rootId != null) {
                         rootIds.put(rootId);
                     }
@@ -1722,8 +1795,10 @@ public class ObservationAccessibilityService extends AccessibilityService {
             screen.put("active_window_bounds", ObservationPayload.bounds(activeWindowBounds));
             observation.put("screen", screen);
         }
-        coordinateFingerprint = CoordinateObservationFingerprint.create(observation);
-        coordinateFingerprintVersion = version;
+        if (bindForActions) {
+            coordinateFingerprint = CoordinateObservationFingerprint.create(observation);
+            coordinateFingerprintVersion = version;
+        }
         return observation;
     }
 
@@ -1794,7 +1869,8 @@ public class ObservationAccessibilityService extends AccessibilityService {
             String nodeId,
             String parentId,
             JSONArray nodes,
-            int windowId) throws JSONException {
+            int windowId,
+            boolean bindForActions) throws JSONException {
         if (node == null || nodes.length() >= MAX_NODES) {
             return null;
         }
@@ -1829,9 +1905,11 @@ public class ObservationAccessibilityService extends AccessibilityService {
         // Add the parent before children so child references are stable even when a
         // page contains a large or cyclic-looking provider tree.
         nodes.put(json);
-        NodeBinding previous = lastNodeBindings.put(nodeId, new NodeBinding(node));
-        if (previous != null && previous.node != null) {
-            previous.node.recycle();
+        if (bindForActions) {
+            NodeBinding previous = lastNodeBindings.put(nodeId, new NodeBinding(node));
+            if (previous != null && previous.node != null) {
+                previous.node.recycle();
+            }
         }
         for (int index = 0; index < node.getChildCount() && nodes.length() < MAX_NODES; index++) {
             AccessibilityNodeInfo child = node.getChild(index);
@@ -1839,7 +1917,8 @@ public class ObservationAccessibilityService extends AccessibilityService {
                 continue;
             }
             try {
-                String childId = appendNode(child, nodeId + "-" + index, nodeId, nodes, windowId);
+                String childId = appendNode(child, nodeId + "-" + index, nodeId, nodes, windowId,
+                        bindForActions);
                 if (childId != null) {
                     childIds.put(childId);
                 }

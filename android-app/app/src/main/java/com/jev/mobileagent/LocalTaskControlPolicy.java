@@ -1,6 +1,7 @@
 package com.jev.mobileagent;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,12 @@ import java.util.Locale;
 
 /** Safety rules for releasing app-local tasks after a control request. */
 final class LocalTaskControlPolicy {
+    enum RecoveryConfirmationSample {
+        MATCH,
+        RESAMPLE,
+        REJECT
+    }
+
     enum ExecutionFact {
         NOT_EXECUTED,
         EXECUTED,
@@ -100,6 +107,26 @@ final class LocalTaskControlPolicy {
         }
     }
 
+    /** Compare the observable target scene while ignoring observation identity and screenshot-only caret noise. */
+    static boolean sameDecisionScene(JSONObject expected, JSONObject current) {
+        if (expected == null || current == null
+                || !"AVAILABLE".equals(expected.optString("availability", ""))
+                || !"AVAILABLE".equals(current.optString("availability", ""))) {
+            return false;
+        }
+        String expectedPackage = activeApplicationPackage(expected);
+        return !expectedPackage.isEmpty()
+                && expectedPackage.equals(activeApplicationPackage(current))
+                && sceneFingerprint(expected, "").equals(sceneFingerprint(current, ""));
+    }
+
+    static boolean matchesDecisionScene(String expectedFingerprint, JSONObject current) {
+        return expectedFingerprint != null && !expectedFingerprint.isEmpty()
+                && current != null && "AVAILABLE".equals(current.optString("availability", ""))
+                && !activeApplicationPackage(current).isEmpty()
+                && expectedFingerprint.equals(sceneFingerprint(current, ""));
+    }
+
     static boolean sameReviewedScene(JSONObject task, JSONObject currentObservation,
             String screenshotFingerprint) {
         JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
@@ -111,10 +138,91 @@ final class LocalTaskControlPolicy {
                         .equals(sceneFingerprint(currentObservation, screenshotFingerprint));
     }
 
+    static boolean sameReviewedSemantics(JSONObject task, String expectedReviewObservationId,
+            JSONObject currentObservation, String goalOutcome) {
+        JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
+        if (review == null || !review.optBoolean("valid", false)
+                || expectedReviewObservationId == null
+                || !expectedReviewObservationId.equals(review.optString("observation_id", ""))
+                || !task.optString("goal", "").equals(review.optString("goal", ""))
+                || goalOutcome == null
+                || !goalOutcome.equals(review.optString("goal_outcome", "UNKNOWN"))) {
+            return false;
+        }
+        String targetPackage = review.optString("target_application_package", "");
+        String reviewedSemantics = review.optString("semantic_fingerprint", "");
+        return !targetPackage.isEmpty() && !reviewedSemantics.isEmpty()
+                && recoveryTargetReadinessError(currentObservation, targetPackage).isEmpty()
+                && reviewedSemantics.equals(sceneFingerprint(currentObservation, ""));
+    }
+
+    /**
+     * Keep recovery confirmation pixel-exact. A semantic-only match can authorize another fresh sample,
+     * but it can never authorize the decision itself.
+     */
+    static RecoveryConfirmationSample classifyRecoveryConfirmationSample(String decision,
+            JSONObject task, String expectedReviewObservationId, JSONObject observation,
+            String screenshotFingerprint, String goalOutcome, int sampleNumber, int maxSamples,
+            boolean safetyGatesOpen) {
+        JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
+        if (!safetyGatesOpen || task == null || review == null
+                || !("PAUSED".equals(task.optString("state", ""))
+                        || "NEEDS_REVIEW".equals(task.optString("state", "")))
+                || !review.optBoolean("valid", false)
+                || expectedReviewObservationId == null
+                || !expectedReviewObservationId.equals(review.optString("observation_id", ""))
+                || !task.optString("goal", "").equals(review.optString("goal", ""))
+                || goalOutcome == null
+                || !goalOutcome.equals(review.optString("goal_outcome", "UNKNOWN"))
+                || screenshotFingerprint == null || screenshotFingerprint.isEmpty()
+                || sampleNumber < 1 || maxSamples < sampleNumber
+                || !allowsRecoveryDecision(decision, task, review, goalOutcome)) {
+            return RecoveryConfirmationSample.REJECT;
+        }
+        String targetPackage = review.optString("target_application_package", "");
+        if (targetPackage.isEmpty()
+                || !recoveryTargetReadinessError(observation, targetPackage).isEmpty()) {
+            return RecoveryConfirmationSample.REJECT;
+        }
+        if (sameReviewedScene(task, observation, screenshotFingerprint)) {
+            return RecoveryConfirmationSample.MATCH;
+        }
+        if (!sameReviewedSemantics(task, expectedReviewObservationId, observation, goalOutcome)) {
+            return RecoveryConfirmationSample.REJECT;
+        }
+        return sampleNumber < maxSamples
+                ? RecoveryConfirmationSample.RESAMPLE : RecoveryConfirmationSample.REJECT;
+    }
+
     static String activeApplicationPackage(JSONObject observation) {
         JSONObject active = activeWindow(observation);
         return active != null && active.optInt("window_type", -1) == 1
                 ? active.optString("package_name", "") : "";
+    }
+
+    /**
+     * A recovery target may advance only from a readable application observed by the active task loop.
+     * Callers must not use this for review or confirmation observations.
+     */
+    static String trustedRunningTargetPackage(JSONObject task, JSONObject observation) {
+        if (task == null || !"RUNNING".equals(task.optString("state", ""))
+                || observation == null || !"AVAILABLE".equals(observation.optString("availability", ""))) {
+            return "";
+        }
+        String activePackage = activeApplicationPackage(observation);
+        return activePackage.isEmpty()
+                || !isTargetApplicationForeground(observation, activePackage)
+                ? "" : activePackage;
+    }
+
+    static String rememberRunningTargetPackage(JSONObject task, JSONObject observation) throws JSONException {
+        String targetPackage = trustedRunningTargetPackage(task, observation);
+        if (targetPackage.isEmpty()) return "";
+        task.put("last_running_target_application_package", targetPackage)
+                .put("target_application_package", targetPackage)
+                .put("target_application_observation_id", observation.optString("observation_id", ""))
+                .put("target_application_observation_version", observation.optLong("observation_version", 0L));
+        return targetPackage;
     }
 
     static boolean isTargetApplicationForeground(JSONObject observation, String targetPackage) {

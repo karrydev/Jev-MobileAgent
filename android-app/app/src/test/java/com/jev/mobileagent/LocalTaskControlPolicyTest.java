@@ -105,6 +105,76 @@ public final class LocalTaskControlPolicyTest {
     }
 
     @Test
+    public void lastTrustedRunningApplicationAdvancesAcrossAppsButRecoveryCannotRebindIt() throws Exception {
+        JSONObject task = new JSONObject().put("state", "RUNNING")
+                .put("target_application_package", "com.example.first");
+        JSONObject secondApp = sceneObservation();
+        secondApp.getJSONArray("windows").getJSONObject(0).put("package_name", "com.example.second");
+        secondApp.getJSONArray("nodes").getJSONObject(0).put("package_name", "com.example.second");
+
+        assertEquals("com.example.second",
+                LocalTaskControlPolicy.rememberRunningTargetPackage(task, secondApp));
+        assertEquals("com.example.second", task.optString("last_running_target_application_package"));
+        assertEquals("com.example.second", task.optString("target_application_package"));
+
+        task.put("state", "PAUSED");
+        JSONObject recoveryOnAnotherApp = sceneObservation();
+        recoveryOnAnotherApp.getJSONArray("windows").getJSONObject(0)
+                .put("package_name", "com.example.recovery");
+        recoveryOnAnotherApp.getJSONArray("nodes").getJSONObject(0)
+                .put("package_name", "com.example.recovery");
+        assertEquals("", LocalTaskControlPolicy.rememberRunningTargetPackage(task, recoveryOnAnotherApp));
+        assertEquals("com.example.second", task.optString("last_running_target_application_package"));
+        assertEquals("com.example.second", task.optString("target_application_package"));
+
+        task.put("state", "RUNNING");
+        assertEquals("", LocalTaskControlPolicy.rememberRunningTargetPackage(
+                task, fullScreenSystemWindowObservation()));
+        assertEquals("com.example.second", task.optString("target_application_package"));
+    }
+
+    @Test
+    public void visualMismatchMayResampleOnlyForSameSemanticSceneAndExactPixelsStillDecide() throws Exception {
+        JSONObject reviewed = sceneObservation();
+        JSONObject task = recoveryTask(reviewed, "review-pixels");
+        JSONObject cursorBlink = new JSONObject(reviewed.toString());
+
+        assertEquals(LocalTaskControlPolicy.RecoveryConfirmationSample.RESAMPLE,
+                LocalTaskControlPolicy.classifyRecoveryConfirmationSample("resume", task, "review-1",
+                        cursorBlink, "cursor-blink-pixels", "NOT_VERIFIED", 1, 5, true));
+        assertEquals(LocalTaskControlPolicy.RecoveryConfirmationSample.MATCH,
+                LocalTaskControlPolicy.classifyRecoveryConfirmationSample("resume", task, "review-1",
+                        cursorBlink, "review-pixels", "NOT_VERIFIED", 2, 5, true));
+        assertEquals(LocalTaskControlPolicy.RecoveryConfirmationSample.REJECT,
+                LocalTaskControlPolicy.classifyRecoveryConfirmationSample("resume", task, "review-1",
+                        cursorBlink, "cursor-blink-pixels", "NOT_VERIFIED", 5, 5, true));
+
+        JSONObject changedPage = new JSONObject(reviewed.toString());
+        changedPage.getJSONArray("nodes").getJSONObject(0).put("text", "Different target page");
+        assertEquals(LocalTaskControlPolicy.RecoveryConfirmationSample.REJECT,
+                LocalTaskControlPolicy.classifyRecoveryConfirmationSample("resume", task, "review-1",
+                        changedPage, "different-pixels", "NOT_VERIFIED", 1, 5, true));
+        assertEquals(LocalTaskControlPolicy.RecoveryConfirmationSample.REJECT,
+                LocalTaskControlPolicy.classifyRecoveryConfirmationSample("resume", task, "review-1",
+                        cursorBlink, "review-pixels", "NOT_VERIFIED", 1, 5, false));
+    }
+
+    private static JSONObject recoveryTask(JSONObject reviewedObservation, String screenshotFingerprint)
+            throws Exception {
+        String targetPackage = LocalTaskControlPolicy.activeApplicationPackage(reviewedObservation);
+        return new JSONObject().put("state", "PAUSED").put("goal", "goal")
+                .put("actions", new JSONArray())
+                .put("recovery_review", new JSONObject().put("valid", true)
+                        .put("observation_id", "review-1").put("goal", "goal")
+                        .put("goal_outcome", "NOT_VERIFIED")
+                        .put("target_application_package", targetPackage)
+                        .put("semantic_fingerprint", LocalTaskControlPolicy.sceneFingerprint(
+                                reviewedObservation, ""))
+                        .put("scene_fingerprint", LocalTaskControlPolicy.sceneFingerprint(
+                                reviewedObservation, screenshotFingerprint)));
+    }
+
+    @Test
     public void fullScreenSystemWindowWithoutTargetCanBeDismissedOnlyDuringUnlockedRecovery()
             throws Exception {
         JSONObject target = sceneObservation();
@@ -278,6 +348,33 @@ public final class LocalTaskControlPolicyTest {
         assertEquals(before, LocalTaskControlPolicy.sceneFingerprint(observation, "target-image"));
         observation.getJSONArray("nodes").getJSONObject(0).put("text", "Changed target");
         assertFalse(before.equals(LocalTaskControlPolicy.sceneFingerprint(observation, "target-image")));
+    }
+
+    @Test
+    public void decisionSceneIgnoresObservationIdentityButRejectsAppFocusAndTextChanges() throws Exception {
+        JSONObject expected = sceneObservation();
+        String expectedFingerprint = LocalTaskControlPolicy.sceneFingerprint(expected, "");
+        JSONObject sameScene = new JSONObject(expected.toString())
+                .put("observation_id", "fresh-id").put("observation_version", 9)
+                .put("captured_at", "later-time");
+        assertTrue(LocalTaskControlPolicy.sameDecisionScene(expected, sameScene));
+        assertTrue(LocalTaskControlPolicy.matchesDecisionScene(expectedFingerprint, sameScene));
+
+        JSONObject changedFocus = new JSONObject(expected.toString());
+        changedFocus.getJSONArray("nodes").getJSONObject(0).put("focused", true);
+        assertFalse(LocalTaskControlPolicy.sameDecisionScene(expected, changedFocus));
+        assertFalse(LocalTaskControlPolicy.matchesDecisionScene(expectedFingerprint, changedFocus));
+
+        JSONObject changedText = new JSONObject(expected.toString());
+        changedText.getJSONArray("nodes").getJSONObject(0).put("text", "Edited target");
+        assertFalse(LocalTaskControlPolicy.sameDecisionScene(expected, changedText));
+        assertFalse(LocalTaskControlPolicy.matchesDecisionScene(expectedFingerprint, changedText));
+
+        JSONObject changedPackage = new JSONObject(expected.toString());
+        changedPackage.getJSONArray("windows").getJSONObject(0).put("package_name", "com.example.other");
+        changedPackage.getJSONArray("nodes").getJSONObject(0).put("package_name", "com.example.other");
+        assertFalse(LocalTaskControlPolicy.sameDecisionScene(expected, changedPackage));
+        assertFalse(LocalTaskControlPolicy.matchesDecisionScene("", expected));
     }
 
     private static JSONObject sceneObservation() throws Exception {

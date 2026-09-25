@@ -16,6 +16,7 @@ import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.SystemClock;
 import android.util.Base64;
 
 import org.json.JSONArray;
@@ -30,6 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** User-visible, app-local task runner. No request is sent to the old bridge. */
@@ -50,9 +52,14 @@ public final class LocalVlmTaskService extends Service {
     private static final String CHANNEL_ID = "standalone_vlm_task";
     private static final int NOTIFICATION_ID = 2601;
     private static final long CALLBACK_TIMEOUT_SECONDS = 35L;
+    private static final int RECOVERY_CONFIRMATION_MAX_SAMPLES = 5;
+    private static final long RECOVERY_CONFIRMATION_SAMPLE_INTERVAL_MS = 250L;
+    private static final long RECOVERY_CONFIRMATION_RESAMPLE_TIMEOUT_MS = 2000L;
     private static volatile boolean taskLoopActive;
     private static volatile boolean deviceActionDispatchActive;
     private static volatile boolean foregroundServiceActive;
+    private static final AtomicLong decisionSceneEventSequence = new AtomicLong();
+    private static volatile LocalVlmTaskService instance;
 
     private final ExecutorService taskExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "jev-standalone-vlm-task");
@@ -65,6 +72,7 @@ public final class LocalVlmTaskService extends Service {
     private volatile AtomicBoolean activeRequestCancellation;
     private volatile boolean loopRunning;
     private volatile boolean reviewRunning;
+    private volatile long activeLoopGeneration = -1L;
     private volatile boolean deviceActionUnresolved;
     private volatile boolean deviceActionNeedsVerification;
     private BroadcastReceiver screenOffReceiver;
@@ -80,6 +88,18 @@ public final class LocalVlmTaskService extends Service {
 
     public static boolean isForegroundServiceActive() {
         return foregroundServiceActive;
+    }
+
+    static long decisionSceneEventSequence() {
+        return decisionSceneEventSequence.get();
+    }
+
+    static boolean hasDecisionSceneEventAfter(long sequence) {
+        return decisionSceneEventSequence.get() != sequence;
+    }
+
+    static void notePotentialDecisionSceneChange() {
+        decisionSceneEventSequence.incrementAndGet();
     }
 
     public static void showRecoveryControls(Context context, String taskId) {
@@ -103,6 +123,11 @@ public final class LocalVlmTaskService extends Service {
     }
 
     public static void pauseForExternalCondition(Context context, String taskId, String reason) {
+        LocalVlmTaskService runningService = instance;
+        if (runningService != null && taskId != null && taskId.equals(runningService.taskId)) {
+            runningService.requestControl("pause", reason == null ? "external_intervention" : reason);
+            return;
+        }
         Intent intent = new Intent(context, LocalVlmTaskService.class)
                 .setAction(ACTION_PAUSE)
                 .putExtra(EXTRA_TASK_ID, taskId == null ? "" : taskId)
@@ -128,6 +153,7 @@ public final class LocalVlmTaskService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
         foregroundServiceActive = true;
         createNotificationChannel();
         screenOffReceiver = new BroadcastReceiver() {
@@ -214,6 +240,7 @@ public final class LocalVlmTaskService extends Service {
 
     private void beginTaskLoop(boolean explicitResume, long expectedRecoveryGeneration) {
         final String[] launchTaskId = new String[1];
+        final long[] loopGeneration = new long[] {-1L};
         LocalRecoveryControlGate.Operation start = () -> {
             if (loopRunning || reviewRunning) return false;
             JSONObject task = LocalTaskStore.task(this, taskId);
@@ -234,7 +261,8 @@ public final class LocalVlmTaskService extends Service {
                 setStatus("无法保存本地任务状态，未发送模型请求");
                 return false;
             }
-            if (!explicitResume) recoveryControl.beginOperation();
+            loopGeneration[0] = explicitResume && expectedRecoveryGeneration >= 0
+                    ? expectedRecoveryGeneration : recoveryControl.beginOperation();
             loopRunning = true;
             taskLoopActive = true;
             actionGate.begin();
@@ -250,8 +278,9 @@ public final class LocalVlmTaskService extends Service {
             started = false;
         }
         if (!started) return;
+        activeLoopGeneration = loopGeneration[0];
         setStatus("正在读取当前应用的本地无障碍观察");
-        taskExecutor.execute(() -> runTaskLoop(launchTaskId[0]));
+        taskExecutor.execute(() -> runTaskLoop(launchTaskId[0], loopGeneration[0]));
     }
 
     private void requestControl(String command) {
@@ -361,9 +390,13 @@ public final class LocalVlmTaskService extends Service {
             if (task == null) return;
             String targetPackage = LocalTaskStore.recoveryTargetPackage(this, reviewTaskId);
             if (targetPackage.isEmpty()) {
+                boolean ambiguous = LocalTaskStore.recoveryTargetIsAmbiguous(task);
+                String reason = ambiguous ? "recovery_target_ambiguous" : "recovery_target_unknown";
                 recordRecoveryWindowDiagnostic(reviewTaskId, "resolve_expected_target",
-                        "recovery_target_unknown", "");
-                throw new TaskFailure("recovery_target_unknown", "无法从此前记录确认原目标应用；任务继续暂停");
+                        reason, "");
+                throw new TaskFailure(reason, ambiguous
+                        ? "旧任务记录包含无法可靠关联的跨应用现场；请手动检查并重新创建任务"
+                        : "无法从此前记录确认原目标应用；任务继续暂停");
             }
             JSONObject observation = observeForRecovery(reviewTaskId, targetPackage);
             JSONObject screenshot = captureScreenshot(reviewTaskId, observation, "RECOVERY");
@@ -462,26 +495,81 @@ public final class LocalVlmTaskService extends Service {
                         "recovery_target_unknown", "");
                 throw new TaskFailure("recovery_target_unknown", "原目标应用记录缺失；任务继续暂停");
             }
-            JSONObject confirmation = observeForRecovery(currentTaskId, targetPackage);
-            JSONObject screenshot = captureScreenshot(currentTaskId, confirmation, "RECOVERY");
-            String imageFingerprint = screenshotFingerprint(screenshot, confirmation);
-            String confirmationGoalOutcome = StandaloneGoalVerifier.verify(
-                    task.optString("goal", ""), confirmation).name();
-            if (!recoveryControl.runIfCurrent(generation, () -> {
-                LocalTaskStore.saveObservation(this, currentTaskId, confirmation);
-                return true;
-            })) throw new TaskStopped();
-            if (!LocalTaskControlPolicy.sameReviewedScene(task, confirmation, imageFingerprint)) {
-                if (!recoveryControl.runIfCurrent(generation, () -> LocalTaskStore.invalidateRecoveryReview(
-                        this, currentTaskId, reviewObservationId, "scene_or_goal_changed_before_confirmation"))) {
-                    throw new TaskStopped();
+            JSONObject confirmation = null;
+            String imageFingerprint = "";
+            String confirmationGoalOutcome = "UNKNOWN";
+            LocalTaskControlPolicy.RecoveryConfirmationSample sampleResult =
+                    LocalTaskControlPolicy.RecoveryConfirmationSample.REJECT;
+            int sampleNumber = 0;
+            long resamplingDeadlineMs = 0L;
+            for (int sample = 1; sample <= RECOVERY_CONFIRMATION_MAX_SAMPLES; sample++) {
+                if (resamplingDeadlineMs > 0L
+                        && SystemClock.elapsedRealtime() >= resamplingDeadlineMs) {
+                    sampleResult = LocalTaskControlPolicy.RecoveryConfirmationSample.REJECT;
+                    break;
                 }
-                setStatus("目标页面或截图与核对时不同；本次确认已失效，请检查现场后重新观察");
+                ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
+                confirmation = observeForRecovery(currentTaskId, targetPackage);
+                ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
+                persistRecoveryAuditObservation(currentTaskId, confirmation, generation);
+                ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
+                JSONObject screenshot = captureScreenshot(currentTaskId, confirmation, "RECOVERY");
+                ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
+                imageFingerprint = screenshotFingerprint(screenshot, confirmation);
+                confirmationGoalOutcome = StandaloneGoalVerifier.verify(
+                        task.optString("goal", ""), confirmation).name();
+                sampleNumber = sample;
+                boolean withinResampleDeadline = resamplingDeadlineMs == 0L
+                        || SystemClock.elapsedRealtime() < resamplingDeadlineMs;
+                JSONObject latest = LocalTaskStore.task(this, currentTaskId);
+                sampleResult = LocalTaskControlPolicy.classifyRecoveryConfirmationSample(
+                        decision, latest, reviewObservationId, confirmation, imageFingerprint,
+                        confirmationGoalOutcome, sample, RECOVERY_CONFIRMATION_MAX_SAMPLES,
+                        withinResampleDeadline);
+                if (sampleResult == LocalTaskControlPolicy.RecoveryConfirmationSample.MATCH
+                        || sampleResult == LocalTaskControlPolicy.RecoveryConfirmationSample.REJECT) {
+                    break;
+                }
+                if (resamplingDeadlineMs == 0L) {
+                    resamplingDeadlineMs = SystemClock.elapsedRealtime()
+                            + RECOVERY_CONFIRMATION_RESAMPLE_TIMEOUT_MS;
+                }
+                if (sample < RECOVERY_CONFIRMATION_MAX_SAMPLES) {
+                    Thread.sleep(RECOVERY_CONFIRMATION_SAMPLE_INTERVAL_MS);
+                    ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
+                }
+            }
+            ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
+            if (sampleResult != LocalTaskControlPolicy.RecoveryConfirmationSample.MATCH) {
+                JSONObject latest = LocalTaskStore.task(this, currentTaskId);
+                boolean sameSemanticScene = LocalTaskControlPolicy.sameReviewedSemantics(
+                        latest, reviewObservationId, confirmation, confirmationGoalOutcome);
+                String reason = sameSemanticScene
+                        ? "visual_scene_never_matched_after_bounded_resampling"
+                        : "scene_or_goal_changed_before_confirmation";
+                boolean invalidated = recoveryControl.runIfCurrent(generation, () -> {
+                    return LocalTaskStore.invalidateRecoveryReview(
+                            this, currentTaskId, reviewObservationId, reason);
+                });
+                if (!invalidated) {
+                    if (!recoveryControl.isCurrent(generation)) throw new TaskStopped();
+                    setStatus("确认现场无法安全记录；任务仍保持暂停，请重新观察");
+                    return;
+                }
+                setStatus(sameSemanticScene
+                        ? "页面语义未变，但有限次新截图均未与核对图完全匹配；本次确认已失效，请重新观察"
+                        : "目标页面或整体目标与核对时不同；本次确认已失效，请检查现场后重新观察");
                 return;
             }
+            final JSONObject matchedConfirmation = confirmation;
+            final String matchedImageFingerprint = imageFingerprint;
+            final String matchedGoalOutcome = confirmationGoalOutcome;
+            final int matchedSampleCount = sampleNumber;
+            ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
             boolean applied = recoveryControl.runIfCurrent(generation, () ->
                     LocalTaskStore.applyRecoveryDecision(this, currentTaskId, decision,
-                            reviewObservationId, confirmation, imageFingerprint, confirmationGoalOutcome));
+                            reviewObservationId, matchedConfirmation,
+                            matchedImageFingerprint, matchedGoalOutcome, matchedSampleCount));
             if (!applied) {
                 if (!recoveryControl.isCurrent(generation)) throw new TaskStopped();
                 setStatus("确认未能应用；执行事实或任务状态已变化，任务仍保持暂停");
@@ -529,6 +617,39 @@ public final class LocalVlmTaskService extends Service {
             } else {
                 refreshNotification();
             }
+        }
+    }
+
+    private void ensureRecoveryConfirmationCurrent(String currentTaskId, String reviewObservationId,
+            long generation) throws TaskStopped {
+        if (!recoveryControl.isCurrent(generation) || hasControlRequest()) throw new TaskStopped();
+        String stopReason = deviceStopReason();
+        if (!stopReason.isEmpty()) {
+            requestControl("pause", stopReason);
+            throw new TaskStopped();
+        }
+        JSONObject task = LocalTaskStore.task(this, currentTaskId);
+        JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
+        if (task == null || !("PAUSED".equals(task.optString("state", ""))
+                || "NEEDS_REVIEW".equals(task.optString("state", "")))
+                || review == null || !review.optBoolean("valid", false)
+                || !reviewObservationId.equals(review.optString("observation_id", ""))) {
+            throw new TaskStopped();
+        }
+    }
+
+    private void persistRecoveryAuditObservation(String currentTaskId, JSONObject observation,
+            long generation) throws TaskFailure, TaskStopped {
+        try {
+            if (!recoveryControl.runIfCurrent(generation, () -> {
+                LocalTaskStore.saveObservation(this, currentTaskId, observation);
+                return true;
+            })) {
+                throw new TaskStopped();
+            }
+        } catch (IOException exception) {
+            throw new TaskFailure("recovery_observation_not_saved",
+                    "恢复确认观察无法保存；任务继续暂停");
         }
     }
 
@@ -616,7 +737,7 @@ public final class LocalVlmTaskService extends Service {
         System.exit(137);
     }
 
-    private void runTaskLoop(String runTaskId) {
+    private void runTaskLoop(String runTaskId, long loopGeneration) {
         String finalState = "PAUSED";
         String finalReason = "runtime_stopped_safely";
         try {
@@ -643,25 +764,31 @@ public final class LocalVlmTaskService extends Service {
             int step = task.optInt("step_count", 0);
             while (step < LocalTaskStore.MAX_STEPS && !hasControlRequest()) {
                 setStatus("第 " + (step + 1) + "/" + LocalTaskStore.MAX_STEPS + " 步：读取当前页面");
+                long[] sceneEventBaseline = {decisionSceneEventSequence()};
                 JSONObject before = observe(runTaskId, firstObservation);
                 firstObservation = false;
-                persistObservation(runTaskId, before);
+                persistObservation(runTaskId, before, loopGeneration);
                 JSONObject beforeShot = captureScreenshot(runTaskId, before, "BEFORE");
                 JSONArray beforeImages = new JSONArray().put(beforeShot);
+                ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
 
                 roles.instruction = task.optString("goal", "");
                 roles.errorFlagPlan = errorEscalationRequired(roles);
                 boolean skipManager = shouldSkipManager(roles);
                 if (!skipManager) {
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     String response = requestRole(profile, runTaskId, "manager", step,
                             roles.managerPrompt(), beforeImages);
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     String[] planning = roles.parseManager(response);
                     roles.completedPlan = planning[1];
                     roles.plan = planning[2];
                     if (roles.plan.trim().equalsIgnoreCase("Finished")
                             || roles.plan.trim().startsWith("Finished\n")) {
                         roles.finishThought = planning[0];
-                        StandaloneGoalVerifier.Outcome goalOutcome = verifyOverallGoal(runTaskId, task);
+                        ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
+                        StandaloneGoalVerifier.Outcome goalOutcome = verifyOverallGoal(
+                                runTaskId, task, loopGeneration);
                         if (StandaloneGoalVerifier.mayMarkSucceeded(goalOutcome)) {
                             recordTerminal(roles, "finished_by_manager_and_page_goal_verified");
                             finalState = "SUCCEEDED";
@@ -679,8 +806,10 @@ public final class LocalVlmTaskService extends Service {
                 }
 
                 setStatus("第 " + (step + 1) + "/" + LocalTaskStore.MAX_STEPS + " 步：执行角色选择动作");
+                ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                 String executorResponse = requestRole(profile, runTaskId, "executor", step,
                         roles.executorPrompt(), beforeImages);
+                ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                 String[] selected = roles.parseExecutor(executorResponse);
                 roles.lastActionThought = selected[0];
                 roles.lastSummary = selected[2];
@@ -690,6 +819,7 @@ public final class LocalVlmTaskService extends Service {
                     command = roles.action(selected[1], before, runTaskId, step + 1,
                             beforeShot.optString("screenshot_id", ""));
                 } catch (JSONException exception) {
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     if (task.optBoolean("jev_selection_enabled", false)) {
                         runJevControlledForDecision(task, runTaskId, step, before, null);
                     } else {
@@ -704,7 +834,9 @@ public final class LocalVlmTaskService extends Service {
                         roles.recordAnswer(command, selected[2]);
                     }
                     finishStep(runTaskId, roles, ++step);
-                    StandaloneGoalVerifier.Outcome goalOutcome = verifyOverallGoal(runTaskId, task);
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
+                    StandaloneGoalVerifier.Outcome goalOutcome = verifyOverallGoal(
+                            runTaskId, task, loopGeneration);
                     if (StandaloneGoalVerifier.mayMarkSucceeded(goalOutcome)) {
                         recordTerminal(roles, "finished_by_executor_and_page_goal_verified");
                         finalState = "SUCCEEDED";
@@ -722,8 +854,10 @@ public final class LocalVlmTaskService extends Service {
 
                 boolean jevActionSelected = false;
                 if (task.optBoolean("jev_selection_enabled", false)) {
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     JevShadow.ControlledAttempt controlled = runJevControlledForDecision(
                             task, runTaskId, step, before, command.contractAction);
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     if (controlled.selectedCandidate != null) {
                         try {
                             command = roles.actionForCandidate(controlled.selectedCandidate, before,
@@ -742,10 +876,21 @@ public final class LocalVlmTaskService extends Service {
                         }
                     }
                 } else {
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     runJevShadowForDecision(task, runTaskId, step, before, command.contractAction);
+                    ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                 }
 
                 JSONObject action = command.contractAction;
+                ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
+                try {
+                    action.put("decision_scene_fingerprint",
+                            LocalTaskControlPolicy.sceneFingerprint(before, ""))
+                            .put("decision_scene_event_sequence", sceneEventBaseline[0]);
+                } catch (JSONException exception) {
+                    throw new TaskFailure("decision_scene_evidence_invalid",
+                            "动作现场门禁无法保存；任务已暂停");
+                }
                 if (!LocalTaskStore.recordActionIntent(this, runTaskId, action)) {
                     throw new TaskFailure("action_journal_failed", "无法保存动作记录，未执行设备操作");
                 }
@@ -786,6 +931,23 @@ public final class LocalVlmTaskService extends Service {
                                 notDispatched ? "not_dispatched" : "outcome_unknown");
                     }
                     deviceActionUnresolved = !saved || !notDispatched;
+                    throw new TaskStopped();
+                }
+                if ("decision_scene_changed_before_dispatch".equals(actionResult.code)
+                        || "decision_scene_unavailable_before_dispatch".equals(actionResult.code)) {
+                    boolean saved = LocalTaskStore.recordActionResult(this, runTaskId,
+                            action.optString("action_id", ""), "not_dispatched", actionResult.toJson());
+                    if (!saved) {
+                        deviceActionUnresolved = true;
+                        throw new TaskFailure("action_outcome_not_saved",
+                                "页面已变化且动作未发送，但本地结果无法保存；任务待核对");
+                    }
+                    if (jevActionSelected && !annotateJevDispatch(runTaskId, step, action,
+                            false, "not_dispatched")) {
+                        throw new TaskFailure("jev_control_report_failed",
+                                "页面已变化且动作未发送，但选择报告无法更新；任务已暂停");
+                    }
+                    requestControl("pause", actionResult.code);
                     throw new TaskStopped();
                 }
                 if (!actionResult.success) {
@@ -829,9 +991,10 @@ public final class LocalVlmTaskService extends Service {
                 JSONObject after;
                 JSONObject afterShot;
                 boolean treeVerificationEnabled = task.optBoolean("tree_verification_enabled", false);
+                long[] afterSceneEventBaseline = {decisionSceneEventSequence()};
                 try {
                     after = observe(runTaskId, false);
-                    persistObservation(runTaskId, after);
+                    persistObservation(runTaskId, after, loopGeneration);
                     afterShot = treeVerificationEnabled
                             ? captureScreenshotForTreeVerification(runTaskId, after, "AFTER")
                             : captureScreenshot(runTaskId, after, "AFTER");
@@ -839,6 +1002,7 @@ public final class LocalVlmTaskService extends Service {
                     throw new TaskFailure("action_outcome_needs_review",
                             "设备动作已执行但后续页面无法验证；任务已暂停，请检查当前手机页面");
                 }
+                ensureDecisionSceneCurrent(runTaskId, after, loopGeneration, afterSceneEventBaseline);
                 roles.lastSummary = actionSummary;
                 roles.setActionForReflection(command.original);
                 if (treeVerificationEnabled) {
@@ -940,18 +1104,25 @@ public final class LocalVlmTaskService extends Service {
                 stopAfterTerminal();
             } else {
                 if (current == null || !finalState.equals(storedState)) {
-                    setStatus("任务已暂停：" + finalReason);
+                    if ("decision_scene_changed_before_dispatch".equals(finalReason)) {
+                        setStatus("模型决策后页面、焦点或内容已变化；动作未发送，任务已暂停，请检查现场并重新观察");
+                    } else if ("decision_scene_unavailable_before_dispatch".equals(finalReason)) {
+                        setStatus("无法确认模型决策现场；动作未发送，任务已暂停，请检查现场并重新观察");
+                    } else {
+                        setStatus("任务已暂停：" + finalReason);
+                    }
                 }
                 refreshNotification();
             }
         }
     }
 
-    private StandaloneGoalVerifier.Outcome verifyOverallGoal(String runTaskId, JSONObject task)
+    private StandaloneGoalVerifier.Outcome verifyOverallGoal(String runTaskId, JSONObject task,
+            long loopGeneration)
             throws TaskStopped, InterruptedException {
         try {
             JSONObject freshObservation = observe(runTaskId, false);
-            persistObservation(runTaskId, freshObservation);
+            persistObservation(runTaskId, freshObservation, loopGeneration);
             return StandaloneGoalVerifier.verify(task.optString("goal", ""), freshObservation);
         } catch (TaskFailure failure) {
             setStatus("无法取得最终页面核验；任务待核对");
@@ -964,7 +1135,9 @@ public final class LocalVlmTaskService extends Service {
                 || "invalid_action".equals(code)
                 || "stale_observation".equals(code)
                 || "target_node_not_found".equals(code)
-                || "permission_unavailable".equals(code);
+                || "permission_unavailable".equals(code)
+                || "decision_scene_changed_before_dispatch".equals(code)
+                || "decision_scene_unavailable_before_dispatch".equals(code);
     }
 
     private JSONObject observe(String runTaskId, boolean first) throws TaskFailure, TaskStopped, InterruptedException {
@@ -1157,7 +1330,7 @@ public final class LocalVlmTaskService extends Service {
             Thread.sleep(TreeActionVerifier.WAIT_INTERVAL_MILLIS);
             if (hasControlRequest()) throw new TaskStopped();
             after = observe(runTaskId, false);
-            persistObservation(runTaskId, after);
+            persistObservation(runTaskId, after, activeLoopGeneration);
             afterShot = captureScreenshotForTreeVerification(runTaskId, after, "AFTER");
             waits++;
             rule = TreeActionVerifier.verify(before, after, action, beforeShot, afterShot);
@@ -1216,7 +1389,7 @@ public final class LocalVlmTaskService extends Service {
                             Thread.sleep(TreeActionVerifier.WAIT_INTERVAL_MILLIS);
                             if (hasControlRequest()) throw new TaskStopped();
                             after = observe(runTaskId, false);
-                            persistObservation(runTaskId, after);
+                            persistObservation(runTaskId, after, activeLoopGeneration);
                             afterShot = captureScreenshotForTreeVerification(runTaskId, after, "AFTER");
                             waits++;
                             rule = TreeActionVerifier.verify(before, after, action, beforeShot, afterShot);
@@ -1279,7 +1452,7 @@ public final class LocalVlmTaskService extends Service {
                                 Thread.sleep(TreeActionVerifier.WAIT_INTERVAL_MILLIS);
                                 if (hasControlRequest()) throw new TaskStopped();
                                 after = observe(runTaskId, false);
-                                persistObservation(runTaskId, after);
+                                persistObservation(runTaskId, after, activeLoopGeneration);
                                 afterShot = captureScreenshotForTreeVerification(runTaskId, after, "AFTER");
                                 waits++;
                                 rule = TreeActionVerifier.verify(before, after, action, beforeShot, afterShot);
@@ -1410,12 +1583,68 @@ public final class LocalVlmTaskService extends Service {
         return "C";
     }
 
-    private void persistObservation(String runTaskId, JSONObject observation) throws TaskFailure {
+    private void persistObservation(String runTaskId, JSONObject observation, long loopGeneration)
+            throws TaskFailure, TaskStopped {
         try {
-            LocalTaskStore.saveObservation(this, runTaskId, observation);
+            boolean saved = recoveryControl.runIfCurrent(loopGeneration, () -> {
+                JSONObject current = LocalTaskStore.task(this, runTaskId);
+                if (current == null) throw new IOException("task record missing");
+                if (!"RUNNING".equals(current.optString("state", ""))) {
+                    LocalTaskStore.saveObservation(this, runTaskId, observation);
+                    return false;
+                }
+                LocalTaskStore.saveRunningObservation(this, runTaskId, observation);
+                return true;
+            });
+            if (!saved) {
+                if (!recoveryControl.isCurrent(loopGeneration)) {
+                    // Keep the captured scene as ordinary evidence, but never let a
+                    // paused generation advance the recovery target.
+                    LocalTaskStore.saveObservation(this, runTaskId, observation);
+                    throw new TaskStopped();
+                }
+                throw new TaskFailure("observation_generation_stale",
+                        "任务代次已改变；观察不能更新恢复目标");
+            }
         } catch (IOException exception) {
             throw new TaskFailure("observation_evidence_not_saved", "本地观察证据无法保存；任务已暂停");
         }
+    }
+
+    private void ensureDecisionSceneCurrent(String runTaskId, JSONObject expectedObservation,
+            long loopGeneration, long[] eventBaseline)
+            throws TaskFailure, TaskStopped, InterruptedException {
+        if (!recoveryControl.isCurrent(loopGeneration) || hasControlRequest()) throw new TaskStopped();
+        long eventSequence = decisionSceneEventSequence();
+        if (eventSequence == eventBaseline[0]) return;
+        JSONObject fresh = await(callback -> ObservationAccessibilityService
+                .requestLocalDecisionSceneObservation(runTaskId, new ObservationAccessibilityService.LocalObservationCallback() {
+                    @Override
+                    public void onSuccess(JSONObject value) {
+                        callback.success(value);
+                    }
+
+                    @Override
+                    public void onError(String code, String message) {
+                        callback.failure(code, message);
+                    }
+                }), "无法确认模型决策现场");
+        if (!recoveryControl.isCurrent(loopGeneration) || hasControlRequest()) throw new TaskStopped();
+        if (!LocalTaskControlPolicy.sameDecisionScene(expectedObservation, fresh)) {
+            boolean recorded;
+            try {
+                recorded = recoveryControl.runIfCurrent(loopGeneration, () -> {
+                    LocalTaskStore.saveObservation(this, runTaskId, fresh);
+                    return true;
+                });
+            } catch (IOException exception) {
+                recorded = false;
+            }
+            if (!recorded && !recoveryControl.isCurrent(loopGeneration)) throw new TaskStopped();
+            requestControl("pause", "decision_scene_changed_before_dispatch");
+            throw new TaskStopped();
+        }
+        eventBaseline[0] = decisionSceneEventSequence();
     }
 
     private String requestRole(ModelProfileStore.Profile profile, String runTaskId, String role,

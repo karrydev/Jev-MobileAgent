@@ -10,6 +10,81 @@ import org.junit.Test;
 
 public final class LocalTaskStoreTest {
     @Test
+    public void recoveryTargetUsesLastRunningObservationAndIgnoresUntrustedRecoveryHistory() throws Exception {
+        JSONObject task = new JSONObject().put("target_application_package", "com.example.first")
+                .put("last_running_target_application_package", "com.example.second")
+                .put("observations", new JSONArray()
+                        .put(new JSONObject().put("active_application_package", "com.example.second")
+                                .put("trusted_running_target_application_package", "com.example.second"))
+                        .put(new JSONObject().put("active_application_package", "com.example.recovery")));
+
+        assertEquals("com.example.second", LocalTaskStore.recoveryTargetPackage(task));
+
+        JSONObject legacyTask = new JSONObject().put("target_application_package", "com.example.legacy")
+                .put("observations", new JSONArray().put(new JSONObject()
+                        .put("active_application_package", "com.example.legacy")));
+        assertEquals("com.example.legacy", LocalTaskStore.recoveryTargetPackage(legacyTask));
+    }
+
+    @Test
+    public void legacyRecoveryTargetUsesLatestLinkedBeforeOrAfterObservation() throws Exception {
+        JSONObject task = new JSONObject().put("target_application_package", "com.example.first")
+                .put("observations", new JSONArray()
+                        .put(legacyObservation("before-1", 1, "com.example.first"))
+                        .put(legacyObservation("after-2", 2, "com.example.second")))
+                .put("screenshot_captures", new JSONArray()
+                        .put(legacyCapture("BEFORE", "before-1", 1))
+                        .put(legacyCapture("AFTER", "after-2", 2))
+                        .put(legacyCapture("RECOVERY", "review-3", 3)));
+
+        assertEquals("com.example.second", LocalTaskStore.recoveryTargetPackage(task));
+        assertFalse(LocalTaskStore.recoveryTargetIsAmbiguous(task));
+    }
+
+    @Test
+    public void ambiguousLegacyCrossAppObservationFailsClosedButSingleAppHistoryRemainsReviewable() throws Exception {
+        JSONObject crossApp = new JSONObject().put("target_application_package", "com.example.first")
+                .put("observations", new JSONArray()
+                        .put(legacyObservation("before-1", 1, "com.example.first"))
+                        .put(legacyObservation("unlinked-2", 2, "com.example.second")))
+                .put("screenshot_captures", new JSONArray()
+                        .put(legacyCapture("BEFORE", "before-1", 1)));
+        assertEquals("", LocalTaskStore.recoveryTargetPackage(crossApp));
+        assertTrue(LocalTaskStore.recoveryTargetIsAmbiguous(crossApp));
+
+        JSONObject singleApp = new JSONObject().put("target_application_package", "com.example.first")
+                .put("observations", new JSONArray()
+                        .put(legacyObservation("unlinked-1", 1, "com.example.first"))
+                        .put(legacyObservation("unlinked-2", 2, "com.example.first")));
+        assertEquals("com.example.first", LocalTaskStore.recoveryTargetPackage(singleApp));
+        assertFalse(LocalTaskStore.recoveryTargetIsAmbiguous(singleApp));
+    }
+
+    @Test
+    public void legacyRecoveryCapturesDoNotReplaceTheLastRunningTarget() throws Exception {
+        JSONObject task = new JSONObject().put("target_application_package", "com.example.first")
+                .put("observations", new JSONArray()
+                        .put(legacyObservation("before-1", 1, "com.example.first"))
+                        .put(legacyObservation("review-2", 2, "com.example.recovery")))
+                .put("screenshot_captures", new JSONArray()
+                        .put(legacyCapture("BEFORE", "before-1", 1))
+                        .put(legacyCapture("RECOVERY", "review-2", 2)));
+
+        assertEquals("com.example.first", LocalTaskStore.recoveryTargetPackage(task));
+        assertFalse(LocalTaskStore.recoveryTargetIsAmbiguous(task));
+    }
+
+    private static JSONObject legacyObservation(String id, long version, String packageName) throws Exception {
+        return new JSONObject().put("observation_id", id).put("observation_version", version)
+                .put("active_application_package", packageName);
+    }
+
+    private static JSONObject legacyCapture(String type, String id, long version) throws Exception {
+        return new JSONObject().put("capture_type", type).put("observation_id", id)
+                .put("observation_version", version).put("status", "captured");
+    }
+
+    @Test
     public void sameStepJevRequestsAreDeduplicatedPerPurpose() throws Exception {
         JSONArray attempts = new JSONArray().put(new JSONObject()
                 .put("step", 2).put("request_purpose", "selection").put("request_sent", true));

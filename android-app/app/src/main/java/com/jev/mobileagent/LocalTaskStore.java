@@ -12,8 +12,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /** Private, durable journal for the standalone VLM loop; separate from the old bridge recovery journal. */
@@ -219,43 +220,152 @@ public final class LocalTaskStore {
                 .put("bottom", source.optInt("bottom", 0));
     }
 
-    /** Resolve the task's original foreground app from its durable observation history. */
+    /** Resolve the most recent trustworthy application seen while the task was running. */
     static String recoveryTargetPackage(Context context, String taskId) {
         synchronized (LOCK) {
-            JSONObject task = task(context, taskId);
-            if (task == null) return "";
-            String stored = task.optString("target_application_package", "");
-            if (!stored.isEmpty()) return stored;
-            JSONArray observations = task.optJSONArray("observations");
-            if (observations == null) return "";
-            File directory;
-            try {
-                directory = taskDirectory(context, taskId);
-            } catch (IOException exception) {
-                return "";
-            }
-            for (int i = observations.length() - 1; i >= 0; i--) {
-                JSONObject entry = observations.optJSONObject(i);
-                if (entry == null) continue;
-                String packageName = entry.optString("active_application_package", "");
-                if (!packageName.isEmpty()) return packageName;
-                String name = entry.optString("private_file", "");
-                if (!name.matches("observation-[0-9]+\\.json")) continue;
-                File file = new File(directory, name);
-                if (!file.isFile() || file.length() <= 0 || file.length() > 8 * 1024 * 1024) continue;
-                byte[] bytes = null;
-                try {
-                    bytes = Files.readAllBytes(file.toPath());
-                    JSONObject observation = new JSONObject(new String(bytes, StandardCharsets.UTF_8));
-                    packageName = LocalTaskControlPolicy.activeApplicationPackage(observation);
-                    if (!packageName.isEmpty()) return packageName;
-                } catch (IOException | JSONException ignored) {
-                    // Try the preceding durable observation; absence remains fail-closed.
-                } finally {
-                    if (bytes != null) java.util.Arrays.fill(bytes, (byte) 0);
+            return recoveryTargetPackage(task(context, taskId));
+        }
+    }
+
+    static String recoveryTargetPackage(JSONObject task) {
+        if (task == null) return "";
+        String latestRunning = task.optString("last_running_target_application_package", "");
+        if (!latestRunning.isEmpty()) return latestRunning;
+        LegacyRecoveryTarget legacy = resolveLegacyRecoveryTarget(task);
+        return legacy.ambiguous ? "" : legacy.packageName;
+    }
+
+    static boolean recoveryTargetIsAmbiguous(JSONObject task) {
+        if (task == null || !task.optString("last_running_target_application_package", "").isEmpty()) {
+            return false;
+        }
+        return resolveLegacyRecoveryTarget(task).ambiguous;
+    }
+
+    private static LegacyRecoveryTarget resolveLegacyRecoveryTarget(JSONObject task) {
+        JSONArray observations = task.optJSONArray("observations");
+        if (observations == null) observations = new JSONArray();
+        Set<String> recoveryObservationIds = recoveryObservationIds(task);
+        String candidatePackage = "";
+        long candidateVersion = -1L;
+        boolean ambiguousAtCandidate = false;
+
+        // Newer records carry an explicit running-target marker. Older records can
+        // prove the same fact when a BEFORE/AFTER screenshot attempt links to the
+        // observation captured by the task loop. RECOVERY captures are never target evidence.
+        for (int i = 0; i < observations.length(); i++) {
+            JSONObject entry = observations.optJSONObject(i);
+            if (entry == null || recoveryObservationIds.contains(entry.optString("observation_id", ""))) continue;
+            String trusted = entry.optString("trusted_running_target_application_package", "");
+            if (!trusted.isEmpty()) {
+                long version = entry.optLong("observation_version", 0L);
+                if (version > candidateVersion) {
+                    candidatePackage = trusted;
+                    candidateVersion = version;
+                    ambiguousAtCandidate = false;
+                } else if (version == candidateVersion && !trusted.equals(candidatePackage)) {
+                    ambiguousAtCandidate = true;
                 }
             }
-            return "";
+        }
+
+        JSONArray captures = task.optJSONArray("screenshot_captures");
+        if (captures != null) {
+            for (int i = 0; i < captures.length(); i++) {
+                JSONObject capture = captures.optJSONObject(i);
+                if (capture == null) continue;
+                String type = capture.optString("capture_type", "");
+                String observationId = capture.optString("observation_id", "");
+                if ("RECOVERY".equals(type)) {
+                    if (!observationId.isEmpty()) recoveryObservationIds.add(observationId);
+                    continue;
+                }
+                if (!"BEFORE".equals(type) && !"AFTER".equals(type)) continue;
+                JSONObject entry = observationById(observations, observationId);
+                if (entry == null || recoveryObservationIds.contains(observationId)) continue;
+                String packageName = entry.optString("active_application_package", "");
+                long version = Math.max(entry.optLong("observation_version", 0L),
+                        capture.optLong("observation_version", 0L));
+                if (packageName.isEmpty()) continue;
+                if (version > candidateVersion) {
+                    candidatePackage = packageName;
+                    candidateVersion = version;
+                    ambiguousAtCandidate = false;
+                } else if (version == candidateVersion && !packageName.equals(candidatePackage)) {
+                    ambiguousAtCandidate = true;
+                }
+            }
+        }
+
+        if (ambiguousAtCandidate) return new LegacyRecoveryTarget("", true);
+        if (!candidatePackage.isEmpty()) {
+            // An unlinked, later observation could be the process-death window
+            // between saving the tree and recording its screenshot attempt. If it
+            // names another app, the old running scene cannot be reconstructed.
+            for (int i = 0; i < observations.length(); i++) {
+                JSONObject entry = observations.optJSONObject(i);
+                if (entry == null || recoveryObservationIds.contains(entry.optString("observation_id", ""))) continue;
+                if (entry.optLong("observation_version", 0L) <= candidateVersion) continue;
+                String packageName = entry.optString("active_application_package", "");
+                if (!packageName.isEmpty() && !packageName.equals(candidatePackage)) {
+                    return new LegacyRecoveryTarget("", true);
+                }
+            }
+            return new LegacyRecoveryTarget(candidatePackage, false);
+        }
+
+        String stored = task.optString("target_application_package", "");
+        if (!stored.isEmpty()) {
+            // Preserve ordinary single-app legacy review while rejecting a known
+            // cross-app history whose running phase has no screenshot linkage.
+            for (int i = 0; i < observations.length(); i++) {
+                JSONObject entry = observations.optJSONObject(i);
+                if (entry == null || recoveryObservationIds.contains(entry.optString("observation_id", ""))) continue;
+                String packageName = entry.optString("active_application_package", "");
+                if (!packageName.isEmpty() && !packageName.equals(stored)) {
+                    return new LegacyRecoveryTarget("", true);
+                }
+            }
+            return new LegacyRecoveryTarget(stored, false);
+        }
+        return new LegacyRecoveryTarget("", false);
+    }
+
+    private static Set<String> recoveryObservationIds(JSONObject task) {
+        Set<String> ids = new HashSet<>();
+        JSONObject review = task.optJSONObject("recovery_review");
+        if (review != null) addRecoveryObservationId(ids, review);
+        JSONArray reviews = task.optJSONArray("recovery_reviews");
+        if (reviews != null) {
+            for (int i = 0; i < reviews.length(); i++) {
+                addRecoveryObservationId(ids, reviews.optJSONObject(i));
+            }
+        }
+        return ids;
+    }
+
+    private static void addRecoveryObservationId(Set<String> ids, JSONObject review) {
+        if (review == null) return;
+        String id = review.optString("observation_id", "");
+        if (!id.isEmpty()) ids.add(id);
+    }
+
+    private static JSONObject observationById(JSONArray observations, String observationId) {
+        if (observationId == null || observationId.isEmpty()) return null;
+        for (int i = 0; i < observations.length(); i++) {
+            JSONObject entry = observations.optJSONObject(i);
+            if (entry != null && observationId.equals(entry.optString("observation_id", ""))) return entry;
+        }
+        return null;
+    }
+
+    private static final class LegacyRecoveryTarget {
+        final String packageName;
+        final boolean ambiguous;
+
+        LegacyRecoveryTarget(String packageName, boolean ambiguous) {
+            this.packageName = packageName;
+            this.ambiguous = ambiguous;
         }
     }
 
@@ -405,6 +515,8 @@ public final class LocalTaskStore {
                         .put("captured_at", observation.optString("captured_at", ""))
                         .put("scene_fingerprint", LocalTaskControlPolicy.sceneFingerprint(
                                 observation, screenshotFingerprint))
+                        .put("semantic_fingerprint", LocalTaskControlPolicy.sceneFingerprint(
+                                observation, ""))
                         .put("target_application_package", activePackage)
                         .put("goal", task.optString("goal", ""))
                         .put("goal_outcome", goalOutcome == null ? "UNKNOWN" : goalOutcome)
@@ -446,7 +558,7 @@ public final class LocalTaskStore {
     /** Revalidate the exact reviewed target and fresh scene, then record a user-only decision. */
     public static boolean applyRecoveryDecision(Context context, String taskId, String decision,
             String expectedReviewObservationId, JSONObject confirmationObservation,
-            String screenshotFingerprint, String confirmationGoalOutcome) {
+            String screenshotFingerprint, String confirmationGoalOutcome, int confirmationSampleCount) {
         synchronized (LOCK) {
             JSONObject task = task(context, taskId);
             JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
@@ -488,6 +600,7 @@ public final class LocalTaskStore {
                         .put("review_goal_outcome", review.optString("goal_outcome", "UNKNOWN"))
                         .put("confirmation_goal_outcome", confirmationGoalOutcome == null
                                 ? "UNKNOWN" : confirmationGoalOutcome)
+                        .put("confirmation_sample_count", Math.max(1, confirmationSampleCount))
                         .put("step_count_before", task.optInt("step_count", 0))
                         .put("request_count_at_confirmation", task.optInt("request_count", 0))
                         .put("accounted_cost_cny_at_confirmation", task.optDouble("accounted_cost_cny", 0.0));
@@ -1253,6 +1366,16 @@ public final class LocalTaskStore {
 
     /** Raw trees and PNGs are kept under the app-private files directory and are never automatically exported. */
     public static String saveObservation(Context context, String taskId, JSONObject observation) throws IOException {
+        return saveObservation(context, taskId, observation, false);
+    }
+
+    /** Save an observation produced by the active task loop and advance its trusted recovery target. */
+    static String saveRunningObservation(Context context, String taskId, JSONObject observation) throws IOException {
+        return saveObservation(context, taskId, observation, true);
+    }
+
+    private static String saveObservation(Context context, String taskId, JSONObject observation,
+            boolean fromRunningTaskLoop) throws IOException {
         if (observation == null) {
             throw new IOException("observation missing");
         }
@@ -1277,17 +1400,20 @@ public final class LocalTaskStore {
             }
             try {
                 String activePackage = LocalTaskControlPolicy.activeApplicationPackage(observation);
-                observations.put(new JSONObject()
+                String trustedTargetPackage = fromRunningTaskLoop
+                        ? LocalTaskControlPolicy.rememberRunningTargetPackage(task, observation) : "";
+                JSONObject entry = new JSONObject()
                         .put("observation_id", observation.optString("observation_id", ""))
                         .put("observation_version", version)
                         .put("active_application_package", activePackage)
                         .put("page_state", observation.optString("page_state", ""))
                         .put("private_file", file.getName())
-                        .put("captured_at", observation.optString("captured_at", "")));
-                task.put("observations", observations);
-                if (task.optString("target_application_package", "").isEmpty() && !activePackage.isEmpty()) {
-                    task.put("target_application_package", activePackage);
+                        .put("captured_at", observation.optString("captured_at", ""));
+                if (!trustedTargetPackage.isEmpty()) {
+                    entry.put("trusted_running_target_application_package", trustedTargetPackage);
                 }
+                observations.put(entry);
+                task.put("observations", observations);
                 touch(task);
                 if (!preferences(context).edit().putString(taskKey(taskId), task.toString()).commit()) {
                     throw new IOException("could not save observation metadata");
