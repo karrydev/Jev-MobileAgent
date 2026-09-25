@@ -363,6 +363,10 @@ public final class JevCandidateBuilder {
                     .put("description", description).put("equivalence_group", equivalenceGroup);
         }
 
+        JSONObject sourceNodeSnapshot() throws JSONException {
+            return sourceNode == null ? null : new JSONObject(sourceNode.toString());
+        }
+
         private boolean containsPoint(double x, double y) {
             JSONObject bounds = sourceNode == null ? null : sourceNode.optJSONObject("bounds");
             if (bounds == null) return false;
@@ -428,6 +432,15 @@ public final class JevCandidateBuilder {
         public String compareVlmAction(JSONObject action, String preferredCandidateId) {
             VlmMatch match = matchingVlmCandidate(action, find(preferredCandidateId));
             return match.candidate == null ? null : match.candidate.id;
+        }
+
+        /** Reports whether a VLM action has one complete, unambiguous candidate representation. */
+        public String vlmCoverageStatus(JSONObject action) {
+            return matchingVlmCandidate(action, null).status;
+        }
+
+        public Candidate candidateById(String id) {
+            return find(id);
         }
 
         public String compareRecommendation(String choiceId, JSONObject action) {

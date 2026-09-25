@@ -181,6 +181,7 @@ public final class JevCandidateBuilderTest {
         assertEquals("vlm_candidate_ambiguous",
                 result.compareRecommendation(result.candidates.get(1).id, action));
         assertEquals(null, result.compareVlmAction(action));
+        assertEquals("vlm_candidate_ambiguous", result.vlmCoverageStatus(action));
     }
 
     @Test
@@ -199,6 +200,25 @@ public final class JevCandidateBuilderTest {
         assertEquals("vlm_candidate_missing", result.compareRecommendation(result.candidates.get(0).id, outside));
         assertEquals("invalid_choice", result.compareRecommendation("not-a-candidate", inside));
         assertEquals(null, result.compareVlmAction(outside));
+        assertEquals("vlm_candidate_missing", result.vlmCoverageStatus(outside));
+        assertEquals("matched", result.vlmCoverageStatus(inside));
+    }
+
+    @Test
+    public void exactKnownTextCoverageRequiresTheSameObservedInputAndCompleteParameters() throws Exception {
+        JSONObject input = new JSONObject().put("node_id", "query").put("role", "text_field")
+                .put("enabled", true).put("actions", new JSONArray().put("input_text"));
+        JevCandidateBuilder.CandidateSet result = JevCandidateBuilder.build(
+                observation(1, 100, 400, input), new JSONObject().put("text", "独立手机测试成功"), 300L);
+        JSONObject matching = new JSONObject().put("kind", "set_text").put("target_node_id", "query")
+                .put("parameters", new JSONObject().put("text", "独立手机测试成功"));
+        JSONObject otherTarget = new JSONObject(matching.toString()).put("target_node_id", "another-input");
+        JSONObject otherText = new JSONObject(matching.toString()).put("parameters",
+                new JSONObject().put("text", "不同文本"));
+
+        assertEquals("matched", result.vlmCoverageStatus(matching));
+        assertEquals("vlm_candidate_missing", result.vlmCoverageStatus(otherTarget));
+        assertEquals("vlm_candidate_missing", result.vlmCoverageStatus(otherText));
     }
 
     @Test

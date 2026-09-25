@@ -24,6 +24,7 @@ public final class LocalTaskStore {
     private static final String GLOBAL_ACCOUNTED_CNY = "global_accounted_cny";
     private static final String GLOBAL_JEV_SHADOW_CALLS = "global_jev_shadow_calls";
     private static final String JEV_SHADOW_ENABLED = "jev_shadow_enabled";
+    private static final String JEV_SELECTION_ENABLED = "jev_selection_enabled";
     private static final String TASK_PREFIX = "task.";
 
     public static final int MAX_STEPS = 5;
@@ -71,6 +72,7 @@ public final class LocalTaskStore {
                 record.put("cost_status", "known_so_far");
                 record.put("usage_missing", false);
                 record.put("jev_shadow_enabled", preferences.getBoolean(JEV_SHADOW_ENABLED, false));
+                record.put("jev_selection_enabled", preferences.getBoolean(JEV_SELECTION_ENABLED, false));
                 record.put("jev_shadow_call_count", 0);
                 record.put("jev_shadow_reserved_cny", 0.0);
                 record.put("requests", new JSONArray());
@@ -199,6 +201,51 @@ public final class LocalTaskStore {
     public static boolean isJevShadowEnabled(Context context) {
         synchronized (LOCK) {
             return preferences(context).getBoolean(JEV_SHADOW_ENABLED, false);
+        }
+    }
+
+    /** Controlled selection is opt-in and snapshotted when a task is created. */
+    public static boolean setJevSelectionEnabled(Context context, boolean enabled) {
+        synchronized (LOCK) {
+            return preferences(context).edit().putBoolean(JEV_SELECTION_ENABLED, enabled).commit();
+        }
+    }
+
+    public static boolean isJevSelectionEnabled(Context context) {
+        synchronized (LOCK) {
+            return preferences(context).getBoolean(JEV_SELECTION_ENABLED, false);
+        }
+    }
+
+    /** Keep the final controlled-selection outcome beside its reserved attempt. */
+    public static boolean annotateJevSelectionAttempt(Context context, String taskId, int zeroBasedStep,
+            JSONObject annotations) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            JSONArray attempts = task == null ? null : task.optJSONArray("jev_shadow_attempts");
+            if (attempts == null || annotations == null) return false;
+            for (int i = attempts.length() - 1; i >= 0; i--) {
+                JSONObject attempt = attempts.optJSONObject(i);
+                if (attempt == null || attempt.optInt("step", -1) != zeroBasedStep + 1
+                        || !"task_controlled".equals(attempt.optString("source", ""))) {
+                    continue;
+                }
+                try {
+                    java.util.Iterator<String> keys = annotations.keys();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        attempt.put(key, annotations.opt(key));
+                    }
+                    attempts.put(i, attempt);
+                    task.put("jev_shadow_attempts", attempts);
+                    touch(task);
+                    return preferences(context).edit()
+                            .putString(taskKey(taskId), task.toString()).commit();
+                } catch (JSONException exception) {
+                    return false;
+                }
+            }
+            return false;
         }
     }
 

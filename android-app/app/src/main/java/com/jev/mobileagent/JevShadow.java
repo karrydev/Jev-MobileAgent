@@ -32,6 +32,84 @@ public final class JevShadow {
                 instruction, observation, known.parameters, known.source, vlmAction, cancellationToken);
     }
 
+    /** A Jev attempt that may supply the device action only when the VLM intent is covered. */
+    public static ControlledAttempt runControlledTaskAttempt(Context context, String taskId,
+            int zeroBasedStep, String instruction, JSONObject observation, JSONObject vlmAction,
+            JevApiClient.CancellationToken cancellationToken) throws JSONException {
+        TaskKnownParameters known = knownParametersForTask(instruction, observation, vlmAction);
+        JevCandidateBuilder.CandidateSet candidates = JevCandidateBuilder.build(observation, known.parameters);
+        JSONObject report = runChoice(context, taskId, zeroBasedStep, "task_controlled", null, null,
+                instruction, observation, known.parameters, known.source, vlmAction,
+                cancellationToken, candidates, true);
+
+        String status = report.optString("status", "");
+        String choiceId = report.optString("choice_id", "");
+        double confidence = report.optDouble("confidence", -1.0);
+        JevCandidateBuilder.Candidate selected = candidates.candidateById(choiceId);
+        boolean budgetDenied = "budget_denied".equals(status);
+        boolean maySelect = mayDispatchControlledChoice(candidates, report);
+        JSONObject annotations = new JSONObject();
+        if (maySelect) {
+            annotations.put("selection_status", "selected")
+                    .put("selected_candidate_id", selected.id)
+                    .put("dispatch_status", "not_started");
+        } else if (budgetDenied) {
+            annotations.put("selection_status", "blocked")
+                    .put("fallback_reason", "jev_budget_denied")
+                    .put("fallback_target", "pause_task")
+                    .put("dispatch_status", "paused_before_action");
+        } else {
+            String reason = controlledFallbackReason(report, selected, confidence);
+            annotations.put("selection_status", "fallback")
+                    .put("fallback_reason", reason)
+                    .put("fallback_target", "existing_vlm_action")
+                    .put("dispatch_status", "fallback_vlm");
+        }
+        if (!LocalTaskStore.annotateJevSelectionAttempt(context, taskId, zeroBasedStep, annotations)) {
+            throw new JSONException("controlled Jev selection report could not be finalized");
+        }
+        copyAnnotations(report, annotations);
+        return new ControlledAttempt(report, candidates, maySelect ? selected : null);
+    }
+
+    public static boolean markControlledFallback(Context context, String taskId, int zeroBasedStep,
+            String reason) {
+        try {
+            JSONObject annotations = new JSONObject()
+                    .put("selection_status", "fallback")
+                    .put("fallback_reason", reason == null ? "candidate_action_unavailable" : reason)
+                    .put("fallback_target", "existing_vlm_action")
+                    .put("dispatch_status", "fallback_vlm");
+            return LocalTaskStore.annotateJevSelectionAttempt(context, taskId, zeroBasedStep, annotations);
+        } catch (JSONException exception) {
+            return false;
+        }
+    }
+
+    static boolean mayDispatchControlledChoice(JevCandidateBuilder.CandidateSet candidates,
+            JSONObject report) {
+        if (candidates == null || report == null
+                || !"valid_recommendation".equals(report.optString("status", ""))
+                || report.optDouble("confidence", -1.0) < LOW_CONFIDENCE_THRESHOLD
+                || !"matched".equals(report.optString("candidate_coverage_status", ""))) {
+            return false;
+        }
+        return candidates.candidateById(report.optString("choice_id", "")) != null;
+    }
+
+    public static final class ControlledAttempt {
+        public final JSONObject report;
+        public final JevCandidateBuilder.CandidateSet candidates;
+        public final JevCandidateBuilder.Candidate selectedCandidate;
+
+        private ControlledAttempt(JSONObject report, JevCandidateBuilder.CandidateSet candidates,
+                JevCandidateBuilder.Candidate selectedCandidate) {
+            this.report = report;
+            this.candidates = candidates;
+            this.selectedCandidate = selectedCandidate;
+        }
+    }
+
     public static JSONObject runDebugCase(Context context, String taskId, JSONObject input,
             JevApiClient.CancellationToken cancellationToken) throws JSONException {
         String caseId = input.optString("case_id", "");
@@ -75,6 +153,17 @@ public final class JevShadow {
             JevApiClient.CancellationToken cancellationToken)
             throws JSONException {
         JevCandidateBuilder.CandidateSet candidates = JevCandidateBuilder.build(observation, knownParameters);
+        return runChoice(context, taskId, zeroBasedStep, source, caseId, split, instruction,
+                observation, knownParameters, knownParameterSource, vlmAction, cancellationToken,
+                candidates, false);
+    }
+
+    private static JSONObject runChoice(Context context, String taskId, int zeroBasedStep,
+            String source, String caseId, String split, String instruction, JSONObject observation,
+            JSONObject knownParameters, String knownParameterSource, JSONObject vlmAction,
+            JevApiClient.CancellationToken cancellationToken,
+            JevCandidateBuilder.CandidateSet candidates, boolean requireVlmCoverage)
+            throws JSONException {
         JSONObject base = baseAttempt(source, caseId, split, zeroBasedStep,
                 candidates.observationId, candidates.observationVersion, candidates.candidates.size());
         base.put("instruction_language", containsHan(instruction) ? "zh-CN" : "other")
@@ -86,6 +175,20 @@ public final class JevShadow {
                 .put("comparison", comparison(candidates, null, vlmAction));
         if (knownParameterSource != null) {
             base.put("known_parameter_source", knownParameterSource);
+        }
+        if (requireVlmCoverage && candidates.fallbackReason == null) {
+            String coverage = candidates.vlmCoverageStatus(vlmAction);
+            base.put("candidate_coverage_status", coverage);
+            if (!"matched".equals(coverage)) {
+                String reason = "candidate_coverage_" + safeReason(coverage);
+                base.put("status", "fallback")
+                        .put("selection_status", "fallback")
+                        .put("fallback_reason", reason)
+                        .put("fallback_target", "existing_vlm_action");
+                return recordWithoutNetwork(context, taskId, base, "fallback", reason);
+            }
+        } else if (requireVlmCoverage) {
+            base.put("candidate_coverage_status", candidates.fallbackReason);
         }
         if (candidates.fallbackReason != null) {
             base.put("status", "fallback")
@@ -249,6 +352,37 @@ public final class JevShadow {
             result.put("vlm_equivalent_candidate_id", vlmCandidateId);
         }
         return result;
+    }
+
+    private static String controlledFallbackReason(JSONObject report,
+            JevCandidateBuilder.Candidate selected, double confidence) {
+        String existing = report.optString("fallback_reason", "");
+        if (!existing.isEmpty()) return existing;
+        if ("valid_low_confidence".equals(report.optString("status", ""))
+                || (confidence >= 0.0 && confidence < LOW_CONFIDENCE_THRESHOLD)) {
+            return "confidence_below_threshold";
+        }
+        if ("valid_recommendation".equals(report.optString("status", "")) && selected == null) {
+            return "jev_choice_not_in_current_candidate_set";
+        }
+        String status = safeReason(report.optString("status", "jev_choice_unavailable"));
+        if (status.isEmpty()) status = "jev_choice_unavailable";
+        return "jev_" + status;
+    }
+
+    private static String safeReason(String value) {
+        if (value == null || !value.matches("[A-Za-z0-9_.-]{1,100}")) {
+            return "unclassified";
+        }
+        return value;
+    }
+
+    private static void copyAnnotations(JSONObject target, JSONObject annotations) throws JSONException {
+        java.util.Iterator<String> keys = annotations.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            target.put(key, annotations.opt(key));
+        }
     }
 
     static TaskKnownParameters knownParametersForTask(String instruction, JSONObject observation,

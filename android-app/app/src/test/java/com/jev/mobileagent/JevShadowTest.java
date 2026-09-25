@@ -6,8 +6,32 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public final class JevShadowTest {
+    @Test
+    public void validHighConfidenceChoiceCannotBypassMissingVlmCandidateCoverage() throws Exception {
+        JSONObject button = new JSONObject().put("node_id", "preset-button").put("role", "button")
+                .put("enabled", true).put("actions", new JSONArray().put("tap"))
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 20).put("bottom", 20));
+        JSONObject observation = new JSONObject().put("observation_id", "obs-visual")
+                .put("observation_version", 1).put("captured_at", 100).put("expires_at", 400)
+                .put("page_state", "observed").put("nodes", new JSONArray().put(button));
+        JevCandidateBuilder.CandidateSet candidates = JevCandidateBuilder.build(
+                observation, new JSONObject(), 300L);
+        String choiceId = candidates.candidates.get(0).id;
+        JSONObject report = new JSONObject().put("status", "valid_recommendation")
+                .put("choice_id", choiceId).put("confidence", 0.99)
+                .put("candidate_coverage_status", "vlm_candidate_missing");
+
+        assertFalse(JevShadow.mayDispatchControlledChoice(candidates, report));
+        report.put("candidate_coverage_status", "matched");
+        assertTrue(JevShadow.mayDispatchControlledChoice(candidates, report));
+        report.put("status", "valid_low_confidence");
+        assertFalse(JevShadow.mayDispatchControlledChoice(candidates, report));
+    }
+
     @Test
     public void usesParsedVlmTextOnlyWhenTheInstructionHasNoUniqueQuotedValue() throws Exception {
         JSONObject observation = new JSONObject().put("observation_id", "obs-text")
