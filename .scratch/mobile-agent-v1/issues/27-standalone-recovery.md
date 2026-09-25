@@ -6,9 +6,9 @@ Blocked by: 20, 26
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-standalone-recovery
+Branch: codex/v1-standalone-recovery
 Evidence: 独立 APK、物理手机恢复演练
 Gate: 独立 App 中断后核对并手动恢复
 
@@ -42,3 +42,5 @@ Gate: 独立 App 中断后核对并手动恢复
 2026-09-25：26 独立 App 验收合入后领取。22 首批仅新增候选/HTTPS/影子报告模块与相关测试，不修改运行入口；27 独占 LocalVlmTaskService、LocalTaskStore、恢复 UI 与无障碍控制。共享入口待 27 稳定后串行接入 22，不新建重复运行框架。主 Agent 独占真机、真实 API、凭据、预算与 Git。
 
 2026-09-25：创建第二开发子 Agent 遇到平台 thread limit，27 尚未开始实现，释放领取。先由 22 的 Luna 串行完成影子运行入口接入，27 随后领取；已建空 worktree 不代表实施。
+
+2026-09-25：在主线bea2d87领取，24默认关闭实现已提前合入但未全部验收。27独占Android本地运行/持久化/恢复UI；复用24动作四态和共享预算。当前手机保留无效果UNKNOWN动作task 8e7f485f-b810-465b-9b49-5d7a6a25a9a5，不能清空偏好或重置费用以绕过。先实现核对与明确恢复/结束入口，主协调独占真机和模型调用，再补24最后边界。
