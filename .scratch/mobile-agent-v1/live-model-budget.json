@@ -1511,9 +1511,61 @@
       "requests": 4,
       "jev_requests": 3,
       "accounted_cny_in_app": 0.046509
+    },
+    {
+      "id": "planning25-off-input06",
+      "source_commit": "352835e414dcef9055b3fb6c7df10edf5df39873",
+      "result": "SUCCEEDED: overall_goal_verified_after_manager_finished",
+      "budget_reservation_cny": 0.010000000000000002,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0106785,
+      "actual_billed_cny": null,
+      "requests": 3,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.020678500000000002
+    },
+    {
+      "id": "planning25-on-input04",
+      "source_commit": "352835e414dcef9055b3fb6c7df10edf5df39873",
+      "result": "COMPLETED_ON_REVIEW: user_confirmed_goal_visible_in_two_fresh_observations",
+      "budget_reservation_cny": 0.020000000000000004,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.011814,
+      "actual_billed_cny": null,
+      "requests": 3,
+      "jev_requests": 2,
+      "accounted_cny_in_app": 0.031814
+    },
+    {
+      "id": "planning25-off-visual03",
+      "source_commit": "352835e414dcef9055b3fb6c7df10edf5df39873",
+      "result": "ENDED_WITH_UNRESOLVED: user_ended_after_review_acknowledging_unresolved_postcondition",
+      "budget_reservation_cny": 0.009999999999999998,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0071849999999999995,
+      "actual_billed_cny": null,
+      "requests": 2,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.017185
+    },
+    {
+      "id": "planning25-on-visual05",
+      "source_commit": "352835e414dcef9055b3fb6c7df10edf5df39873",
+      "result": "ENDED_WITH_UNRESOLVED: user_ended_after_review_acknowledging_unresolved_postcondition",
+      "budget_reservation_cny": 0.010000000000000002,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.007391999999999999,
+      "actual_billed_cny": null,
+      "requests": 2,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.017392
     }
   ],
-  "estimated_list_price_total_cny": 1.9266119999999998,
+  "estimated_list_price_total_cny": 1.9636814999999999,
   "unknown_usage_request_count": 4,
   "authorization_changes": [
     {

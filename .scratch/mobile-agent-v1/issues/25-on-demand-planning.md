@@ -41,3 +41,5 @@ Gate: 按需规划完成任务并处理计划失效
 2026-09-25：gui-plus 在 bec1606 APK 上完成四项同条件 OFF/ON 有界对照，实际输入与蓝框均未达目标，不能放行。查明旧版 gui-plus 与日期版坐标协议不同，而 Android 统一按0–1000处理；正在进行精确模型适配，旧失败与费用保留。详见 [真实对照记录](../evidence/on-demand-planning-validation.md)。
 
 2026-09-25：2915ed9新增有界post-action观察关联与Jev70上限，Policy24定向通过，assemble成功，Sol时序意见已修复。四项同APK复测仅中文OFF自动SUCCEEDED，中文ON需fresh确认、两项蓝框未命中且已结束；仍不放行。状态栏节点1px移动导致结构拒绝及截图期间事件需后续定向处理，详见[最新证据](../evidence/post-action-scene-validation.md)。已恢复规划OFF，Jev46/70，费用上限不变。
+
+2026-09-25：352835e升级已保留计数并启用用户授权150总上限，27项定向测试/构建/聚焦Sol审查通过。四项同APK复测中文OFF自动成功，中文ON首次输入成功但重复输入后暂停，两蓝框未完成；51/150调用，费用上限未变。全部原始失败和人工结束分别保留，见[最新实测](../evidence/scene-scope-repair-validation.md)。未关闭本票，手机已锁屏、规划OFF。
