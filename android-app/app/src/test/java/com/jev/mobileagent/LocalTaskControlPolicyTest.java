@@ -105,25 +105,33 @@ public final class LocalTaskControlPolicyTest {
     }
 
     @Test
-    public void notificationShadeIsRecognizedButOtherSystemUiAndChangedTargetAreRejected() throws Exception {
+    public void fullScreenSystemWindowWithoutTargetCanBeDismissedOnlyDuringUnlockedRecovery()
+            throws Exception {
         JSONObject target = sceneObservation();
         assertTrue(LocalTaskControlPolicy.isTargetApplicationForeground(target, "com.jev.mobileagent"));
 
-        JSONObject shade = sceneObservation();
-        shade.getJSONArray("windows").put(new JSONObject().put("window_id", 2)
-                .put("window_type", 3).put("title", "Notifications")
-                .put("class_name", "com.android.systemui.statusbar.phone.NotificationShadeWindowView")
-                .put("package_name", "com.android.systemui").put("active", true).put("focused", true)
-                .put("layer", 10).put("bounds", new JSONObject().put("left", 0).put("top", 0)
-                        .put("right", 1080).put("bottom", 2200)));
-        shade.getJSONObject("screen").put("active_window_id", 2);
-        assertTrue(LocalTaskControlPolicy.isNotificationShade(shade, "com.jev.mobileagent"));
-        assertFalse(LocalTaskControlPolicy.isTargetApplicationForeground(shade, "com.jev.mobileagent"));
+        JSONObject systemOnly = fullScreenSystemWindowObservation();
+        assertTrue(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(systemOnly, true, true));
+        assertFalse(LocalTaskControlPolicy.isTargetApplicationForeground(systemOnly, "com.jev.mobileagent"));
+        assertFalse(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(systemOnly, false, true));
+        assertFalse(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(systemOnly, true, false));
 
-        JSONObject permissionDialog = new JSONObject(shade.toString());
-        permissionDialog.getJSONArray("windows").getJSONObject(1)
-                .put("class_name", "com.android.systemui.PermissionDialog");
-        assertFalse(LocalTaskControlPolicy.isNotificationShade(permissionDialog, "com.jev.mobileagent"));
+        JSONObject unfocused = new JSONObject(systemOnly.toString());
+        unfocused.getJSONArray("windows").getJSONObject(0).put("focused", false);
+        assertFalse(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(unfocused, true, true));
+
+        // A full-screen permission window may resemble a shade when its root is unreadable.
+        // The dedicated action can be tried, but the unchanged system window is never accepted as target.
+        JSONObject permissionWindow = new JSONObject(systemOnly.toString());
+        permissionWindow.put("availability", "AVAILABLE");
+        permissionWindow.getJSONArray("windows").getJSONObject(0)
+                .put("title", "Permission dialog").put("package_name", "com.android.permissioncontroller");
+        assertTrue(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(permissionWindow, true, true));
+        assertFalse(LocalTaskControlPolicy.isTargetApplicationForeground(permissionWindow, "com.jev.mobileagent"));
+
+        JSONObject inactive = new JSONObject(systemOnly.toString());
+        inactive.getJSONArray("windows").getJSONObject(0).put("active", false);
+        assertFalse(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(inactive, true, true));
 
         JSONObject changedTarget = new JSONObject(target.toString());
         changedTarget.getJSONArray("nodes").getJSONObject(0).put("text", "Different page");
@@ -131,6 +139,48 @@ public final class LocalTaskControlPolicyTest {
                 new JSONObject().put("valid", true).put("goal", "goal")
                         .put("scene_fingerprint", LocalTaskControlPolicy.sceneFingerprint(target, "same-image")));
         assertFalse(LocalTaskControlPolicy.sameReviewedScene(reviewed, changedTarget, "same-image"));
+    }
+
+    @Test
+    public void wrongApplicationAndSmallSystemWindowCannotBeResumedOrDismissed() throws Exception {
+        JSONObject wrongApp = sceneObservation();
+        wrongApp.getJSONArray("windows").getJSONObject(0).put("package_name", "com.example.other");
+        wrongApp.getJSONArray("nodes").getJSONObject(0).put("package_name", "com.example.other");
+        assertFalse(LocalTaskControlPolicy.isTargetApplicationForeground(wrongApp, "com.jev.mobileagent"));
+        assertFalse(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(wrongApp, true, true));
+
+        JSONObject smallSystemWindow = fullScreenSystemWindowObservation();
+        smallSystemWindow.getJSONArray("windows").getJSONObject(0).put("bounds", new JSONObject()
+                .put("left", 0).put("top", 0).put("right", 1080).put("bottom", 600));
+        assertFalse(LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(smallSystemWindow, true, true));
+        assertFalse(LocalTaskControlPolicy.isTargetApplicationForeground(smallSystemWindow, "com.jev.mobileagent"));
+    }
+
+    @Test
+    public void recoveryScreenshotCropUsesObservedSystemBarBoundsOnly() throws Exception {
+        JSONObject observation = sceneObservation();
+        observation.getJSONObject("screen").put("active_window_bounds", new JSONObject()
+                .put("left", 0).put("top", 0).put("right", 1080).put("bottom", 2400));
+        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 8)
+                .put("window_type", 3).put("title", "状态栏").put("active", false)
+                .put("focused", false).put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 1080).put("bottom", 103)));
+        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 9)
+                .put("window_type", 3).put("title", "导航栏").put("active", false)
+                .put("focused", false).put("bounds", new JSONObject().put("left", 0).put("top", 2300)
+                        .put("right", 1080).put("bottom", 2400)));
+        assertBounds(new int[] {0, 103, 1080, 2300},
+                LocalTaskControlPolicy.targetScreenshotBounds(observation));
+
+        JSONObject unrelatedSystemWindow = new JSONObject(observation.toString());
+        unrelatedSystemWindow.getJSONArray("windows").getJSONObject(1)
+                .put("title", "OEM overlay").put("class_name", "com.oem.EdgePanel")
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 1080).put("bottom", 103));
+        unrelatedSystemWindow.getJSONArray("windows").getJSONObject(2)
+                .put("title", "OEM overlay").put("class_name", "com.oem.EdgePanel");
+        assertBounds(new int[] {0, 0, 1080, 2400},
+                LocalTaskControlPolicy.targetScreenshotBounds(unrelatedSystemWindow));
     }
 
     @Test
@@ -170,6 +220,27 @@ public final class LocalTaskControlPolicyTest {
                         .put("enabled", true).put("visible_to_user", true).put("clickable", true)
                         .put("focusable", true).put("focused", false).put("selected", false)
                         .put("scrollable", false).put("editable", false).put("bounds", "10,20,300,80")));
+    }
+
+    private static JSONObject fullScreenSystemWindowObservation() throws Exception {
+        return new JSONObject().put("availability", "EMPTY_TREE")
+                .put("screen", new JSONObject().put("width_px", 1080).put("height_px", 2400)
+                        .put("active_window_id", 1367).put("active_window_bounds", new JSONObject()
+                                .put("left", 0).put("top", 0).put("right", 1080).put("bottom", 2400)))
+                .put("windows", new JSONArray().put(new JSONObject().put("window_id", 1367)
+                        .put("window_type", 3).put("title", "").put("class_name", "")
+                        .put("package_name", "").put("active", true).put("focused", true)
+                        .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                                .put("right", 1080).put("bottom", 2400))))
+                .put("nodes", new JSONArray());
+    }
+
+    private static void assertBounds(int[] expected, int[] actual) {
+        assertTrue("expected crop bounds", actual != null);
+        assertEquals(expected.length, actual.length);
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals("coordinate " + i, expected[i], actual[i]);
+        }
     }
 
     private static JSONObject taskWithAction(String phase) throws Exception {

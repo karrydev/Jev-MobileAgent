@@ -338,17 +338,21 @@ public class ObservationAccessibilityService extends AccessibilityService {
             BridgeConfig identity = new BridgeConfig("", "", "standalone-device", taskId,
                     "", "", "", "", "");
             JSONObject observation = captureOnServiceThread(identity);
-            if (LocalTaskControlPolicy.isNotificationShade(observation, targetPackage)) {
+            boolean fullScreenSystemWindow = LocalTaskControlPolicy
+                    .shouldAttemptNotificationShadeDismiss(observation, true, true);
+            if (fullScreenSystemWindow) {
                 if (cancelled != null && cancelled.get()) return;
                 if (shadeDismissed) {
                     reportLocalObservationError(callback, "target_window_unavailable",
-                            "通知栏关闭后仍覆盖目标页面；任务继续暂停");
+                            "系统覆盖关闭后仍未返回目标页面；任务继续暂停");
                     return;
                 }
                 PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
                 KeyguardManager keyguard = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-                if ((power != null && !power.isInteractive())
-                        || (keyguard != null && keyguard.isKeyguardLocked())) {
+                boolean deviceUnlocked = power != null && keyguard != null
+                        && power.isInteractive() && !keyguard.isKeyguardLocked();
+                if (!LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(
+                        observation, true, deviceUnlocked)) {
                     reportLocalObservationError(callback, "screen_locked", "手机已锁定；请解锁后重新核对");
                     return;
                 }
