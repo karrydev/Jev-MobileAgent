@@ -113,6 +113,37 @@ public final class MobileAgentVlmRolesTest {
     }
 
     @Test
+    public void planningProgressHintIsOptInAndCannotStandInForVerification() {
+        MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
+        assertFalse(roles.executorPrompt().contains("### Subgoal Status ###"));
+        assertTrue(roles.executorPrompt(true).contains("### Subgoal Status ###"));
+        assertTrue(MobileAgentVlmRoles.executorMarkedSubgoalComplete(
+                "### Subgoal Status ###\nCOMPLETE\n"));
+        assertFalse(MobileAgentVlmRoles.executorMarkedSubgoalComplete(
+                "### Subgoal Status ###\nIN_PROGRESS\n"));
+        assertFalse(MobileAgentVlmRoles.executorMarkedSubgoalComplete("no planning status"));
+        String[] parsed = roles.parseExecutor("### Thought ###\nReason\n### Action ###\n{\"action\":\"click\"}"
+                + "\n### Description ###\nTap the next control\n### Subgoal Status ###\nCOMPLETE");
+        assertEquals("Tap the next control", parsed[2]);
+    }
+
+    @Test
+    public void taskSummaryReportsPlanningDecisionsFromTheLocalTrace() throws Exception {
+        JSONObject task = new JSONObject()
+                .put("state", "PAUSED")
+                .put("on_demand_planning_enabled", true)
+                .put("planning_events", new JSONArray()
+                        .put(new JSONObject().put("event", "planner_decision")
+                                .put("decision", "replan").put("reason", "task_start"))
+                        .put(new JSONObject().put("event", "planner_decision")
+                                .put("decision", "reuse_plan").put("reason", "plan_current")));
+
+        String summary = MainActivity.taskSummary(task);
+        assertTrue(summary.contains("1 次重新规划，1 步复用计划"));
+        assertTrue(summary.contains("最近决策：plan_current"));
+    }
+
+    @Test
     public void advertisedChineseAnswerIsSavedAndStillRequiresFreshGoalVerification() throws Exception {
         String goal = "在中文输入框中输入“独立手机测试成功”";
         String answer = "独立手机测试成功";

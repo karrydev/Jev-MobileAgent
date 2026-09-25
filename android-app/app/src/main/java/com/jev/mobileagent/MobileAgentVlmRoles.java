@@ -124,6 +124,10 @@ public final class MobileAgentVlmRoles {
     }
 
     public String executorPrompt() {
+        return executorPrompt(false);
+    }
+
+    public String executorPrompt(boolean includeSubgoalStatus) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are an agent who can operate an Android phone on behalf of a user. ")
                 .append("Your goal is to decide the next action to perform based on the current ")
@@ -157,12 +161,26 @@ public final class MobileAgentVlmRoles {
             }
             prompt.append('\n');
         }
-        return prompt.append("---\nIMPORTANT:\n1. Do NOT repeat previously failed actions multiple times. Try changing to another action.\n2. Please prioritize the current subgoal.\n\n")
+        prompt.append("---\nIMPORTANT:\n1. Do NOT repeat previously failed actions multiple times. Try changing to another action.\n2. Please prioritize the current subgoal.\n\n")
                 .append("Provide your output in the following format, which contains three parts:\n")
                 .append("### Thought ###\nProvide a detailed explanation of your rationale for the chosen action.\n\n")
                 .append("### Action ###\nChoose only one action or shortcut from the options provided.\n")
                 .append("You must provide your decision using a valid JSON format specifying the `action` and the arguments of the action. For example, if you want to open an App, you should write {\"action\":\"open_app\", \"text\": \"app name\"}.\n\n")
-                .append("### Description ###\nA brief description of the chosen action. Do not describe expected outcome.").toString();
+                .append("### Description ###\nA brief description of the chosen action. Do not describe expected outcome.");
+        if (includeSubgoalStatus) {
+            prompt.append("\n\n### Subgoal Status ###\n")
+                    .append("Write COMPLETE only if the action you chose is expected to finish the current subgoal; otherwise write IN_PROGRESS. ")
+                    .append("This is only a planning hint. It does not say the action succeeded or that the user's overall goal is complete.");
+        }
+        return prompt.toString();
+    }
+
+    public static boolean executorMarkedSubgoalComplete(String response) {
+        String status = after(response, "### Subgoal Status ###").trim();
+        if (status.isEmpty()) return false;
+        String firstToken = status.split("[\\s:：.]", 2)[0].replace("`", "")
+                .toUpperCase(Locale.ROOT);
+        return "COMPLETE".equals(firstToken);
     }
 
     public String reflectorPrompt() {
@@ -219,7 +237,7 @@ public final class MobileAgentVlmRoles {
         return new String[] {
                 clean(section(response, "### Thought", "### Action")),
                 clean(section(response, "### Action", "### Description")),
-                clean(after(response, "### Description"))
+                clean(section(response, "### Description", "### Subgoal Status"))
         };
     }
 

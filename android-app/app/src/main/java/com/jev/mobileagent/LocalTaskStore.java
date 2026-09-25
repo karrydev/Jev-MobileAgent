@@ -26,6 +26,7 @@ public final class LocalTaskStore {
     private static final String JEV_SHADOW_ENABLED = "jev_shadow_enabled";
     private static final String JEV_SELECTION_ENABLED = "jev_selection_enabled";
     private static final String TREE_VERIFICATION_ENABLED = "tree_verification_enabled";
+    private static final String ON_DEMAND_PLANNING_ENABLED = "on_demand_planning_enabled";
     private static final String TASK_PREFIX = "task.";
 
     public static final int MAX_STEPS = 5;
@@ -75,6 +76,8 @@ public final class LocalTaskStore {
                 record.put("jev_shadow_enabled", preferences.getBoolean(JEV_SHADOW_ENABLED, false));
                 record.put("jev_selection_enabled", preferences.getBoolean(JEV_SELECTION_ENABLED, false));
                 record.put("tree_verification_enabled", preferences.getBoolean(TREE_VERIFICATION_ENABLED, false));
+                record.put("on_demand_planning_enabled", preferences.getBoolean(ON_DEMAND_PLANNING_ENABLED, false));
+                record.put("planning_plan_step", -1);
                 record.put("tree_verification_policy_id", TreeActionVerifier.POLICY_ID);
                 record.put("tree_verification_policy_sha256", TreeActionVerifier.POLICY_SHA256);
                 record.put("jev_shadow_call_count", 0);
@@ -82,6 +85,7 @@ public final class LocalTaskStore {
                 record.put("requests", new JSONArray());
                 record.put("screenshot_captures", new JSONArray());
                 record.put("jev_shadow_attempts", new JSONArray());
+                record.put("planning_events", new JSONArray());
                 record.put("actions", new JSONArray());
                 record.put("observations", new JSONArray());
                 record.put("history", new JSONObject());
@@ -232,6 +236,51 @@ public final class LocalTaskStore {
     public static boolean isTreeVerificationEnabled(Context context) {
         synchronized (LOCK) {
             return preferences(context).getBoolean(TREE_VERIFICATION_ENABLED, false);
+        }
+    }
+
+    /** On-demand planning is opt-in and snapshotted when each task is created. */
+    public static boolean setOnDemandPlanningEnabled(Context context, boolean enabled) {
+        synchronized (LOCK) {
+            return preferences(context).edit().putBoolean(ON_DEMAND_PLANNING_ENABLED, enabled).commit();
+        }
+    }
+
+    public static boolean isOnDemandPlanningEnabled(Context context) {
+        synchronized (LOCK) {
+            return preferences(context).getBoolean(ON_DEMAND_PLANNING_ENABLED, false);
+        }
+    }
+
+    public static boolean setPlanningPlanStep(Context context, String taskId, int step) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null || step < 0 || step >= MAX_STEPS) return false;
+            try {
+                task.put("planning_plan_step", step);
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    /** Append planner scheduling and outcome reasons to the same private task journal as role calls. */
+    public static boolean recordPlanningEvent(Context context, String taskId, JSONObject event) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null || event == null) return false;
+            JSONArray events = task.optJSONArray("planning_events");
+            if (events == null) events = new JSONArray();
+            events.put(event);
+            try {
+                task.put("planning_events", events);
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
         }
     }
 
