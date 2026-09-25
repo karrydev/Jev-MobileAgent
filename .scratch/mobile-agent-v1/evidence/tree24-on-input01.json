@@ -1,0 +1,396 @@
+{
+  "task_id": "259b0dc6-973c-4908-8a54-6938a8270d49",
+  "goal": "在中文输入框中输入“独立手机测试成功”",
+  "state": "SUCCEEDED",
+  "state_reason": "overall_goal_verified_after_executor_finished",
+  "created_at": "2026-09-25T08:06:08.153774Z",
+  "updated_at": "2026-09-25T08:06:21.552679Z",
+  "step_count": 2,
+  "request_count": 4,
+  "jev_shadow_enabled": false,
+  "jev_selection_enabled": true,
+  "jev_shadow_call_count": 1,
+  "jev_shadow_reserved_cny": 0.01,
+  "accounted_cost_cny": 0.03219400000000001,
+  "usage_missing": false,
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2834,
+        "output_tokens": 98,
+        "total_tokens": 2932
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.004692,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-ba127636534643139436618822cf1117"
+      ]
+    },
+    {
+      "attempt": 2,
+      "role": "executor",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3713,
+        "output_tokens": 104,
+        "total_tokens": 3817
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0060375,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-ba127636534643139436618822cf1117"
+      ]
+    },
+    {
+      "attempt": 3,
+      "role": "manager",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3290,
+        "output_tokens": 92,
+        "total_tokens": 3382
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.005349,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-55f37cf3343e4562af1d86ea3f8d9b52"
+      ]
+    },
+    {
+      "attempt": 4,
+      "role": "executor",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 3768,
+        "output_tokens": 103,
+        "total_tokens": 3871
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0061155,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-55f37cf3343e4562af1d86ea3f8d9b52"
+      ]
+    }
+  ],
+  "jev_shadow_attempts": [
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T08:06:13.363564Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 1,
+      "observation_id": "standalone-device-obs-3206-949018b1a37840c48e675019555aca9d",
+      "observation_version": 3206,
+      "candidate_count": 10,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 10,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-0-3-b3b693b59a6e",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-1322-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-1322-1-node-0-0-3-2a738628f11c",
+            "kind": "input_text",
+            "target_node_id": "window-1322-1-node-0-0-3",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "在“中文输入框”中输入“独立手机测试成功”",
+            "equivalence_group": "node:window-1322-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-0-7-d461c2c0d9f7",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-1322-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-1322-1-node-0-0-7-542fd73cbd7a",
+            "kind": "input_text",
+            "target_node_id": "window-1322-1-node-0-0-7",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "Type “独立手机测试成功” into Local VLM task goal",
+            "equivalence_group": "node:window-1322-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-0-8-cef30ee25607",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-1322-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-0-9-581a1dab011c",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-1322-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-0-10-ec6ebedc4b14",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-1322-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-1-3db02462d818",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-1322-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-2-222cb02f131f",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-1322-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-1322-1-node-0-3-6f4f99ea7ebe",
+            "kind": "tap",
+            "target_node_id": "window-1322-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-1322-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [],
+        "warnings": []
+      },
+      "action_dispatched": true,
+      "comparison": {
+        "status": "different_action",
+        "jev_choice_id": "candidate-input_text-window-1322-1-node-0-0-3-2a738628f11c",
+        "vlm_equivalent_candidate_id": "candidate-tap-window-1322-1-node-0-0-3-b3b693b59a6e"
+      },
+      "known_parameter_source": "instruction_quote",
+      "candidate_coverage_status": "matched",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "question_id": "next_action",
+      "elapsed_ms": 2609,
+      "request_sent": true,
+      "http_status": 200,
+      "protocol_status": "valid",
+      "usage": {
+        "status": "known",
+        "input_tokens": 867,
+        "output_tokens": 396
+      },
+      "choice_id": "candidate-input_text-window-1322-1-node-0-0-3-2a738628f11c",
+      "confidence": 0.94,
+      "status": "valid_recommendation",
+      "confidence_status": "meets_frozen_threshold",
+      "cost": {
+        "status": "reserved_actual_unknown",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0.01
+      },
+      "attempt": 1,
+      "selection_status": "selected",
+      "selected_candidate_id": "candidate-input_text-window-1322-1-node-0-0-3-2a738628f11c",
+      "dispatch_status": "executed",
+      "action_id": "local-vlm-action-259b0dc6-973c-4908-8a54-6938a8270d49-1",
+      "action_source": "jev-controlled-candidate-v1"
+    }
+  ],
+  "tree_verification_enabled": true,
+  "tree_verification_policy_id": "jev-android-tree-verification-rules-v1",
+  "tree_verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3206-949018b1a37840c48e675019555aca9d",
+      "observation_version": 3206,
+      "screenshot_id": "local-shot-ba127636534643139436618822cf1117",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/259b0dc6-973c-4908-8a54-6938a8270d49/screenshot-3206-before.png",
+      "captured_at": "2026-09-25T08:06:08.578536Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-3207-4311f7b7dbea4e1b98696ece30b38b69",
+      "observation_version": 3207,
+      "screenshot_id": "local-shot-7c0ff9de96264cc4876e954b6fc16d48",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/259b0dc6-973c-4908-8a54-6938a8270d49/screenshot-3207-after.png",
+      "captured_at": "2026-09-25T08:06:16.507564Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3208-ae8c48f4592e486cb48ee939c2ac3648",
+      "observation_version": 3208,
+      "screenshot_id": "local-shot-55f37cf3343e4562af1d86ea3f8d9b52",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/259b0dc6-973c-4908-8a54-6938a8270d49/screenshot-3208-before.png",
+      "captured_at": "2026-09-25T08:06:16.906099Z",
+      "attempt": 3
+    }
+  ],
+  "schema_version": "tree24-paired-device-v1",
+  "attempt": "tree24-on-input01",
+  "source_commit": "8c112d5",
+  "apk_sha256": "e76edabec353c38b13ed0071cbf552c3dfce1e164985bf4f9ea4da88d2748b14",
+  "device": "OnePlus 8T / Android14 API34",
+  "vlm_model": "gui-plus-2026-02-26",
+  "jev_model": "jev-1.13.0",
+  "execution_boundary": "Android app direct HTTPS; USB for setup and read-only evidence, no host orchestration; not a disconnected acceptance",
+  "final_device_state": "Dozing",
+  "final_observation_sha256": "e89dbba6a141920d458b211e9005017785ced7595d4a6af73ffc73c36a58c94b",
+  "independent_page_evidence": [
+    {
+      "node_id": "window-1322-1-node-0-0-3",
+      "text": "独立手机测试成功",
+      "content_description": "中文输入框",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-1322-1-node-0-0-4",
+      "text": "Controlled input state: 独立手机测试成功",
+      "content_description": "Controlled input state 独立手机测试成功",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-1322-1-node-0-0-6",
+      "text": "Visual gesture state: ready",
+      "content_description": "Visual gesture state ready",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-1322-1-node-0-0-7",
+      "text": "在中文输入框中输入“独立手机测试成功”",
+      "content_description": "Local VLM task goal",
+      "label": null,
+      "role": null
+    }
+  ],
+  "elapsed_seconds": 13.398905,
+  "actions": [
+    {
+      "action_id": "local-vlm-action-259b0dc6-973c-4908-8a54-6938a8270d49-1",
+      "phase": "verified",
+      "kind": "set_text",
+      "source": "jev-controlled-candidate-v1",
+      "target_node_label": "中文输入框",
+      "parameters": {
+        "text": "独立手机测试成功"
+      },
+      "result": {
+        "success": true,
+        "error_code": null,
+        "message": null
+      },
+      "reflection": null,
+      "verification": {
+        "status": "SUCCESS",
+        "source": "tree_rule",
+        "reason": "exact_text_postcondition_met",
+        "evidence": {
+          "before_observation_id": "standalone-device-obs-3206-949018b1a37840c48e675019555aca9d",
+          "after_observation_id": "standalone-device-obs-3207-4311f7b7dbea4e1b98696ece30b38b69",
+          "target_class": "android.widget.EditText",
+          "target_package": "com.jev.mobileagent",
+          "target_view_id": "",
+          "target_content_description": "中文输入框",
+          "target_match_count": 1,
+          "expected_text": "独立手机测试成功",
+          "actual_text": "独立手机测试成功",
+          "before_screenshot_available": true,
+          "after_screenshot_available": true
+        },
+        "policy_id": "jev-android-tree-verification-rules-v1",
+        "policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+        "wait_attempts": 0,
+        "rule_attempts": [
+          {
+            "point": "initial",
+            "status": "SUCCESS",
+            "reason": "exact_text_postcondition_met",
+            "observation_id": "standalone-device-obs-3207-4311f7b7dbea4e1b98696ece30b38b69",
+            "screenshot_available": true
+          }
+        ],
+        "before_observation_id": "standalone-device-obs-3206-949018b1a37840c48e675019555aca9d",
+        "after_observation_id": "standalone-device-obs-3207-4311f7b7dbea4e1b98696ece30b38b69",
+        "before_screenshot": {
+          "status": "captured",
+          "screenshot_id": "local-shot-ba127636534643139436618822cf1117",
+          "observation_id": "standalone-device-obs-3206-949018b1a37840c48e675019555aca9d",
+          "reason": ""
+        },
+        "after_screenshot": {
+          "status": "captured",
+          "screenshot_id": "local-shot-7c0ff9de96264cc4876e954b6fc16d48",
+          "observation_id": "standalone-device-obs-3207-4311f7b7dbea4e1b98696ece30b38b69",
+          "reason": ""
+        }
+      }
+    }
+  ],
+  "estimated_list_price_cny": 0.022194,
+  "actual_billed_cny": null,
+  "role_request_counts": {
+    "manager": 2,
+    "executor": 2
+  },
+  "screenshot_capture_attempt_count": 3,
+  "screenshot_capture_status_counts": {
+    "captured": 3
+  },
+  "image_upload_count": 4,
+  "unique_uploaded_screenshot_count": 2
+}

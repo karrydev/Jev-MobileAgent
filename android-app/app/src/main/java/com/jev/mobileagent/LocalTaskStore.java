@@ -25,6 +25,7 @@ public final class LocalTaskStore {
     private static final String GLOBAL_JEV_SHADOW_CALLS = "global_jev_shadow_calls";
     private static final String JEV_SHADOW_ENABLED = "jev_shadow_enabled";
     private static final String JEV_SELECTION_ENABLED = "jev_selection_enabled";
+    private static final String TREE_VERIFICATION_ENABLED = "tree_verification_enabled";
     private static final String TASK_PREFIX = "task.";
 
     public static final int MAX_STEPS = 5;
@@ -73,9 +74,13 @@ public final class LocalTaskStore {
                 record.put("usage_missing", false);
                 record.put("jev_shadow_enabled", preferences.getBoolean(JEV_SHADOW_ENABLED, false));
                 record.put("jev_selection_enabled", preferences.getBoolean(JEV_SELECTION_ENABLED, false));
+                record.put("tree_verification_enabled", preferences.getBoolean(TREE_VERIFICATION_ENABLED, false));
+                record.put("tree_verification_policy_id", TreeActionVerifier.POLICY_ID);
+                record.put("tree_verification_policy_sha256", TreeActionVerifier.POLICY_SHA256);
                 record.put("jev_shadow_call_count", 0);
                 record.put("jev_shadow_reserved_cny", 0.0);
                 record.put("requests", new JSONArray());
+                record.put("screenshot_captures", new JSONArray());
                 record.put("jev_shadow_attempts", new JSONArray());
                 record.put("actions", new JSONArray());
                 record.put("observations", new JSONArray());
@@ -217,6 +222,19 @@ public final class LocalTaskStore {
         }
     }
 
+    /** Tree action verification is opt-in and snapshotted separately from Jev selection. */
+    public static boolean setTreeVerificationEnabled(Context context, boolean enabled) {
+        synchronized (LOCK) {
+            return preferences(context).edit().putBoolean(TREE_VERIFICATION_ENABLED, enabled).commit();
+        }
+    }
+
+    public static boolean isTreeVerificationEnabled(Context context) {
+        synchronized (LOCK) {
+            return preferences(context).getBoolean(TREE_VERIFICATION_ENABLED, false);
+        }
+    }
+
     /** Keep the final controlled-selection outcome beside its reserved attempt. */
     public static boolean annotateJevSelectionAttempt(Context context, String taskId, int zeroBasedStep,
             JSONObject annotations) {
@@ -265,12 +283,8 @@ public final class LocalTaskStore {
             if (attempts == null || attemptBase == null) {
                 return Reservation.denied("attempt_journal_invalid");
             }
-            for (int i = 0; i < attempts.length(); i++) {
-                JSONObject prior = attempts.optJSONObject(i);
-                if (prior != null && prior.optInt("step", -1) == step + 1
-                        && prior.optBoolean("request_sent", false)) {
-                    return Reservation.denied("jev_step_already_requested");
-                }
+            if (hasSentJevRequestForPurpose(attempts, step + 1, jevRequestPurpose(attemptBase))) {
+                return Reservation.denied("jev_step_already_requested");
             }
             int taskCalls = task.optInt("jev_shadow_call_count", 0);
             int globalCalls = shadowCallCount(preferences);
@@ -322,6 +336,39 @@ public final class LocalTaskStore {
             } catch (JSONException exception) {
                 return Reservation.denied("attempt_journal_invalid");
             }
+        }
+    }
+
+    static boolean hasSentJevRequestForPurpose(JSONArray attempts, int oneBasedStep,
+            String requestedPurpose) {
+        if (attempts == null) return false;
+        String requested = requestedPurpose == null ? "" : requestedPurpose.trim();
+        for (int i = 0; i < attempts.length(); i++) {
+            JSONObject prior = attempts.optJSONObject(i);
+            if (prior == null || prior.optInt("step", -1) != oneBasedStep
+                    || !prior.optBoolean("request_sent", false)) {
+                continue;
+            }
+            String priorPurpose = jevRequestPurpose(prior);
+            // Legacy records without a recognizable purpose conservatively block every replay.
+            if (requested.isEmpty() || priorPurpose.isEmpty() || requested.equals(priorPurpose)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String jevRequestPurpose(JSONObject attempt) {
+        if (attempt == null) return "";
+        String purpose = attempt.optString("request_purpose", "").trim();
+        if (!purpose.isEmpty()) return purpose;
+        switch (attempt.optString("source", "").trim()) {
+            case "task_controlled": return "selection";
+            case "task_verification": return "verification";
+            case "task_shadow": return "shadow";
+            case "debug_case":
+            case "debug_protocol_probe": return "debug";
+            default: return "";
         }
     }
 
@@ -425,6 +472,24 @@ public final class LocalTaskStore {
                 JSONArray safeIds = screenshotIds == null ? new JSONArray() : new JSONArray(screenshotIds.toString());
                 request.put("image_count", safeIds.length());
                 request.put("screenshot_ids", safeIds);
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    /** Keep a durable count of screenshot attempts, including captures Android refused. */
+    public static boolean recordScreenshotCapture(Context context, String taskId, JSONObject capture) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null || capture == null) return false;
+            JSONArray captures = task.optJSONArray("screenshot_captures");
+            if (captures == null) captures = new JSONArray();
+            try {
+                captures.put(new JSONObject(capture.toString()).put("attempt", captures.length() + 1));
+                task.put("screenshot_captures", captures);
                 touch(task);
                 return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
             } catch (JSONException exception) {
@@ -721,6 +786,60 @@ public final class LocalTaskStore {
                     .put("recorded_at", Instant.now().toString()));
             entry.put("phase", "A".equals(outcome) ? "verified" : "reflected_failure");
             entry.put("reflection_recorded_at", Instant.now().toString());
+            return true;
+        } catch (JSONException exception) {
+            return false;
+        }
+    }
+
+    /** Persist four-state page evidence separately from the device execution result. */
+    public static boolean recordActionVerification(Context context, String taskId, String actionId,
+            JSONObject verification) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            JSONArray actions = task == null ? null : task.optJSONArray("actions");
+            if (actions == null || verification == null) return false;
+            for (int i = 0; i < actions.length(); i++) {
+                JSONObject entry = actions.optJSONObject(i);
+                if (entry == null || !actionId.equals(entry.optString("action_id", ""))) continue;
+                if (!applyActionVerification(entry, verification)) return false;
+                try {
+                    task.put("actions", actions);
+                    touch(task);
+                    return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+                } catch (JSONException exception) {
+                    return false;
+                }
+            }
+            return false;
+        }
+    }
+
+    static boolean applyActionVerification(JSONObject entry, JSONObject verification) {
+        String phase = entry == null ? "" : entry.optString("phase", "");
+        JSONObject receipt = entry == null ? null : entry.optJSONObject("result");
+        if (entry == null || !("executed".equals(phase)
+                || "verification_unknown".equals(phase) || "verification_pending".equals(phase))
+                || receipt == null || !receipt.optBoolean("success", false) || verification == null) {
+            return false;
+        }
+        String status = verification.optString("status", "");
+        if (!TreeActionVerifier.Status.SUCCESS.name().equals(status)
+                && !TreeActionVerifier.Status.FAILURE.name().equals(status)
+                && !TreeActionVerifier.Status.PENDING.name().equals(status)
+                && !TreeActionVerifier.Status.UNKNOWN.name().equals(status)) {
+            return false;
+        }
+        try {
+            entry.put("verification", new JSONObject(verification.toString()))
+                    .put("verification_recorded_at", Instant.now().toString());
+            if (TreeActionVerifier.Status.SUCCESS.name().equals(status)) {
+                entry.put("phase", "verified");
+            } else if (TreeActionVerifier.Status.FAILURE.name().equals(status)) {
+                entry.put("phase", "reflected_failure");
+            } else {
+                entry.put("phase", "verification_" + status.toLowerCase(java.util.Locale.ROOT));
+            }
             return true;
         } catch (JSONException exception) {
             return false;

@@ -24,6 +24,14 @@ public final class JevShadow {
     private JevShadow() {
     }
 
+    static boolean mayContinueToVisualFallback(JSONObject report) {
+        return report == null || !"budget_denied".equals(report.optString("status", ""));
+    }
+
+    static boolean shouldRunTreeVerification(JSONObject task) {
+        return task != null && task.optBoolean("tree_verification_enabled", false);
+    }
+
     public static JSONObject runTaskAttempt(Context context, String taskId, int zeroBasedStep,
             String instruction, JSONObject observation, JSONObject vlmAction,
             JevApiClient.CancellationToken cancellationToken) throws JSONException {
@@ -70,6 +78,151 @@ public final class JevShadow {
         }
         copyAnnotations(report, annotations);
         return new ControlledAttempt(report, candidates, maySelect ? selected : null);
+    }
+
+    /** Classify an uncertain action from trees only, using the existing Jev request and cost gate. */
+    public static JSONObject runTreeVerificationAttempt(Context context, String taskId,
+            int zeroBasedStep, String instruction, JSONObject action, JSONObject before,
+            JSONObject after, TreeActionVerifier.Result ruleResult,
+            JevApiClient.CancellationToken cancellationToken) throws JSONException {
+        String observationId = after == null ? "" : after.optString("observation_id", "");
+        long observationVersion = after == null ? 0L : after.optLong("observation_version", 0L);
+        JSONObject base = baseAttempt("task_verification", null, null, zeroBasedStep,
+                observationId, observationVersion, 4);
+        base.put("question_id", "action_verification")
+                .put("verification_policy_id", TreeActionVerifier.POLICY_ID)
+                .put("verification_policy_sha256", TreeActionVerifier.POLICY_SHA256)
+                .put("action_dispatched", false)
+                .put("rule_status", ruleResult == null ? "UNKNOWN" : ruleResult.status.name())
+                .put("rule_reason", ruleResult == null ? "rule_result_missing" : ruleResult.reason);
+        ModelProfileStore.Profile profile = ModelProfileStore.load(context, ModelProfileStore.Type.JEV);
+        if (!profile.isConfigured()) {
+            return recordWithoutNetwork(context, taskId, base, "profile_missing", "jev_profile_missing");
+        }
+        if (!JevShadowBudgetPolicy.isReviewedProfile(profile)) {
+            return recordWithoutNetwork(context, taskId, base,
+                    "unsupported_profile", "jev_profile_not_reviewed_for_reserve");
+        }
+        if (isCancelled(cancellationToken)) {
+            return recordWithoutNetwork(context, taskId, base, "cancelled", "cancelled_before_send");
+        }
+        JSONObject criteria = verificationCriteria();
+        String state = verificationState(instruction, action, before, after, ruleResult);
+        base.put("provider", profile.provider).put("model", profile.model);
+        LocalTaskStore.Reservation reservation = LocalTaskStore.reserveJevShadowCall(
+                context, taskId, zeroBasedStep, base);
+        if (!reservation.allowed) {
+            base.put("status", "budget_denied").put("error", safeError("budget_gate", reservation.reason));
+            return recordWithoutNetwork(context, taskId, base, "budget_denied", reservation.reason);
+        }
+
+        long started = System.nanoTime();
+        JevApiClient.CallResult result = null;
+        JevApiClient.JevApiException failure = null;
+        try {
+            result = JevApiClient.choose(profile, state, "action_verification", criteria,
+                    cancellationToken);
+        } catch (JevApiClient.JevApiException exception) {
+            failure = exception;
+        }
+        JSONObject completed = new JSONObject(base.toString());
+        completed.put("elapsed_ms", result == null
+                ? Math.max(0L, (System.nanoTime() - started) / 1_000_000L) : result.elapsedMillis);
+        if (result != null) {
+            completed.put("request_sent", result.requestSent)
+                    .put("http_status", result.httpStatus > 0 ? result.httpStatus : JSONObject.NULL)
+                    .put("protocol_status", result.protocolStatus)
+                    .put("usage", result.usageJson());
+            if (result.choiceId != null) {
+                completed.put("choice_id", result.choiceId).put("confidence", result.confidence);
+            }
+            if (result.errorCode != null) {
+                completed.put("error", safeError(result.errorClass, result.errorCode));
+            }
+            if (result.isValidChoice()) {
+                completed.put("status", result.confidence < LOW_CONFIDENCE_THRESHOLD
+                        ? "valid_low_confidence" : "valid_recommendation")
+                        .put("confidence_status", result.confidence < LOW_CONFIDENCE_THRESHOLD
+                                ? "below_frozen_threshold" : "meets_frozen_threshold")
+                        .put("verification_status", result.choiceId);
+            } else {
+                completed.put("status", "protocol_error");
+            }
+        } else if (failure != null) {
+            boolean requestSent = failure.requestMayHaveBeenSent();
+            completed.put("request_sent", requestSent)
+                    .put("http_status", failure.getHttpStatus() > 0
+                            ? failure.getHttpStatus() : JSONObject.NULL)
+                    .put("protocol_status", "not_evaluated")
+                    .put("usage", new JSONObject().put("status", "unknown")
+                            .put("input_tokens", JSONObject.NULL).put("output_tokens", JSONObject.NULL))
+                    .put("error", safeError(failure.getCategory().name().toLowerCase(Locale.ROOT),
+                            failure.getCategory().name().toLowerCase(Locale.ROOT)))
+                    .put("status", failure.getCategory() == JevApiClient.ErrorCategory.CANCELLED
+                            ? "cancelled" : "request_error");
+        }
+        boolean requestSent = result != null ? result.requestSent
+                : failure != null && failure.requestMayHaveBeenSent();
+        completed.put("cost", new JSONObject()
+                .put("status", requestSent ? "reserved_actual_unknown" : "released_before_send")
+                .put("currency", "USD")
+                .put("amount_usd", JSONObject.NULL)
+                .put("fx_status", JevShadowBudgetPolicy.FX_STATUS)
+                .put("actual_bill_status", JevShadowBudgetPolicy.ACTUAL_BILL_STATUS)
+                .put("reserved_cny", requestSent ? JevShadowBudgetPolicy.RESERVATION_CNY_PER_CALL : 0.0));
+        if (!LocalTaskStore.completeJevShadowCall(context, taskId,
+                reservation.attemptIndex, completed)) {
+            throw new JSONException("Jev verification report could not be saved");
+        }
+        return completed;
+    }
+
+    public static JSONObject verificationCriteria() throws JSONException {
+        return new JSONObject()
+                .put("SUCCESS", "The action's explicit postcondition is visible and satisfied.")
+                .put("FAILURE", "The explicit postcondition is visibly wrong or the action had no effect.")
+                .put("PENDING", "The page is still loading and bounded waiting may resolve it.")
+                .put("UNKNOWN", "The available current and previous tree evidence cannot decide.");
+    }
+
+    private static String verificationState(String instruction, JSONObject action, JSONObject before,
+            JSONObject after, TreeActionVerifier.Result ruleResult) {
+        StringBuilder state = new StringBuilder();
+        state.append("Classify the observed Android action outcome from current and previous Accessibility trees only. ")
+                .append("The execution receipt and overall task status are not action outcome evidence.\nGoal: ")
+                .append(limit(instruction, 1_000)).append("\nAction: ")
+                .append(action == null ? "{}" : limit(action.toString(), 1_500))
+                .append("\nLocal rule: ")
+                .append(ruleResult == null ? "UNKNOWN" : ruleResult.status.name() + " / " + ruleResult.reason)
+                .append("\nBefore tree:\n").append(treeSummary(before))
+                .append("\nAfter tree:\n").append(treeSummary(after));
+        return limit(state.toString(), 7_500);
+    }
+
+    private static String treeSummary(JSONObject observation) {
+        JSONArray nodes = observation == null ? null : observation.optJSONArray("nodes");
+        if (nodes == null) return "unavailable";
+        StringBuilder summary = new StringBuilder();
+        int visible = 0;
+        for (int i = 0; i < nodes.length() && visible < 18; i++) {
+            JSONObject node = nodes.optJSONObject(i);
+            if (node == null || !node.optBoolean("visible_to_user", true)) continue;
+            String text = node.optString("text", "").trim();
+            String description = node.optString("content_description", "").trim();
+            String state = node.optString("state_description", "").trim();
+            String value = !text.isEmpty() ? text : !description.isEmpty() ? description : state;
+            if (value.isEmpty()) continue;
+            if (summary.length() > 0) summary.append('\n');
+            summary.append(node.optString("class_name", "view")).append(": ")
+                    .append(limit(value, 160));
+            visible++;
+        }
+        return summary.length() == 0 ? "no visible text nodes" : summary.toString();
+    }
+
+    private static String limit(String value, int maxChars) {
+        if (value == null) return "";
+        return value.length() <= maxChars ? value : value.substring(0, maxChars);
     }
 
     public static boolean markControlledFallback(Context context, String taskId, int zeroBasedStep,
@@ -331,6 +484,7 @@ public final class JevShadow {
                 .put("report_version", "jev-shadow-attempt/android-v1")
                 .put("created_at", Instant.now().toString())
                 .put("source", source)
+                .put("request_purpose", requestPurposeForSource(source))
                 .put("step", Math.max(0, zeroBasedStep) + 1)
                 .put("observation_id", observationId == null ? "" : observationId)
                 .put("observation_version", Math.max(0L, observationVersion))
@@ -338,6 +492,14 @@ public final class JevShadow {
         if (caseId != null) result.put("case_id", caseId);
         if (split != null) result.put("split", split);
         return result;
+    }
+
+    static String requestPurposeForSource(String source) {
+        if ("task_controlled".equals(source)) return "selection";
+        if ("task_verification".equals(source)) return "verification";
+        if ("task_shadow".equals(source)) return "shadow";
+        if ("debug_case".equals(source) || "debug_protocol_probe".equals(source)) return "debug";
+        return source == null ? "" : source;
     }
 
     private static JSONObject comparison(JevCandidateBuilder.CandidateSet candidates,

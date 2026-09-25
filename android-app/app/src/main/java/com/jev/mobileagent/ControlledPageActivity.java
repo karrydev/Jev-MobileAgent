@@ -14,6 +14,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.Gravity;
@@ -32,15 +33,23 @@ public final class ControlledPageActivity extends Activity {
     private static final int NOTIFICATION_PERMISSION_REQUEST = 2603;
     private static final String INPUT_GOAL = "在中文输入框中输入“独立手机测试成功”";
     private static final String VISUAL_GOAL = "点击受控页面中蓝色的视觉手势目标";
+    static final String EXTRA_DEBUG_TREE_VERIFICATION_FIXTURE = "debug_tree_verification_fixture";
+    private static final String DEBUG_LOADING_GOAL = "点击“延迟加载按钮”一次，等待页面显示“加载完成”，不要重复点击。";
+    private static final String DEBUG_NO_EFFECT_GOAL = "点击“无效果按钮”一次，不要重复点击。";
+    private static final String DEBUG_VISUAL_GOAL = "点击自绘区域蓝框中心";
     private static final float VISUAL_TARGET_MIN = 0.22f;
     private static final float VISUAL_TARGET_MAX = 0.78f;
 
     private final Handler statusHandler = new Handler(Looper.getMainLooper());
     private EditText goalInput;
+    private EditText fixtureTextInput;
     private TextView taskStatus;
     private TextView inputStatus;
     private TextView visualStatus;
     private String taskId = "";
+    private boolean debugFixturePage;
+    private boolean failAfterScreenshotArmed;
+    private TextView fixtureStatus;
     private final Runnable refreshStatus = new Runnable() {
         @Override
         public void run() {
@@ -52,6 +61,11 @@ public final class ControlledPageActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (BuildConfig.DEBUG && getIntent().getBooleanExtra(EXTRA_DEBUG_TREE_VERIFICATION_FIXTURE, false)) {
+            debugFixturePage = true;
+            buildDebugVerificationFixture();
+            return;
+        }
         boolean landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -209,11 +223,17 @@ public final class ControlledPageActivity extends Activity {
             return;
         }
         taskId = task.optString("task_id", "");
+        if (debugFixturePage && fixtureTextInput != null) fixtureTextInput.requestFocus();
+        if (debugFixturePage && failAfterScreenshotArmed) {
+            DebugTreeVerificationFixtures.armAfterScreenshotFailure(this, taskId);
+            failAfterScreenshotArmed = false;
+        }
         try {
             LocalVlmTaskService.startTask(this, taskId);
             taskStatus.setText("本地任务：已启动；可用此页或通知栏随时暂停/取消");
         } catch (RuntimeException exception) {
             LocalTaskStore.updateState(this, taskId, "PAUSED", "foreground_service_start_failed");
+            DebugTreeVerificationFixtures.clearForTask(this, taskId);
             taskStatus.setText("本地任务：前台服务无法启动，任务已安全暂停");
         }
     }
@@ -283,6 +303,146 @@ public final class ControlledPageActivity extends Activity {
         LocalTaskStore.BudgetSnapshot budget = LocalTaskStore.budgetSnapshot(this, "");
         return String.format(java.util.Locale.ROOT, "累计 ¥%.4f / ¥%.0f",
                 budget.globalAccountedCny, budget.globalBudgetCny);
+    }
+
+    private void buildDebugVerificationFixture() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.WHITE);
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(16), dp(8), dp(16), dp(12));
+        scroll.addView(content);
+        root.addView(scroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f));
+
+        TextView title = label("树核验受控夹具（仅 Debug）", 21, Color.rgb(35, 50, 65));
+        title.setContentDescription("Tree verification controlled fixture debug only");
+        content.addView(title, params());
+        content.addView(label("每个测试动作由本地 VLM 发出；下方按钮只设置目标或一次性截图故障。", 13,
+                Color.DKGRAY), params());
+
+        fixtureStatus = label("夹具状态：就绪", 15, Color.DKGRAY);
+        fixtureStatus.setContentDescription("Fixture state ready");
+        content.addView(fixtureStatus, params());
+        Button delayed = button("延迟加载按钮");
+        delayed.setContentDescription("延迟加载按钮");
+        delayed.setOnClickListener(view -> {
+            delayed.setEnabled(false);
+            setFixtureStatus("加载中");
+            statusHandler.postDelayed(() -> {
+                setFixtureStatus("加载完成");
+                delayed.setEnabled(true);
+            }, 1_200L);
+        });
+        content.addView(delayed, params());
+        Button noEffect = button("无效果按钮");
+        noEffect.setContentDescription("无效果按钮");
+        noEffect.setOnClickListener(view -> {
+            // Deliberately accepts the click without changing any visible page state.
+        });
+        content.addView(noEffect, params());
+
+        EditText input = new EditText(this);
+        fixtureTextInput = input;
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setHint("请输入中文");
+        input.setContentDescription("中文输入框");
+        input.setShowSoftInputOnFocus(false);
+        input.setFilters(new InputFilter[] {new InputFilter.LengthFilter(7)});
+        content.addView(input, params());
+        TextView inputStatus = label("夹具输入状态：empty", 14, Color.DKGRAY);
+        inputStatus.setContentDescription("Fixture input state empty");
+        content.addView(inputStatus, params());
+        input.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String value = s == null ? "" : s.toString();
+                String status = value.isEmpty() ? "empty" : value;
+                inputStatus.setText("夹具输入状态：" + status);
+                inputStatus.setContentDescription("Fixture input state " + status);
+            }
+            @Override public void afterTextChanged(Editable s) { }
+        });
+
+        TextView visualHeading = label("视觉目标（语义树不包含蓝框）", 14, Color.DKGRAY);
+        visualHeading.setContentDescription("Visual target heading; blue box is not in the tree");
+        VisualGestureSurface surface = new VisualGestureSurface();
+        surface.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        visualStatus = label("Visual gesture state: ready", 14, Color.DKGRAY);
+        visualStatus.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        visualStatus.setContentDescription(null);
+        content.addView(visualHeading, params());
+        content.addView(surface, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(140)));
+        content.addView(visualStatus, params());
+
+        goalInput = new EditText(this);
+        goalInput.setHint("测试目标");
+        goalInput.setMinLines(2);
+        goalInput.setGravity(Gravity.TOP | Gravity.START);
+        goalInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        goalInput.setContentDescription("Local VLM task goal");
+        goalInput.setText(DEBUG_LOADING_GOAL);
+        content.addView(goalInput, params());
+        addFixtureGoalButton(content, "加载等待目标", DEBUG_LOADING_GOAL);
+        addFixtureGoalButton(content, "无效果点击目标", DEBUG_NO_EFFECT_GOAL);
+        addFixtureGoalButton(content, "相似文本目标", INPUT_GOAL);
+        addFixtureGoalButton(content, "视觉目标", DEBUG_VISUAL_GOAL);
+
+        Button failAfter = button("注入下一次 AFTER 截图失败（仅 Debug）");
+        failAfter.setOnClickListener(view -> {
+            failAfterScreenshotArmed = true;
+            failAfter.setEnabled(false);
+            failAfter.setText("已预置：下一次任务 AFTER 截图不可用");
+            setFixtureStatus("截图故障已预置；BEFORE 截图仍正常采集");
+        });
+        content.addView(failAfter, params());
+
+        Button openSettings = button("VLM / Jev 凭据设置");
+        openSettings.setOnClickListener(view -> startActivity(new Intent(this, MainActivity.class)));
+        content.addView(openSettings, params());
+        addTaskControls(root);
+        setContentView(root);
+        refreshTaskStatus();
+    }
+
+    private void addFixtureGoalButton(LinearLayout content, String title, String goal) {
+        Button sample = button(title);
+        sample.setOnClickListener(view -> {
+            goalInput.setText(goal);
+            if (fixtureTextInput != null) fixtureTextInput.requestFocus();
+        });
+        content.addView(sample, params());
+    }
+
+    private void addTaskControls(LinearLayout root) {
+        LinearLayout controls = new LinearLayout(this);
+        controls.setOrientation(LinearLayout.HORIZONTAL);
+        Button start = button("开始本地 VLM 任务");
+        start.setContentDescription("Start local VLM task");
+        start.setOnClickListener(view -> startLocalTask());
+        Button pause = button("暂停");
+        pause.setOnClickListener(view -> controlTask(false));
+        Button cancel = button("取消");
+        cancel.setOnClickListener(view -> controlTask(true));
+        controls.addView(start, rowParams());
+        controls.addView(pause, rowParams());
+        controls.addView(cancel, rowParams());
+        root.addView(controls, params());
+        taskStatus = label("本地任务：无", 13, Color.DKGRAY);
+        taskStatus.setMaxLines(3);
+        taskStatus.setTextIsSelectable(true);
+        taskStatus.setContentDescription("Local VLM task status");
+        root.addView(taskStatus, params());
+    }
+
+    private void setFixtureStatus(String value) {
+        if (fixtureStatus == null) return;
+        fixtureStatus.setText("夹具状态：" + value);
+        fixtureStatus.setContentDescription("Fixture state " + value);
     }
 
     @Override

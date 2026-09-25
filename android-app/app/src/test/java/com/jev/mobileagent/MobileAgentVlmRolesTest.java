@@ -43,6 +43,26 @@ public final class MobileAgentVlmRolesTest {
     }
 
     @Test
+    public void treeReflectorUsesTheActualSelectedActionAndRequiresFourStates() throws Exception {
+        MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
+        JSONObject selected = new JSONObject().put("action", "jev_candidate")
+                .put("candidate_id", "tap-node-7");
+        roles.instruction = "点击蓝框";
+        roles.lastSummary = "tap the visual target";
+        roles.setActionForReflection(selected);
+
+        String prompt = roles.treeReflectorPrompt();
+        String[] parsed = roles.parseTreeReflection(
+                "### Status ###\nPENDING\n\n### Reason ###\nLoading remains visible.");
+
+        assertTrue(prompt.contains("Action actually dispatched: " + selected));
+        assertTrue(prompt.contains("not proof of the action result"));
+        assertTrue(prompt.contains("SUCCESS, FAILURE, PENDING, or UNKNOWN"));
+        assertEquals("PENDING", parsed[0]);
+        assertTrue(parsed[1].contains("Loading remains visible"));
+    }
+
+    @Test
     public void jevCandidateReplacesVlmDraftInBoundActionReflectorAndRoleHistory() throws Exception {
         JSONObject node = new JSONObject().put("node_id", "search-box").put("role", "text_field")
                 .put("content_description", "搜索框").put("enabled", true)

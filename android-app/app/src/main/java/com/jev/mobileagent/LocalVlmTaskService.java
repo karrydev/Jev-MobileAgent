@@ -415,16 +415,45 @@ public final class LocalVlmTaskService extends Service {
 
                 JSONObject after;
                 JSONObject afterShot;
+                boolean treeVerificationEnabled = task.optBoolean("tree_verification_enabled", false);
                 try {
                     after = observe(runTaskId, false);
                     persistObservation(runTaskId, after);
-                    afterShot = captureScreenshot(runTaskId, after, "AFTER");
+                    afterShot = treeVerificationEnabled
+                            ? captureScreenshotForTreeVerification(runTaskId, after, "AFTER")
+                            : captureScreenshot(runTaskId, after, "AFTER");
                 } catch (TaskFailure failure) {
                     throw new TaskFailure("action_outcome_needs_review",
                             "设备动作已执行但后续页面无法验证；任务已暂停，请检查当前手机页面");
                 }
                 roles.lastSummary = actionSummary;
                 roles.setActionForReflection(command.original);
+                if (treeVerificationEnabled) {
+                    TreeActionVerifier.Result verification;
+                    try {
+                        verification = verifyTreeAction(profile, task, runTaskId, step,
+                                action, before, after, beforeShot, afterShot, roles);
+                    } catch (JSONException exception) {
+                        throw new TaskFailure("action_verification_evidence_invalid",
+                                "动作核验证据无法编码；设备动作待核对");
+                    }
+                    String legacyOutcome = legacyReflectionOutcome(verification.status);
+                    String explanation = verification.status.name() + ": " + verification.reason;
+                    roles.recordAction(command.original, actionSummary, legacyOutcome, explanation);
+                    roles.clearActionForReflection();
+                    finishStep(runTaskId, roles, ++step);
+                    if (verification.status == TreeActionVerifier.Status.SUCCESS
+                            || verification.status == TreeActionVerifier.Status.FAILURE) {
+                        deviceActionNeedsVerification = false;
+                    } else {
+                        String reason = verification.status == TreeActionVerifier.Status.PENDING
+                                ? "action_verification_pending" : "action_verification_unknown";
+                        setStatus("动作后置条件仍无法确认；任务已安全暂停，需人工检查");
+                        throw new TaskFailure(reason, "动作后置条件无法确认；任务已安全暂停，请检查当前手机页面");
+                    }
+                    if (hasControlRequest()) throw new TaskStopped();
+                    continue;
+                }
                 String reflection = requestRole(profile, runTaskId, "action_reflector", step,
                         roles.reflectorPrompt(), new JSONArray().put(beforeShot).put(afterShot));
                 String[] reflected = roles.parseReflection(reflection);
@@ -480,6 +509,7 @@ public final class LocalVlmTaskService extends Service {
             setStatus("本地运行时异常；任务已暂停，请检查状态");
         } finally {
             ObservationAccessibilityService.endLocalTaskCapture();
+            DebugTreeVerificationFixtures.clearForTask(this, runTaskId);
             loopRunning = false;
             taskLoopActive = false;
             activeRequestCancellation = null;
@@ -563,27 +593,363 @@ public final class LocalVlmTaskService extends Service {
         if (hasControlRequest()) {
             throw new TaskStopped();
         }
-        JSONObject screenshot = await(callback -> ObservationAccessibilityService.requestLocalScreenshot(
-                observation, type, new ObservationAccessibilityService.LocalScreenshotCallback() {
-                    @Override
-                    public void onSuccess(JSONObject value) {
-                        callback.success(value);
-                    }
+        JSONObject screenshot;
+        try {
+            screenshot = await(callback -> ObservationAccessibilityService.requestLocalScreenshot(
+                    observation, type, new ObservationAccessibilityService.LocalScreenshotCallback() {
+                        @Override
+                        public void onSuccess(JSONObject value) {
+                            callback.success(value);
+                        }
 
-                    @Override
-                    public void onError(String code, String message) {
-                        callback.failure(code, message);
-                    }
-                }), "本地截图失败");
+                        @Override
+                        public void onError(String code, String message) {
+                            callback.failure(code, message);
+                        }
+                    }), "本地截图失败");
+        } catch (TaskFailure failure) {
+            boolean logged = LocalTaskStore.recordScreenshotCapture(this, runTaskId,
+                    screenshotCaptureRecord(observation, type, null, "unavailable", failure.code));
+            if (!logged) {
+                throw new TaskFailure("screenshot_capture_log_not_saved", "截图失败记录无法保存；任务已安全暂停");
+            }
+            throw failure;
+        }
         try {
             String path = LocalTaskStore.saveScreenshot(this, runTaskId,
                     observation.optLong("observation_version", 0L), type,
                     screenshot.optString("png_base64", ""));
             screenshot.put("private_file", path);
+            if (!LocalTaskStore.recordScreenshotCapture(this, runTaskId,
+                    screenshotCaptureRecord(observation, type, screenshot, "captured", ""))) {
+                throw new TaskFailure("screenshot_capture_log_not_saved", "截图采集记录无法保存；任务已安全暂停");
+            }
             return screenshot;
+        } catch (TaskFailure failure) {
+            throw failure;
         } catch (IOException | JSONException exception) {
+            LocalTaskStore.recordScreenshotCapture(this, runTaskId,
+                    screenshotCaptureRecord(observation, type, screenshot, "unavailable", "screenshot_evidence_not_saved"));
             throw new TaskFailure("screenshot_evidence_not_saved", "本地截图证据无法保存；任务已暂停");
         }
+    }
+
+    private static JSONObject screenshotCaptureRecord(JSONObject observation, String type,
+            JSONObject screenshot, String status, String reason) {
+        JSONObject result = new JSONObject();
+        try {
+            result.put("status", status)
+                    .put("capture_type", type)
+                    .put("observation_id", observation == null ? "" : observation.optString("observation_id", ""))
+                    .put("observation_version", observation == null ? 0L : observation.optLong("observation_version", 0L))
+                    .put("screenshot_id", screenshot == null ? JSONObject.NULL
+                            : screenshot.optString("screenshot_id", ""))
+                    .put("error_code", reason == null || reason.isEmpty() ? JSONObject.NULL : reason)
+                    .put("private_file", screenshot == null ? JSONObject.NULL
+                            : screenshot.optString("private_file", ""))
+                    .put("captured_at", java.time.Instant.now().toString());
+        } catch (JSONException ignored) {
+            // The fixed safe metadata keys cannot fail to encode.
+        }
+        return result;
+    }
+
+    private JSONObject captureScreenshotForTreeVerification(String runTaskId, JSONObject observation,
+            String type) throws TaskFailure, TaskStopped, InterruptedException {
+        try {
+            return captureScreenshot(runTaskId, observation, type);
+        } catch (TaskFailure failure) {
+            if (!isRecoverableScreenshotFailure(failure.code)) throw failure;
+            JSONObject missing = new JSONObject();
+            try {
+                missing.put("capture_type", type)
+                        .put("observation_id", observation == null ? ""
+                                : observation.optString("observation_id", ""))
+                        .put("missing_reason", failure.code)
+                        .put("png_base64", "");
+            } catch (JSONException ignored) {
+                // The evidence envelope uses fixed string fields.
+            }
+            return missing;
+        }
+    }
+
+    private static boolean isRecoverableScreenshotFailure(String code) {
+        return code != null && (code.startsWith("screenshot_")
+                || "permission_unavailable".equals(code)
+                || "observation_mismatch".equals(code));
+    }
+
+    private TreeActionVerifier.Result verifyTreeAction(ModelProfileStore.Profile profile,
+            JSONObject task, String runTaskId, int step, JSONObject action,
+            JSONObject before, JSONObject initialAfter, JSONObject beforeShot,
+            JSONObject initialAfterShot, MobileAgentVlmRoles roles)
+            throws TaskFailure, TaskStopped, InterruptedException, JSONException {
+        JSONObject after = initialAfter;
+        JSONObject afterShot = initialAfterShot;
+        int waits = 0;
+        JSONArray ruleAttempts = new JSONArray();
+        TreeActionVerifier.Result rule = TreeActionVerifier.verify(before, after, action,
+                beforeShot, afterShot);
+        appendRuleAttempt(ruleAttempts, rule, after, afterShot, "initial");
+
+        while (rule.status == TreeActionVerifier.Status.PENDING
+                && waits < TreeActionVerifier.MAX_WAIT_ATTEMPTS) {
+            if (hasControlRequest()) throw new TaskStopped();
+            Thread.sleep(TreeActionVerifier.WAIT_INTERVAL_MILLIS);
+            if (hasControlRequest()) throw new TaskStopped();
+            after = observe(runTaskId, false);
+            persistObservation(runTaskId, after);
+            afterShot = captureScreenshotForTreeVerification(runTaskId, after, "AFTER");
+            waits++;
+            rule = TreeActionVerifier.verify(before, after, action, beforeShot, afterShot);
+            appendRuleAttempt(ruleAttempts, rule, after, afterShot, "wait_" + waits);
+        }
+
+        TreeActionVerifier.Result decision = rule;
+        String source = "tree_rule";
+        JSONObject jevSummary = null;
+        if (rule.status != TreeActionVerifier.Status.SUCCESS
+                && rule.status != TreeActionVerifier.Status.FAILURE) {
+            decision = TreeActionVerifier.decision(TreeActionVerifier.Status.UNKNOWN,
+                    rule.status == TreeActionVerifier.Status.PENDING
+                            ? "bounded_tree_wait_still_pending" : rule.reason,
+                    rule.evidence);
+            source = "tree_rule";
+            if (!persistTreeVerification(runTaskId, action, decision, source, waits,
+                    ruleAttempts, before, after, beforeShot, afterShot, null)) {
+                throw new TaskFailure("action_verification_not_saved",
+                        "树核验结果无法保存在本地；设备动作待核对");
+            }
+
+            // Without both actual images, visual fallback cannot decide and must not invent evidence.
+            if (!TreeActionVerifier.hasImage(beforeShot) || !TreeActionVerifier.hasImage(afterShot)) {
+                decision = TreeActionVerifier.decision(TreeActionVerifier.Status.UNKNOWN,
+                        "visual_fallback_requires_real_before_and_after_screenshots",
+                        new JSONObject().put("before_screenshot_available", TreeActionVerifier.hasImage(beforeShot))
+                                .put("after_screenshot_available", TreeActionVerifier.hasImage(afterShot)));
+                source = "screenshot_unavailable";
+            } else {
+                if (JevShadow.shouldRunTreeVerification(task)) {
+                    jevSummary = runTreeVerificationWithJev(task, runTaskId, step,
+                            action, before, after, rule);
+                    if (!JevShadow.mayContinueToVisualFallback(jevSummary)) {
+                        JSONObject error = jevSummary.optJSONObject("error");
+                        String reason = error == null ? "budget_gate"
+                                : error.optString("code", "budget_gate");
+                        throw new TaskFailure("jev_verification_" + reason,
+                                "Jev 树核验预算门禁拒绝；已停止视觉回退及后续请求，任务已暂停");
+                    }
+                    TreeActionVerifier.Status jevStatus = jevSummary == null
+                            ? TreeActionVerifier.Status.UNKNOWN
+                            : TreeActionVerifier.parseModelStatus(jevSummary.optString("verification_status", ""));
+                    boolean jevAccepted = jevSummary != null
+                            && "valid_recommendation".equals(jevSummary.optString("status", ""))
+                            && jevSummary.optDouble("confidence", -1.0) >= JevShadow.LOW_CONFIDENCE_THRESHOLD
+                            && jevStatus != TreeActionVerifier.Status.UNKNOWN;
+                    if (jevAccepted && (jevStatus == TreeActionVerifier.Status.SUCCESS
+                            || jevStatus == TreeActionVerifier.Status.FAILURE)) {
+                        decision = modelVerificationDecision(jevStatus, "jev", jevSummary,
+                                jevSummary.optString("verification_status", ""));
+                        source = "jev";
+                    } else if (jevAccepted && jevStatus == TreeActionVerifier.Status.PENDING) {
+                        while (waits < TreeActionVerifier.MAX_WAIT_ATTEMPTS) {
+                            if (hasControlRequest()) throw new TaskStopped();
+                            Thread.sleep(TreeActionVerifier.WAIT_INTERVAL_MILLIS);
+                            if (hasControlRequest()) throw new TaskStopped();
+                            after = observe(runTaskId, false);
+                            persistObservation(runTaskId, after);
+                            afterShot = captureScreenshotForTreeVerification(runTaskId, after, "AFTER");
+                            waits++;
+                            rule = TreeActionVerifier.verify(before, after, action, beforeShot, afterShot);
+                            appendRuleAttempt(ruleAttempts, rule, after, afterShot, "jev_pending_wait_" + waits);
+                            if (rule.status == TreeActionVerifier.Status.SUCCESS
+                                    || rule.status == TreeActionVerifier.Status.FAILURE) break;
+                        }
+                        if (rule.status == TreeActionVerifier.Status.SUCCESS
+                                || rule.status == TreeActionVerifier.Status.FAILURE) {
+                            decision = rule;
+                            source = "tree_rule_after_jev_pending";
+                        }
+                    }
+                    JSONObject savedJevUnknown = new JSONObject()
+                            .put("source", "jev")
+                            .put("status", jevSummary == null ? "unavailable" : jevSummary.optString("status", ""))
+                            .put("verification_status", jevSummary == null ? "" : jevSummary.optString("verification_status", ""))
+                            .put("confidence", jevSummary == null ? JSONObject.NULL
+                                    : jevSummary.opt("confidence"));
+                    if (decision.status != TreeActionVerifier.Status.SUCCESS
+                            && decision.status != TreeActionVerifier.Status.FAILURE) {
+                        decision = TreeActionVerifier.decision(
+                                jevAccepted && jevStatus == TreeActionVerifier.Status.PENDING
+                                        && rule.status == TreeActionVerifier.Status.PENDING
+                                        ? TreeActionVerifier.Status.PENDING : TreeActionVerifier.Status.UNKNOWN,
+                                jevAccepted && jevStatus == TreeActionVerifier.Status.PENDING
+                                        ? "jev_pending_after_bounded_wait" : "jev_did_not_decide",
+                                savedJevUnknown);
+                        source = "jev";
+                    }
+                }
+
+                if (decision.status != TreeActionVerifier.Status.SUCCESS
+                        && decision.status != TreeActionVerifier.Status.FAILURE) {
+                    if (!TreeActionVerifier.hasImage(beforeShot) || !TreeActionVerifier.hasImage(afterShot)) {
+                        decision = TreeActionVerifier.decision(TreeActionVerifier.Status.UNKNOWN,
+                                "visual_fallback_requires_real_before_and_after_screenshots",
+                                new JSONObject().put("before_screenshot_available", TreeActionVerifier.hasImage(beforeShot))
+                                        .put("after_screenshot_available", TreeActionVerifier.hasImage(afterShot)));
+                        source = "screenshot_unavailable";
+                    } else {
+                        if (!persistTreeVerification(runTaskId, action, decision, source, waits,
+                                ruleAttempts, before, after, beforeShot, afterShot, jevSummary)) {
+                            throw new TaskFailure("action_verification_not_saved",
+                                    "树与 Jev 核验结果无法保存在本地；设备动作待核对");
+                        }
+                        String response = requestRole(profile, runTaskId, "action_reflector", step,
+                                roles.treeReflectorPrompt(),
+                                new JSONArray().put(beforeShot).put(afterShot));
+                        String[] reflected = roles.parseTreeReflection(response);
+                        TreeActionVerifier.Status visualStatus = TreeActionVerifier.parseModelStatus(reflected[0]);
+                        JSONObject visualEvidence = new JSONObject().put("reason", reflected[1]);
+                        decision = TreeActionVerifier.decision(visualStatus,
+                                reflected[1].isEmpty() ? "visual_reflector_no_reason" : "visual_reflector_decision",
+                                visualEvidence);
+                        source = "vlm_reflector";
+                        if (visualStatus == TreeActionVerifier.Status.PENDING) {
+                            while (waits < TreeActionVerifier.MAX_WAIT_ATTEMPTS) {
+                                if (hasControlRequest()) throw new TaskStopped();
+                                Thread.sleep(TreeActionVerifier.WAIT_INTERVAL_MILLIS);
+                                if (hasControlRequest()) throw new TaskStopped();
+                                after = observe(runTaskId, false);
+                                persistObservation(runTaskId, after);
+                                afterShot = captureScreenshotForTreeVerification(runTaskId, after, "AFTER");
+                                waits++;
+                                rule = TreeActionVerifier.verify(before, after, action, beforeShot, afterShot);
+                                appendRuleAttempt(ruleAttempts, rule, after, afterShot, "visual_pending_wait_" + waits);
+                                if (rule.status == TreeActionVerifier.Status.SUCCESS
+                                        || rule.status == TreeActionVerifier.Status.FAILURE) {
+                                    decision = rule;
+                                    source = "tree_rule_after_visual_pending";
+                                    break;
+                                }
+                            }
+                            if (decision.status == TreeActionVerifier.Status.PENDING
+                                    && rule.status != TreeActionVerifier.Status.PENDING) {
+                                decision = TreeActionVerifier.decision(TreeActionVerifier.Status.UNKNOWN,
+                                        "visual_pending_not_resolved_after_bounded_wait",
+                                        new JSONObject().put("visual_reason", reflected[1])
+                                                .put("final_tree_status", rule.status.name()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!persistTreeVerification(runTaskId, action, decision, source, waits,
+                ruleAttempts, before, after, beforeShot, afterShot, jevSummary)) {
+            throw new TaskFailure("action_verification_not_saved",
+                    "四态动作核验结果无法保存在本地；设备动作待核对");
+        }
+        return decision;
+    }
+
+    private JSONObject runTreeVerificationWithJev(JSONObject task,
+            String runTaskId, int step, JSONObject action, JSONObject before, JSONObject after,
+            TreeActionVerifier.Result rule)
+            throws TaskFailure, TaskStopped {
+        if (hasControlRequest()) throw new TaskStopped();
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        activeRequestCancellation = cancelled;
+        JSONObject report;
+        try {
+            report = JevShadow.runTreeVerificationAttempt(this, runTaskId, step,
+                    task.optString("goal", ""), action, before, after, rule, cancelled::get);
+        } catch (JSONException exception) {
+            throw new TaskFailure("jev_verification_report_failed",
+                    "Jev 树核验报告无法保存在本机；任务已暂停");
+        } finally {
+            activeRequestCancellation = null;
+        }
+        if (hasControlRequest()) throw new TaskStopped();
+        return report;
+    }
+
+    private static TreeActionVerifier.Result modelVerificationDecision(TreeActionVerifier.Status status,
+            String source, JSONObject report, String label) {
+        JSONObject evidence = new JSONObject();
+        try {
+            evidence.put("classifier", source)
+                    .put("label", label)
+                    .put("confidence", report.opt("confidence"))
+                    .put("attempt_status", report.optString("status", ""));
+        } catch (JSONException ignored) {
+            // Fixed metadata fields cannot fail under normal operation.
+        }
+        return TreeActionVerifier.decision(status, source + "_classification", evidence);
+    }
+
+    private boolean persistTreeVerification(String runTaskId, JSONObject action,
+            TreeActionVerifier.Result result, String source, int waits, JSONArray ruleAttempts,
+            JSONObject before, JSONObject after, JSONObject beforeShot, JSONObject afterShot,
+            JSONObject jevSummary) throws TaskFailure {
+        try {
+            JSONObject record = result.asJson(source)
+                    .put("policy_id", TreeActionVerifier.POLICY_ID)
+                    .put("policy_sha256", TreeActionVerifier.POLICY_SHA256)
+                    .put("wait_attempts", waits)
+                    .put("rule_attempts", new JSONArray(ruleAttempts.toString()))
+                    .put("before_observation_id", before.optString("observation_id", ""))
+                    .put("after_observation_id", after.optString("observation_id", ""))
+                    .put("before_screenshot", screenshotEvidence(beforeShot))
+                    .put("after_screenshot", screenshotEvidence(afterShot));
+            if (jevSummary != null) {
+                record.put("jev", new JSONObject()
+                        .put("status", jevSummary.optString("status", ""))
+                        .put("verification_status", jevSummary.optString("verification_status", ""))
+                        .put("confidence", jevSummary.opt("confidence"))
+                        .put("request_sent", jevSummary.optBoolean("request_sent", false)));
+            }
+            if (!LocalTaskStore.recordActionVerification(this, runTaskId,
+                    action.optString("action_id", ""), record)) {
+                return false;
+            }
+            return true;
+        } catch (JSONException exception) {
+            return false;
+        }
+    }
+
+    private static JSONObject screenshotEvidence(JSONObject screenshot) throws JSONException {
+        if (screenshot == null) {
+            return new JSONObject().put("status", "unavailable").put("reason", "screenshot_missing");
+        }
+        boolean available = TreeActionVerifier.hasImage(screenshot);
+        return new JSONObject()
+                .put("status", available ? "captured" : "unavailable")
+                .put("screenshot_id", screenshot.optString("screenshot_id", ""))
+                .put("observation_id", screenshot.optString("observation_id", ""))
+                .put("reason", screenshot.optString("missing_reason", ""));
+    }
+
+    private static void appendRuleAttempt(JSONArray attempts, TreeActionVerifier.Result result,
+            JSONObject observation, JSONObject screenshot, String point) {
+        try {
+            attempts.put(new JSONObject()
+                    .put("point", point)
+                    .put("status", result.status.name())
+                    .put("reason", result.reason)
+                    .put("observation_id", observation.optString("observation_id", ""))
+                    .put("screenshot_available", TreeActionVerifier.hasImage(screenshot)));
+        } catch (JSONException ignored) {
+            // The fixed rule trace uses safe scalar values.
+        }
+    }
+
+    private static String legacyReflectionOutcome(TreeActionVerifier.Status status) {
+        if (status == TreeActionVerifier.Status.SUCCESS) return "A";
+        if (status == TreeActionVerifier.Status.FAILURE) return "B";
+        return "C";
     }
 
     private void persistObservation(String runTaskId, JSONObject observation) throws TaskFailure {
