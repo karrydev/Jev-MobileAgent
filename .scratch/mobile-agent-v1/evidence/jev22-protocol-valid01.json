@@ -1,0 +1,53 @@
+{
+  "report_version": "jev-shadow-debug-report/android-v1",
+  "created_at": "2026-09-25T05:46:11.608479Z",
+  "mode": "valid_chinese_protocol_probe",
+  "task_id": "91236276-4ed0-4b35-819f-f43b0f7cd0db",
+  "attempt": {
+    "report_version": "jev-shadow-attempt/android-v1",
+    "created_at": "2026-09-25T05:46:08.004977Z",
+    "source": "debug_protocol_probe",
+    "step": 1,
+    "observation_id": "",
+    "observation_version": 0,
+    "candidate_count": 2,
+    "split": "debug",
+    "question_id": "next_action",
+    "debug_probe_kind": "valid_chinese_choice",
+    "candidate_policy_id": "jev-protocol-probe-v1",
+    "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+    "action_dispatched": false,
+    "elapsed_ms": 3428,
+    "request_sent": true,
+    "http_status": 200,
+    "protocol_status": "valid",
+    "usage": {
+      "status": "known",
+      "input_tokens": 404,
+      "output_tokens": 38
+    },
+    "choice_id": "probe_click_continue",
+    "confidence": 1,
+    "status": "valid_recommendation",
+    "confidence_status": "meets_frozen_threshold",
+    "comparison": {
+      "status": "not_compared",
+      "jev_choice_id": "probe_click_continue"
+    },
+    "cost": {
+      "status": "reserved_actual_unknown",
+      "currency": "USD",
+      "amount_usd": null,
+      "fx_status": "not_converted",
+      "actual_bill_status": "unknown",
+      "reserved_cny": 0.01
+    }
+  },
+  "action_dispatched": false,
+  "source_commit": "0142589",
+  "apk_sha256": "b19c999d7dd039574087205bd5c0e57d6bdcf04a441f32bfc2dfe966ceaebd69",
+  "device": "OnePlus 8T / Android 14 API 34",
+  "execution_boundary": "Android App direct HTTPS; host only UI trigger and private report export",
+  "independent_result": "expected Chinese choice",
+  "phone_locked_after": true
+}

@@ -862,8 +862,46 @@
       "requests": 5,
       "estimated_list_price_cny": 0.030766499999999995,
       "actual_billed_cny": null
+    },
+    {
+      "id": "jev22-protocol-valid01",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "source_commit": "0142589",
+      "result": "expected Chinese choice",
+      "max_requests": 1,
+      "budget_reservation_cny": 0.01,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null,
+      "requests": 1,
+      "provider_usage": {
+        "status": "known",
+        "input_tokens": 404,
+        "output_tokens": 38
+      },
+      "http_status": 200,
+      "estimated_list_price_usd": null
+    },
+    {
+      "id": "jev22-protocol-invalid01",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "source_commit": "0142589",
+      "result": "explicit invalid request rejected HTTP400",
+      "max_requests": 1,
+      "budget_reservation_cny": 0.01,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null,
+      "requests": 1,
+      "provider_usage": {
+        "status": "unknown",
+        "input_tokens": null,
+        "output_tokens": null
+      },
+      "http_status": 400,
+      "estimated_list_price_usd": null
     }
   ],
   "estimated_list_price_total_cny": 0.909588,
-  "unknown_usage_request_count": 3
+  "unknown_usage_request_count": 4
 }
