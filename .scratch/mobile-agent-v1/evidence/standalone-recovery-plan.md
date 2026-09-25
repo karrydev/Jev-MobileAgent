@@ -27,3 +27,13 @@
 记录本地任务/观察/动作/代次、持久intent/receipt/verification、核对快照及确认时新观察、费用前后值和可见副作用。UNKNOWN保持证据缺口，不自动重放；取消不等于撤销。已完成目标不得再次操作；恢复不重置步数/费用。旧响应/旧观察不能派发，以请求与动作轨迹核对而非仅UI文字。
 
 8/9及最终集成APK的完整拔线复核可能需要用户物理操作；尽量将不可代办步骤合并到所有实现与USB准备检查完成后。任务27/28保持各自验收状态，不把未来计划当完成证据。
+
+## 已确认的恢复结束边界
+
+真实24记录result.success=true的设备回调经本地持久化可作为已执行证据，不能因为没有新增executed字段就丢失旧事实。后置条件verification_unknown仍保持UNKNOWN。fresh核对后，可靠EXECUTED或明确NOT_EXECUTED可以经显式结束保存终态，未知后置条件不得改SUCCESS。真正intent-without-receipt、执行事实UNKNOWN不允许只凭“确认结束”释放占用，保持暂停与禁止重放。当前观察与历史执行归因分开。
+
+为避免最后仍未知的记录阻挡后续测试，派发后回执前场景安排在其他可闭合用例之后，可与手机重启/最终拔线的安全暂停检查组合；覆盖要求不减少。具体最终顺序在首个恢复付费调用前补齐。
+
+允许独立的“确认当前目标已完成”路径：复核与确认两次fresh observation均被现有StandaloneGoalVerifier判为VERIFIED，用户明确决定后可结束当前目标且不重放。用COMPLETED_ON_REVIEW等独立终态，decision_actor=user、completion_attribution=observed_only；不能用COMPLETED_EXTERNALLY暗示人完成，也不能改变历史UNKNOWN执行事实。任一次核验非VERIFIED均拒绝。这与没有新证据就确认放弃未知的路径不同。
+
+准备期只读取证：旧24APK在同一无效果页面、无动作/模型调用条件下，六次间隔0.35s的ADB截图出现四个PNG SHA-256；可见输入框光标闪烁。该结果不是恢复验收，但说明全图严格hash有误拒风险。首轮实际确认需检查可用性，不能把每次要求重新核对当通过；视觉变化也不能被整体忽略。原始图保留主协调私有/tmp/tree24-evidence。

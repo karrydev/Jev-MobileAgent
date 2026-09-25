@@ -76,8 +76,15 @@ public class MainActivity extends Activity {
             renderTask("任务已待命。切换到目标应用后，在通知中点“开始任务”\n" + globalBudgetText());
         } else if ("RUNNING".equals(state) && !LocalVlmTaskService.isTaskLoopActive()) {
             LocalTaskStore.markInterrupted(this);
-            renderTask("应用运行中断；本地任务已暂停，请检查手机页面后取消该任务\n" + globalBudgetText());
+            LocalVlmTaskService.showRecoveryControls(this, id);
+            renderTask("应用或运行服务中断；本地任务已暂停。回到原目标页面，从通知重新观察核对；不会自动继续。\n"
+                    + globalBudgetText());
         } else {
+            if ("PAUSED".equals(state) || "NEEDS_REVIEW".equals(state)) {
+                if (!LocalVlmTaskService.isForegroundServiceActive()) {
+                    LocalVlmTaskService.showRecoveryControls(this, id);
+                }
+            }
             renderTask(taskSummary(active) + "\n" + globalBudgetText());
         }
     }

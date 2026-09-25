@@ -5,17 +5,24 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.app.KeyguardManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,12 +36,21 @@ public final class LocalVlmTaskService extends Service {
     public static final String ACTION_START = "com.jev.mobileagent.localvlm.START";
     public static final String ACTION_PAUSE = "com.jev.mobileagent.localvlm.PAUSE";
     public static final String ACTION_CANCEL = "com.jev.mobileagent.localvlm.CANCEL";
+    public static final String ACTION_RECOVERY_CONTROLS = "com.jev.mobileagent.localvlm.RECOVERY_CONTROLS";
+    public static final String ACTION_RECONCILE = "com.jev.mobileagent.localvlm.RECONCILE";
+    public static final String ACTION_RESUME = "com.jev.mobileagent.localvlm.RESUME";
+    public static final String ACTION_END_REVIEW = "com.jev.mobileagent.localvlm.END_REVIEW";
+    public static final String ACTION_COMPLETE_REVIEWED_GOAL = "com.jev.mobileagent.localvlm.COMPLETE_REVIEWED_GOAL";
     public static final String EXTRA_TASK_ID = "task_id";
+    private static final String EXTRA_CONTROL_REASON = "control_reason";
+    private static final String EXTRA_REVIEW_OBSERVATION_ID = "review_observation_id";
 
     private static final String CHANNEL_ID = "standalone_vlm_task";
     private static final int NOTIFICATION_ID = 2601;
     private static final long CALLBACK_TIMEOUT_SECONDS = 35L;
     private static volatile boolean taskLoopActive;
+    private static volatile boolean deviceActionDispatchActive;
+    private static volatile boolean foregroundServiceActive;
 
     private final ExecutorService taskExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "jev-standalone-vlm-task");
@@ -46,12 +62,27 @@ public final class LocalVlmTaskService extends Service {
     private volatile String controlCommand = "";
     private volatile AtomicBoolean activeRequestCancellation;
     private volatile boolean loopRunning;
+    private volatile boolean reviewRunning;
     private volatile boolean deviceActionUnresolved;
     private volatile boolean deviceActionNeedsVerification;
+    private volatile String controlReason = "";
+    private BroadcastReceiver screenOffReceiver;
     private boolean foregroundStarted;
 
     public static boolean isTaskLoopActive() {
         return taskLoopActive;
+    }
+
+    public static boolean isDeviceActionDispatchActive() {
+        return deviceActionDispatchActive;
+    }
+
+    public static boolean isForegroundServiceActive() {
+        return foregroundServiceActive;
+    }
+
+    public static void showRecoveryControls(Context context, String taskId) {
+        start(context, ACTION_RECOVERY_CONTROLS, taskId);
     }
 
     public static void arm(Context context, String taskId) {
@@ -70,10 +101,22 @@ public final class LocalVlmTaskService extends Service {
         start(context, ACTION_CANCEL, taskId);
     }
 
+    public static void pauseForExternalCondition(Context context, String taskId, String reason) {
+        Intent intent = new Intent(context, LocalVlmTaskService.class)
+                .setAction(ACTION_PAUSE)
+                .putExtra(EXTRA_TASK_ID, taskId == null ? "" : taskId)
+                .putExtra(EXTRA_CONTROL_REASON, reason == null ? "external_intervention" : reason);
+        startService(context, intent);
+    }
+
     private static void start(Context context, String action, String taskId) {
         Intent intent = new Intent(context, LocalVlmTaskService.class)
                 .setAction(action)
                 .putExtra(EXTRA_TASK_ID, taskId == null ? "" : taskId);
+        startService(context, intent);
+    }
+
+    private static void startService(Context context, Intent intent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
         } else {
@@ -84,7 +127,22 @@ public final class LocalVlmTaskService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        foregroundServiceActive = true;
         createNotificationChannel();
+        screenOffReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_SCREEN_OFF.equals(intent == null ? "" : intent.getAction())) {
+                    requestControl("pause", "screen_locked");
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(screenOffReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(screenOffReceiver, filter);
+        }
     }
 
     @Override
@@ -103,14 +161,38 @@ public final class LocalVlmTaskService extends Service {
             promoteForeground();
         }
         String action = intent.getAction();
+        JSONObject storedTask = LocalTaskStore.task(this, taskId);
+        if (ACTION_RECONCILE.equals(action) && !loopRunning && storedTask != null
+                && "RUNNING".equals(storedTask.optString("state", ""))) {
+            // A user explicitly requested reconciliation after the runner vanished.
+            // Persist interruption first; this never resumes or dispatches an action.
+            LocalTaskStore.markInterrupted(this);
+        }
         if (ACTION_ARM.equals(action)) {
             armTask();
         } else if (ACTION_START.equals(action)) {
-            beginTaskLoop();
+            beginTaskLoop(false);
         } else if (ACTION_PAUSE.equals(action)) {
-            requestControl("pause");
+            requestControl("pause", intent.getStringExtra(EXTRA_CONTROL_REASON));
         } else if (ACTION_CANCEL.equals(action)) {
             requestControl("cancel");
+        } else if (ACTION_RECOVERY_CONTROLS.equals(action)) {
+            JSONObject recoveryTask = LocalTaskStore.task(this, taskId);
+            JSONObject fault = recoveryTask == null ? null : recoveryTask.optJSONObject("debug_recovery_fault");
+            String faultNotice = BuildConfig.DEBUG && fault != null
+                    && "fired".equals(fault.optString("status", ""))
+                    ? "仅 Debug：已触发一次性恢复中断点 " + fault.optString("point", "unknown") + "；"
+                    : "";
+            setStatus(faultNotice + "任务仍处于暂停；请重新观察后再决定，不会自动继续");
+            refreshNotification();
+        } else if (ACTION_RECONCILE.equals(action)) {
+            beginRecoveryReview();
+        } else if (ACTION_RESUME.equals(action)) {
+            confirmRecoveryDecision("resume", intent.getStringExtra(EXTRA_REVIEW_OBSERVATION_ID));
+        } else if (ACTION_END_REVIEW.equals(action)) {
+            confirmRecoveryDecision("end", intent.getStringExtra(EXTRA_REVIEW_OBSERVATION_ID));
+        } else if (ACTION_COMPLETE_REVIEWED_GOAL.equals(action)) {
+            confirmRecoveryDecision("complete_goal", intent.getStringExtra(EXTRA_REVIEW_OBSERVATION_ID));
         }
         return START_NOT_STICKY;
     }
@@ -125,8 +207,8 @@ public final class LocalVlmTaskService extends Service {
         refreshNotification();
     }
 
-    private void beginTaskLoop() {
-        if (loopRunning) {
+    private void beginTaskLoop(boolean explicitResume) {
+        if (loopRunning || reviewRunning) {
             return;
         }
         JSONObject task = LocalTaskStore.task(this, taskId);
@@ -136,7 +218,7 @@ public final class LocalVlmTaskService extends Service {
             return;
         }
         String state = task.optString("state", "");
-        if (!"ARMED".equals(state)) {
+        if (!("ARMED".equals(state) || (explicitResume && "RUNNING".equals(state)))) {
             if ("RUNNING".equals(state) && taskLoopActive) {
                 return;
             }
@@ -144,7 +226,7 @@ public final class LocalVlmTaskService extends Service {
             refreshNotification();
             return;
         }
-        if (!LocalTaskStore.updateState(this, taskId, "RUNNING", "")) {
+        if (!explicitResume && !LocalTaskStore.updateState(this, taskId, "RUNNING", "")) {
             setStatus("无法保存本地任务状态，未发送模型请求");
             return;
         }
@@ -157,6 +239,10 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private void requestControl(String command) {
+        requestControl(command, "");
+    }
+
+    private void requestControl(String command, String reason) {
         if (taskId.isEmpty()) {
             refreshNotification();
             return;
@@ -167,16 +253,30 @@ public final class LocalVlmTaskService extends Service {
             return;
         }
         String state = task.optString("state", "");
-        if ("SUCCEEDED".equals(state) || "FAILED".equals(state) || "CANCELLED".equals(state)) {
+        if ("SUCCEEDED".equals(state) || "FAILED".equals(state) || "CANCELLED".equals(state)
+                || "ENDED_WITH_UNRESOLVED".equals(state) || "COMPLETED_ON_REVIEW".equals(state)) {
             stopAfterTerminal();
+            return;
+        }
+        if (!loopRunning && reviewRunning) {
+            controlCommand = command;
+            controlReason = reason == null ? "" : reason;
+            actionGate.invalidate();
+            AtomicBoolean reviewCancellation = activeRequestCancellation;
+            if (reviewCancellation != null) reviewCancellation.set(true);
+            setStatus("正在中断恢复观察；任务继续保持暂停");
+            refreshNotification();
             return;
         }
         if (!loopRunning) {
             if ("cancel".equals(command)) {
-                if (LocalTaskStore.hasUnresolvedDeviceAction(this, taskId)) {
-                    LocalTaskStore.updateState(this, taskId, "NEEDS_REVIEW",
-                            "cancel_requested_with_unresolved_device_action");
-                    setStatus("设备动作结果仍未核实，任务保留待核对状态；请检查当前手机页面");
+                if (!"ARMED".equals(state)) {
+                    if ("RUNNING".equals(state)) {
+                        boolean unresolvedAction = LocalTaskStore.hasUnresolvedDeviceAction(this, taskId);
+                        LocalTaskStore.updateState(this, taskId, unresolvedAction ? "NEEDS_REVIEW" : "PAUSED",
+                                "runtime_not_active; explicit_reconciliation_required");
+                    }
+                    setStatus("暂停或核对中的任务不能直接取消；请重新观察后显式结束或确认目标完成");
                     refreshNotification();
                     return;
                 }
@@ -191,10 +291,11 @@ public final class LocalVlmTaskService extends Service {
                 boolean unresolvedAction = LocalTaskStore.hasUnresolvedDeviceAction(this, taskId);
                 LocalTaskStore.updateState(this, taskId, unresolvedAction ? "NEEDS_REVIEW" : "PAUSED",
                         unresolvedAction ? "runtime_not_active_with_unresolved_device_action"
-                                : "runtime_not_active; manual review required");
+                                : (reason == null || reason.isEmpty()
+                                        ? "runtime_not_active; manual review required" : reason));
                 setStatus(unresolvedAction
                         ? "设备动作结果仍未核实，任务保留待核对状态；请检查当前手机页面"
-                        : "运行时已不在前台；任务已安全暂停，请检查页面后结束任务");
+                        : "运行时已暂停；请在目标应用前台重新观察并确认");
                 refreshNotification();
             } else {
                 refreshNotification();
@@ -202,6 +303,7 @@ public final class LocalVlmTaskService extends Service {
             return;
         }
         controlCommand = command;
+        controlReason = reason == null ? "" : reason;
         actionGate.invalidate();
         AtomicBoolean cancellation = activeRequestCancellation;
         if (cancellation != null) {
@@ -209,6 +311,204 @@ public final class LocalVlmTaskService extends Service {
         }
         setStatus("cancel".equals(command) ? "正在停止任务" : "正在暂停任务并关闭在途请求");
         refreshNotification();
+    }
+
+    private void beginRecoveryReview() {
+        if (loopRunning || reviewRunning || taskId.isEmpty()) return;
+        JSONObject task = LocalTaskStore.task(this, taskId);
+        if (task == null || !("PAUSED".equals(task.optString("state", ""))
+                || "NEEDS_REVIEW".equals(task.optString("state", "")))) {
+            setStatus("当前任务状态不需要恢复核对");
+            return;
+        }
+        if (!ObservationAccessibilityService.isEnabled(this)) {
+            setStatus("无障碍权限未启用；任务继续暂停，重新授权后仍需手动核对");
+            return;
+        }
+        if (deviceStopReason().equals("screen_locked")) {
+            setStatus("手机仍处于锁屏或休眠状态；任务继续暂停，解锁后需手动重新观察");
+            return;
+        }
+        controlCommand = "";
+        controlReason = "";
+        reviewRunning = true;
+        setStatus("正在本地重新观察；不会发送模型请求或设备动作");
+        taskExecutor.execute(() -> runRecoveryReview(taskId));
+    }
+
+    private void runRecoveryReview(String reviewTaskId) {
+        try {
+            JSONObject task = LocalTaskStore.task(this, reviewTaskId);
+            if (task == null) return;
+            JSONObject observation = observe(reviewTaskId, true);
+            JSONObject screenshot = captureScreenshot(reviewTaskId, observation, "RECOVERY");
+            String imageFingerprint = screenshotFingerprint(screenshot);
+            String goalOutcome = StandaloneGoalVerifier.verify(task.optString("goal", ""), observation).name();
+            if (!LocalTaskStore.recordRecoveryObservation(this, reviewTaskId,
+                    observation, imageFingerprint, goalOutcome)) {
+                setStatus("重新观察没有保存；任务仍保持暂停");
+                return;
+            }
+            JSONObject reviewed = LocalTaskStore.task(this, reviewTaskId);
+            String detail = recoveryFactsSummary(reviewed);
+            if (!LocalTaskControlPolicy.allExecutionFactsKnown(reviewed)) {
+                setStatus("已重新观察；至少一个动作的执行事实仍为 UNKNOWN；保留暂停且不允许恢复或结束。" + detail);
+            } else if (LocalTaskControlPolicy.hasUnresolvedDeviceAction(reviewed)) {
+                setStatus("已重新观察；动作已执行但后置条件仍未决；只可显式结束或在目标经双重核验后确认完成。" + detail);
+            } else {
+                setStatus("已重新观察；整体目标判定=" + goalOutcome
+                        + "。请检查页面后显式确认恢复或结束；已核验通过的目标可单独确认完成。" + detail);
+            }
+        } catch (TaskStopped stopped) {
+            setStatus("核对被系统状态中断；任务继续暂停，请解锁后重新观察");
+        } catch (TaskFailure failure) {
+            setStatus(failure.safeMessage + "；任务继续暂停，恢复权限或网络后需重新观察");
+        } catch (IOException exception) {
+            setStatus("本地复核证据无法保存；任务继续暂停，请重新观察");
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            setStatus("核对线程中断；任务继续暂停");
+        } catch (RuntimeException exception) {
+            setStatus("核对失败；任务继续暂停，请重新观察");
+        } finally {
+            ObservationAccessibilityService.endLocalTaskCapture();
+            reviewRunning = false;
+            refreshNotification();
+        }
+    }
+
+    private void confirmRecoveryDecision(String decision, String reviewObservationId) {
+        if (loopRunning || reviewRunning || taskId.isEmpty()) return;
+        JSONObject task = LocalTaskStore.task(this, taskId);
+        JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
+        if (task == null || review == null || !review.optBoolean("valid", false)
+                || reviewObservationId == null || reviewObservationId.isEmpty()
+                || !reviewObservationId.equals(review.optString("observation_id", ""))) {
+            setStatus("没有仍有效的现场核对；请先重新观察");
+            return;
+        }
+        boolean factsKnown = LocalTaskControlPolicy.allExecutionFactsKnown(task);
+        boolean unresolved = LocalTaskControlPolicy.hasUnresolvedDeviceAction(task);
+        boolean goalVerified = "VERIFIED".equals(review.optString("goal_outcome", ""));
+        if ("resume".equals(decision) && (!factsKnown || unresolved)) {
+            setStatus(!factsKnown
+                    ? "执行事实仍为 UNKNOWN；单纯确认不能恢复，任务继续暂停"
+                    : "动作后置条件仍未决；不能恢复并重做目标，请显式结束或确认目标完成");
+            return;
+        }
+        if ("resume".equals(decision) && goalVerified) {
+            setStatus("当前观察已证明整体目标满足；不能再次运行该目标，请走单独完成确认");
+            return;
+        }
+        if ("end".equals(decision) && !factsKnown) {
+            setStatus("执行事实仍为 UNKNOWN；单纯确认不能结束，任务继续暂停");
+            return;
+        }
+        if ("complete_goal".equals(decision) && !goalVerified) {
+            setStatus("最新核对尚未证明整体目标完成；不能采用完成路径");
+            return;
+        }
+        controlCommand = "";
+        controlReason = "";
+        reviewRunning = true;
+        setStatus("正在重新采集现场以验证你的确认；画面变化会使确认失效");
+        taskExecutor.execute(() -> runRecoveryDecision(decision, reviewObservationId));
+    }
+
+    private void runRecoveryDecision(String decision, String reviewObservationId) {
+        String currentTaskId = taskId;
+        boolean resumed = false;
+        boolean ended = false;
+        try {
+            JSONObject task = LocalTaskStore.task(this, currentTaskId);
+            if (task == null) return;
+            JSONObject confirmation = observe(currentTaskId, true);
+            JSONObject screenshot = captureScreenshot(currentTaskId, confirmation, "RECOVERY");
+            String imageFingerprint = screenshotFingerprint(screenshot);
+            String confirmationGoalOutcome = StandaloneGoalVerifier.verify(
+                    task.optString("goal", ""), confirmation).name();
+            persistObservation(currentTaskId, confirmation);
+            if (!LocalTaskControlPolicy.sameReviewedScene(task, confirmation, imageFingerprint)) {
+                LocalTaskStore.invalidateRecoveryReview(this, currentTaskId,
+                        reviewObservationId, "scene_or_goal_changed_before_confirmation");
+                setStatus("目标页面或截图与核对时不同；本次确认已失效，请检查现场后重新观察");
+                return;
+            }
+            if (!LocalTaskStore.applyRecoveryDecision(this, currentTaskId, decision,
+                    reviewObservationId, confirmation, imageFingerprint, confirmationGoalOutcome)) {
+                setStatus("确认未能应用；执行事实或任务状态已变化，任务仍保持暂停");
+                return;
+            }
+            resumed = "resume".equals(decision);
+            ended = "end".equals(decision) || "complete_goal".equals(decision);
+            setStatus(resumed
+                    ? "用户已确认；从新观察继续，历史动作不会重放"
+                    : "已记录用户决策；动作执行事实、核验与费用记录原样保留");
+        } catch (TaskStopped stopped) {
+            setStatus("确认期间设备进入停止状态；任务继续暂停，解锁后重新核对");
+        } catch (TaskFailure failure) {
+            setStatus(failure.safeMessage + "；任务继续暂停");
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            setStatus("确认线程中断；任务继续暂停");
+        } catch (RuntimeException exception) {
+            setStatus("确认失败；任务继续暂停，请重新观察");
+        } finally {
+            ObservationAccessibilityService.endLocalTaskCapture();
+            reviewRunning = false;
+            JSONObject latest = LocalTaskStore.task(this, taskId);
+            if (resumed && latest != null && "RUNNING".equals(latest.optString("state", ""))) {
+                beginTaskLoop(true);
+            } else if (ended) {
+                stopAfterTerminal();
+            } else {
+                refreshNotification();
+            }
+        }
+    }
+
+    private String recoveryFactsSummary(JSONObject task) {
+        JSONObject fault = task == null ? null : task.optJSONObject("debug_recovery_fault");
+        String faultSummary = BuildConfig.DEBUG && fault != null
+                && "fired".equals(fault.optString("status", ""))
+                ? "；仅 Debug 一次性中断点已触发：" + fault.optString("point", "unknown") : "";
+        JSONArray actions = task == null ? null : task.optJSONArray("actions");
+        if (actions == null || actions.length() == 0) return faultSummary + "；没有未核对设备动作";
+        StringBuilder summary = new StringBuilder("；设备动作");
+        for (int i = 0; i < actions.length(); i++) {
+            JSONObject entry = actions.optJSONObject(i);
+            if (entry == null) continue;
+            JSONObject verification = entry.optJSONObject("verification");
+            String verificationStatus = verification == null
+                    ? "UNKNOWN" : verification.optString("status", "UNKNOWN");
+            summary.append(" [").append(LocalTaskControlPolicy.executionFact(task, entry).name())
+                    .append("/后置条件 ").append(verificationStatus).append(']');
+        }
+        return faultSummary + summary;
+    }
+
+    private static String screenshotFingerprint(JSONObject screenshot) throws TaskFailure {
+        String encoded = screenshot == null ? "" : screenshot.optString("png_base64", "");
+        if (encoded.isEmpty()) throw new TaskFailure("recovery_screenshot_missing", "恢复核对缺少真实屏幕截图");
+        byte[] png = null;
+        try {
+            png = Base64.decode(encoded, Base64.DEFAULT);
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(png);
+            StringBuilder hex = new StringBuilder(digest.length * 2);
+            for (byte value : digest) hex.append(String.format(java.util.Locale.ROOT, "%02x", value & 0xff));
+            return hex.toString();
+        } catch (IllegalArgumentException | NoSuchAlgorithmException exception) {
+            throw new TaskFailure("recovery_screenshot_invalid", "恢复核对截图无法校验");
+        } finally {
+            if (png != null) java.util.Arrays.fill(png, (byte) 0);
+        }
+    }
+
+    private void crashAtDebugFault(String point, String actionId) {
+        if (!BuildConfig.DEBUG || !LocalTaskStore.fireDebugRecoveryFault(this, taskId, point, actionId)) return;
+        setStatus("仅 Debug：已持久记录一次中断点 " + point + "，即将结束进程");
+        android.os.Process.killProcess(android.os.Process.myPid());
+        System.exit(137);
     }
 
     private void runTaskLoop(String runTaskId) {
@@ -349,11 +649,17 @@ public final class LocalVlmTaskService extends Service {
                     throw new TaskFailure("jev_control_report_failed",
                             "Jev 动作已记录，但选择报告无法更新；任务已暂停");
                 }
+                crashAtDebugFault(LocalTaskStore.DEBUG_FAULT_BEFORE_DISPATCH,
+                        action.optString("action_id", ""));
                 setStatus("正在执行与第 " + (step + 1) + " 次观察绑定的设备动作");
                 deviceActionUnresolved = true;
                 ActionResult actionResult;
                 try {
                     actionResult = performAction(action, actionToken);
+                    if (actionResult.success) {
+                        crashAtDebugFault(LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT,
+                                action.optString("action_id", ""));
+                    }
                     deviceActionUnresolved = false;
                 } catch (TaskStopped stopped) {
                     LocalTaskStore.recordActionResult(this, runTaskId,
@@ -407,6 +713,8 @@ public final class LocalVlmTaskService extends Service {
                         action.optString("action_id", ""), "executed", actionResult.toJson())) {
                     throw new TaskFailure("action_outcome_not_saved", "设备动作已执行但本地结果无法保存；任务需人工检查");
                 }
+                crashAtDebugFault(LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT,
+                        action.optString("action_id", ""));
                 if (jevActionSelected && !annotateJevDispatch(runTaskId, step, action,
                         true, "executed")) {
                     throw new TaskFailure("jev_control_report_failed",
@@ -488,7 +796,8 @@ public final class LocalVlmTaskService extends Service {
                 finalReason = "control_during_device_action_or_verification";
             } else {
                 finalState = "cancel".equals(requested) ? "CANCELLED" : "PAUSED";
-                finalReason = "cancel".equals(requested) ? "cancelled_by_user" : "paused_by_user";
+                finalReason = "cancel".equals(requested) ? "cancelled_by_user"
+                        : (controlReason.isEmpty() ? "paused_by_user" : controlReason);
             }
         } catch (TaskFailure failure) {
             finalState = deviceActionUnresolved || deviceActionNeedsVerification
@@ -1130,18 +1439,23 @@ public final class LocalVlmTaskService extends Service {
 
     private ActionResult performAction(JSONObject action, ActionExecutionGate.Token token)
             throws TaskFailure, TaskStopped, InterruptedException {
-        return await(callback -> ObservationAccessibilityService.executeLocalAction(action, token,
-                new ObservationAccessibilityService.ActionCallback() {
-                    @Override
-                    public void onSuccess() {
-                        callback.success(ActionResult.success());
-                    }
+        deviceActionDispatchActive = true;
+        try {
+            return await(callback -> ObservationAccessibilityService.executeLocalAction(action, token,
+                    new ObservationAccessibilityService.ActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            callback.success(ActionResult.success());
+                        }
 
-                    @Override
-                    public void onError(String code, String message) {
-                        callback.success(ActionResult.failure(code, message));
-                    }
-                }), "设备动作未返回结果");
+                        @Override
+                        public void onError(String code, String message) {
+                            callback.success(ActionResult.failure(code, message));
+                        }
+                    }), "设备动作未返回结果");
+        } finally {
+            deviceActionDispatchActive = false;
+        }
     }
 
     private <T> T await(AsyncStart<T> start, String timeoutMessage)
@@ -1219,7 +1533,21 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private boolean hasControlRequest() {
+        if (controlCommand.isEmpty() && (loopRunning || reviewRunning)) {
+            String reason = deviceStopReason();
+            if (!reason.isEmpty()) requestControl("pause", reason);
+        }
         return !controlCommand.isEmpty();
+    }
+
+    private String deviceStopReason() {
+        PowerManager power = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        KeyguardManager keyguard = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+        if ((power != null && !power.isInteractive()) || (keyguard != null && keyguard.isKeyguardLocked())) {
+            return "screen_locked";
+        }
+        if (!ObservationAccessibilityService.isEnabled(this)) return "accessibility_permission_lost";
+        return "";
     }
 
     private void setStatus(String message) {
@@ -1258,7 +1586,6 @@ public final class LocalVlmTaskService extends Service {
                 .setContentTitle("Jev 本地任务")
                 .setContentText(message)
                 .setStyle(new Notification.BigTextStyle().bigText(message))
-                .setContentIntent(mainPendingIntent())
                 .setOngoing("RUNNING".equals(state) || "ARMED".equals(state) || "PAUSING".equals(state))
                 .setOnlyAlertOnce(true)
                 .setCategory(Notification.CATEGORY_SERVICE);
@@ -1269,21 +1596,48 @@ public final class LocalVlmTaskService extends Service {
             builder.addAction(0, "暂停", servicePendingIntent(ACTION_PAUSE, taskId, 3));
             builder.addAction(0, "取消", servicePendingIntent(ACTION_CANCEL, taskId, 4));
         } else if ("PAUSED".equals(state) || "NEEDS_REVIEW".equals(state)) {
-            builder.addAction(0, "结束此任务", servicePendingIntent(ACTION_CANCEL, taskId, 5));
+            JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
+            if (review == null || !review.optBoolean("valid", false)) {
+                builder.addAction(0, "重新观察核对", servicePendingIntent(ACTION_RECONCILE, taskId, 5));
+            } else {
+                boolean factsKnown = LocalTaskControlPolicy.allExecutionFactsKnown(task);
+                boolean unresolved = LocalTaskControlPolicy.hasUnresolvedDeviceAction(task);
+                String observationId = review.optString("observation_id", "");
+                boolean goalVerified = "VERIFIED".equals(review.optString("goal_outcome", ""));
+                if (goalVerified) {
+                    builder.addAction(0, "确认目标已完成", servicePendingIntent(
+                            ACTION_COMPLETE_REVIEWED_GOAL, taskId, 8, observationId));
+                }
+                if (factsKnown) {
+                    if (unresolved) {
+                        builder.addAction(0, "结束并保留未决效果", servicePendingIntent(
+                                ACTION_END_REVIEW, taskId, 7, observationId));
+                    } else if (!goalVerified) {
+                        builder.addAction(0, "确认恢复", servicePendingIntent(
+                                ACTION_RESUME, taskId, 6, observationId));
+                        builder.addAction(0, "结束任务", servicePendingIntent(
+                                ACTION_END_REVIEW, taskId, 7, observationId));
+                    } else {
+                        builder.addAction(0, "结束任务", servicePendingIntent(
+                                ACTION_END_REVIEW, taskId, 7, observationId));
+                    }
+                }
+                builder.addAction(0, "重新观察核对", servicePendingIntent(ACTION_RECONCILE, taskId, 5));
+            }
         }
         return builder.build();
     }
 
-    private PendingIntent mainPendingIntent() {
-        Intent intent = new Intent(this, MainActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        return PendingIntent.getActivity(this, 10, intent, pendingIntentFlags());
+    private PendingIntent servicePendingIntent(String action, String runTaskId, int requestCode) {
+        return servicePendingIntent(action, runTaskId, requestCode, "");
     }
 
-    private PendingIntent servicePendingIntent(String action, String runTaskId, int requestCode) {
+    private PendingIntent servicePendingIntent(String action, String runTaskId, int requestCode,
+            String reviewObservationId) {
         Intent intent = new Intent(this, LocalVlmTaskService.class)
                 .setAction(action)
-                .putExtra(EXTRA_TASK_ID, runTaskId);
+                .putExtra(EXTRA_TASK_ID, runTaskId)
+                .putExtra(EXTRA_REVIEW_OBSERVATION_ID, reviewObservationId == null ? "" : reviewObservationId);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return PendingIntent.getForegroundService(this, requestCode, intent, pendingIntentFlags());
         }
@@ -1342,6 +1696,14 @@ public final class LocalVlmTaskService extends Service {
         }
         actionGate.invalidate();
         ObservationAccessibilityService.endLocalTaskCapture();
+        if (screenOffReceiver != null) {
+            try {
+                unregisterReceiver(screenOffReceiver);
+            } catch (IllegalArgumentException ignored) {
+                // The receiver was already unregistered during platform teardown.
+            }
+            screenOffReceiver = null;
+        }
         JSONObject task = LocalTaskStore.task(this, taskId);
         if (task != null && "RUNNING".equals(task.optString("state", ""))) {
             boolean unresolvedAction = LocalTaskControlPolicy.hasUnresolvedDeviceAction(task);
@@ -1351,7 +1713,9 @@ public final class LocalVlmTaskService extends Service {
                             : "runtime_interrupted; manual review required");
         }
         taskLoopActive = false;
+        deviceActionDispatchActive = false;
         loopRunning = false;
+        foregroundServiceActive = false;
         taskExecutor.shutdownNow();
         super.onDestroy();
     }

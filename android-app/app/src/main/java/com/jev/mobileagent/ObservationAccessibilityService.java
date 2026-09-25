@@ -150,13 +150,29 @@ public class ObservationAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // Observation is requested by the app-local task service. Accessibility
-        // events never trigger bridge traffic or unsolicited screenshot capture.
+        // A physical touch while a model decision is in flight is a human
+        // intervention. Pause the local task and require a fresh observation;
+        // Accessibility-dispatched actions are bracketed by the task service.
+        if (event != null && event.getEventType() == AccessibilityEvent.TYPE_TOUCH_INTERACTION_START
+                && LocalVlmTaskService.isTaskLoopActive()
+                && !LocalVlmTaskService.isDeviceActionDispatchActive()) {
+            JSONObject active = LocalTaskStore.activeTask(this);
+            if (active != null) {
+                LocalVlmTaskService.pauseForExternalCondition(this,
+                        active.optString("task_id", ""), "manual_intervention");
+            }
+        }
+        // Observation remains requested by the app-local task service. Events
+        // never trigger bridge traffic or unsolicited screenshot capture.
     }
 
     @Override
     public void onInterrupt() {
-        // The visible activity reports an interrupted/disconnected capture.
+        JSONObject active = LocalTaskStore.activeTask(this);
+        if (active != null && LocalVlmTaskService.isTaskLoopActive()) {
+            LocalVlmTaskService.pauseForExternalCondition(this,
+                    active.optString("task_id", ""), "accessibility_interrupted");
+        }
     }
 
     @Override

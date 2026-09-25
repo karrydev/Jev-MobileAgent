@@ -49,6 +49,7 @@ public final class ControlledPageActivity extends Activity {
     private String taskId = "";
     private boolean debugFixturePage;
     private boolean failAfterScreenshotArmed;
+    private String debugRecoveryFaultPoint = "";
     private TextView fixtureStatus;
     private final Runnable refreshStatus = new Runnable() {
         @Override
@@ -183,6 +184,17 @@ public final class ControlledPageActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        JSONObject active = LocalTaskStore.activeTask(this);
+        if (active != null && "RUNNING".equals(active.optString("state", ""))
+                && !LocalVlmTaskService.isTaskLoopActive()) {
+            LocalTaskStore.markInterrupted(this);
+            active = LocalTaskStore.activeTask(this);
+        }
+        if (active != null && ("PAUSED".equals(active.optString("state", ""))
+                || "NEEDS_REVIEW".equals(active.optString("state", "")))
+                && !LocalVlmTaskService.isForegroundServiceActive()) {
+            LocalVlmTaskService.showRecoveryControls(this, active.optString("task_id", ""));
+        }
         statusHandler.removeCallbacks(refreshStatus);
         statusHandler.post(refreshStatus);
     }
@@ -223,6 +235,12 @@ public final class ControlledPageActivity extends Activity {
             return;
         }
         taskId = task.optString("task_id", "");
+        if (BuildConfig.DEBUG && debugFixturePage && !debugRecoveryFaultPoint.isEmpty()
+                && !LocalTaskStore.armDebugRecoveryFault(this, taskId, debugRecoveryFaultPoint)) {
+            LocalTaskStore.updateState(this, taskId, "PAUSED", "debug_recovery_fault_could_not_be_armed");
+            taskStatus.setText("本地任务：调试中断点未能可靠预置，未启动");
+            return;
+        }
         if (debugFixturePage && fixtureTextInput != null) fixtureTextInput.requestFocus();
         if (debugFixturePage && failAfterScreenshotArmed) {
             DebugTreeVerificationFixtures.armAfterScreenshotFailure(this, taskId);
@@ -287,10 +305,6 @@ public final class ControlledPageActivity extends Activity {
         }
         taskId = active.optString("task_id", "");
         String message = "本地任务：" + active.optString("state", "UNKNOWN");
-        String progress = active.optString("runtime_status", "");
-        if (!progress.isEmpty()) {
-            message += " · " + progress;
-        }
         LocalTaskStore.BudgetSnapshot budget = LocalTaskStore.budgetSnapshot(this, taskId);
         message += String.format(java.util.Locale.ROOT, " · 本任务 ¥%.4f / ¥1，全局 ¥%.4f / ¥%.0f",
                 budget.taskAccountedCny, budget.globalAccountedCny, budget.globalBudgetCny);
@@ -400,6 +414,7 @@ public final class ControlledPageActivity extends Activity {
             setFixtureStatus("截图故障已预置；BEFORE 截图仍正常采集");
         });
         content.addView(failAfter, params());
+        addDebugRecoveryFaultControls(content);
 
         Button openSettings = button("VLM / Jev 凭据设置");
         openSettings.setOnClickListener(view -> startActivity(new Intent(this, MainActivity.class)));
@@ -416,6 +431,34 @@ public final class ControlledPageActivity extends Activity {
             if (fixtureTextInput != null) fixtureTextInput.requestFocus();
         });
         content.addView(sample, params());
+    }
+
+    private void addDebugRecoveryFaultControls(LinearLayout content) {
+        if (!BuildConfig.DEBUG) return;
+        content.addView(label("恢复中断点（仅 Debug，一次性，开始任务前选择）", 14, Color.DKGRAY), params());
+        String[] points = {
+                LocalTaskStore.DEBUG_FAULT_BEFORE_DISPATCH,
+                LocalTaskStore.DEBUG_FAULT_AFTER_SIDE_EFFECT,
+                LocalTaskStore.DEBUG_FAULT_AFTER_RECEIPT
+        };
+        String[] titles = {
+                "预置：派发前中断",
+                "预置：设备动作后、回执前中断",
+                "预置：持久回执后、核验前中断"
+        };
+        Button[] controls = new Button[points.length];
+        for (int i = 0; i < points.length; i++) {
+            final int selected = i;
+            controls[i] = button(titles[i]);
+            controls[i].setContentDescription("Debug recovery fault " + points[i]);
+            controls[i].setOnClickListener(view -> {
+                debugRecoveryFaultPoint = points[selected];
+                for (int j = 0; j < controls.length; j++) {
+                    controls[j].setText((j == selected ? "✓ " : "") + titles[j]);
+                }
+            });
+            content.addView(controls[i], params());
+        }
     }
 
     private void addTaskControls(LinearLayout root) {

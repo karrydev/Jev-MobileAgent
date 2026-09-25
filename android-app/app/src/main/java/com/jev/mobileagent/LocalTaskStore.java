@@ -27,6 +27,9 @@ public final class LocalTaskStore {
     private static final String JEV_SELECTION_ENABLED = "jev_selection_enabled";
     private static final String TREE_VERIFICATION_ENABLED = "tree_verification_enabled";
     private static final String TASK_PREFIX = "task.";
+    static final String DEBUG_FAULT_BEFORE_DISPATCH = "BEFORE_DISPATCH";
+    static final String DEBUG_FAULT_AFTER_SIDE_EFFECT = "AFTER_SIDE_EFFECT_BEFORE_RECEIPT";
+    static final String DEBUG_FAULT_AFTER_RECEIPT = "AFTER_RECEIPT_BEFORE_VERIFICATION";
 
     public static final int MAX_STEPS = 5;
     public static final int MAX_REQUESTS = 25;
@@ -161,7 +164,231 @@ public final class LocalTaskStore {
         return updateState(context, active.optString("task_id", ""),
                 unresolvedAction ? "NEEDS_REVIEW" : "PAUSED",
                 unresolvedAction ? "app_or_runtime_interrupted_with_unresolved_action"
-                        : "app_or_runtime_interrupted; manual review required");
+                : "app_or_runtime_interrupted; manual review required");
+    }
+
+    /** Arm a single recovery interruption from the Debug controlled-page UI before task start. */
+    public static boolean armDebugRecoveryFault(Context context, String taskId, String point) {
+        if (!BuildConfig.DEBUG || !isDebugRecoveryFaultPoint(point)) return false;
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null || !"ARMED".equals(task.optString("state", ""))) return false;
+            try {
+                task.put("debug_recovery_fault", new JSONObject()
+                        .put("point", point)
+                        .put("status", "armed")
+                        .put("configured_before_task_start", true)
+                        .put("armed_at", Instant.now().toString()));
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    /** Persist a one-shot fault marker before the Debug build terminates its process. */
+    public static boolean fireDebugRecoveryFault(Context context, String taskId, String point, String actionId) {
+        if (!BuildConfig.DEBUG || !isDebugRecoveryFaultPoint(point)) return false;
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            JSONObject fault = task == null ? null : task.optJSONObject("debug_recovery_fault");
+            if (fault == null || !"armed".equals(fault.optString("status", ""))
+                    || !point.equals(fault.optString("point", ""))) return false;
+            try {
+                fault.put("status", "fired")
+                        .put("action_id", actionId == null ? "" : actionId)
+                        .put("fired_at", Instant.now().toString());
+                task.put("debug_recovery_fault", fault)
+                        .put("runtime_status", "Debug 中断夹具已触发：" + point);
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    private static boolean isDebugRecoveryFaultPoint(String point) {
+        return DEBUG_FAULT_BEFORE_DISPATCH.equals(point)
+                || DEBUG_FAULT_AFTER_SIDE_EFFECT.equals(point)
+                || DEBUG_FAULT_AFTER_RECEIPT.equals(point);
+    }
+
+    /** Save a fresh review tree and a stable scene identity without making a model request. */
+    public static boolean recordRecoveryObservation(Context context, String taskId,
+            JSONObject observation, String screenshotFingerprint, String goalOutcome) throws IOException {
+        if (observation == null || screenshotFingerprint == null || screenshotFingerprint.isEmpty()) {
+            throw new IOException("recovery observation or local screenshot fingerprint missing");
+        }
+        saveObservation(context, taskId, observation);
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null || !isReviewableState(task.optString("state", ""))) return false;
+            try {
+                JSONObject review = new JSONObject()
+                        .put("observation_id", observation.optString("observation_id", ""))
+                        .put("observation_version", observation.optLong("observation_version", 0L))
+                        .put("captured_at", observation.optString("captured_at", ""))
+                        .put("scene_fingerprint", LocalTaskControlPolicy.sceneFingerprint(
+                                observation, screenshotFingerprint))
+                        .put("goal", task.optString("goal", ""))
+                        .put("goal_outcome", goalOutcome == null ? "UNKNOWN" : goalOutcome)
+                        .put("valid", true);
+                JSONArray facts = new JSONArray();
+                JSONArray actions = task.optJSONArray("actions");
+                if (actions != null) {
+                    for (int i = 0; i < actions.length(); i++) {
+                        JSONObject action = actions.optJSONObject(i);
+                        if (action == null) continue;
+                        JSONObject verification = action.optJSONObject("verification");
+                        JSONObject receipt = action.optJSONObject("result");
+                        facts.put(new JSONObject()
+                                .put("action_id", action.optString("action_id", ""))
+                                .put("execution_fact", LocalTaskControlPolicy.executionFact(task, action).name())
+                                .put("phase", action.optString("phase", "pending"))
+                                .put("receipt_success", receipt == null ? JSONObject.NULL
+                                        : receipt.has("success") ? receipt.optBoolean("success") : JSONObject.NULL)
+                                .put("verification_status", verification == null
+                                        ? verificationStatusFromPhase(action.optString("phase", ""))
+                                        : verification.optString("status", "UNKNOWN")));
+                    }
+                }
+                review.put("action_facts", facts);
+                task.put("recovery_review", review);
+                task.put("runtime_status", "已重新观察；用户确认前不会恢复任务");
+                JSONArray history = task.optJSONArray("recovery_reviews");
+                if (history == null) history = new JSONArray();
+                history.put(new JSONObject(review.toString()));
+                task.put("recovery_reviews", history);
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                throw new IOException("could not save recovery review", exception);
+            }
+        }
+    }
+
+    /** Revalidate the exact reviewed target and fresh scene, then record a user-only decision. */
+    public static boolean applyRecoveryDecision(Context context, String taskId, String decision,
+            String expectedReviewObservationId, JSONObject confirmationObservation,
+            String screenshotFingerprint, String confirmationGoalOutcome) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
+            if (task == null || review == null || !isReviewableState(task.optString("state", ""))
+                    || !review.optBoolean("valid", false)
+                    || expectedReviewObservationId == null
+                    || !expectedReviewObservationId.equals(review.optString("observation_id", ""))
+                    || !task.optString("goal", "").equals(review.optString("goal", ""))
+                    || screenshotFingerprint == null || screenshotFingerprint.isEmpty()
+                    || !review.optString("scene_fingerprint", "").equals(
+                            LocalTaskControlPolicy.sceneFingerprint(confirmationObservation, screenshotFingerprint))) {
+                return false;
+            }
+            boolean factsKnown = LocalTaskControlPolicy.allExecutionFactsKnown(task);
+            boolean unresolvedPostcondition = LocalTaskControlPolicy.hasUnresolvedDeviceAction(task);
+            if (!LocalTaskControlPolicy.allowsRecoveryDecision(
+                    decision, task, review, confirmationGoalOutcome)) return false;
+            try {
+                JSONArray actions = task.optJSONArray("actions");
+                int nextStep = task.optInt("step_count", 0);
+                if (actions != null) {
+                    for (int i = 0; i < actions.length(); i++) {
+                        JSONObject entry = actions.optJSONObject(i);
+                        if (LocalTaskControlPolicy.executionFact(task, entry)
+                                != LocalTaskControlPolicy.ExecutionFact.UNKNOWN) {
+                            JSONObject action = entry == null ? null : entry.optJSONObject("action");
+                            if (action != null) nextStep = Math.max(nextStep, action.optInt("sequence", 0));
+                        }
+                    }
+                }
+                JSONObject decisionRecord = new JSONObject()
+                        .put("decision", decision)
+                        .put("decision_actor", "user")
+                        .put("review_observation_id", review.optString("observation_id", ""))
+                        .put("confirmation_observation_id", confirmationObservation.optString("observation_id", ""))
+                        .put("confirmed_at", Instant.now().toString())
+                        .put("execution_facts_known", factsKnown)
+                        .put("unresolved_postcondition_retained", unresolvedPostcondition)
+                        .put("review_goal_outcome", review.optString("goal_outcome", "UNKNOWN"))
+                        .put("confirmation_goal_outcome", confirmationGoalOutcome == null
+                                ? "UNKNOWN" : confirmationGoalOutcome)
+                        .put("step_count_before", task.optInt("step_count", 0))
+                        .put("request_count_at_confirmation", task.optInt("request_count", 0))
+                        .put("accounted_cost_cny_at_confirmation", task.optDouble("accounted_cost_cny", 0.0));
+                if ("complete_goal".equals(decision)) {
+                    decisionRecord.put("completion_attribution", "observed_only")
+                            .put("execution_actor", JSONObject.NULL);
+                }
+                JSONArray decisions = task.optJSONArray("recovery_decisions");
+                if (decisions == null) decisions = new JSONArray();
+                decisions.put(decisionRecord);
+                task.put("recovery_decisions", decisions);
+                review.put("valid", false).put("invalidated_reason", "confirmation_consumed");
+                task.put("recovery_review", review);
+                if ("resume".equals(decision)) {
+                    task.put("step_count", nextStep);
+                    task.put("state", "RUNNING");
+                    task.put("state_reason", "user_confirmed_resume_after_fresh_reconciliation");
+                    task.put("runtime_status", "用户已确认；从新观察继续，不重放已记录动作");
+                } else if ("complete_goal".equals(decision)) {
+                    task.put("state", "COMPLETED_ON_REVIEW");
+                    task.put("state_reason", "user_confirmed_goal_visible_in_two_fresh_observations");
+                    task.put("runtime_status", "用户确认当前页面目标已满足；完成归因仅为观察到，不归因给人或 Agent");
+                } else {
+                    task.put("state", unresolvedPostcondition ? "ENDED_WITH_UNRESOLVED" : "CANCELLED");
+                    task.put("state_reason", unresolvedPostcondition
+                            ? "user_ended_after_review_acknowledging_unresolved_postcondition"
+                            : "user_ended_after_fresh_reconciliation");
+                    task.put("runtime_status", unresolvedPostcondition
+                            ? "用户已结束任务；执行记录保留，动作后置条件仍未决"
+                            : "用户已结束任务");
+                }
+                touch(task);
+                SharedPreferences.Editor editor = preferences(context).edit()
+                        .putString(taskKey(taskId), task.toString());
+                if (("end".equals(decision) || "complete_goal".equals(decision))
+                        && taskId.equals(preferences(context).getString(ACTIVE_TASK_ID, ""))) {
+                    editor.remove(ACTIVE_TASK_ID);
+                }
+                return editor.commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    public static boolean invalidateRecoveryReview(Context context, String taskId,
+            String expectedReviewObservationId, String reason) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            JSONObject review = task == null ? null : task.optJSONObject("recovery_review");
+            if (review == null || expectedReviewObservationId == null || !review.optBoolean("valid", false)
+                    || !expectedReviewObservationId.equals(review.optString("observation_id", ""))) {
+                return false;
+            }
+            try {
+                review.put("valid", false).put("invalidated_reason", reason == null ? "" : reason);
+                task.put("recovery_review", review)
+                        .put("runtime_status", "现场或目标已变化；请重新观察后再确认");
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    private static boolean isReviewableState(String state) {
+        return "PAUSED".equals(state) || "NEEDS_REVIEW".equals(state);
+    }
+
+    private static String verificationStatusFromPhase(String phase) {
+        if (phase != null && phase.startsWith("verification_")) {
+            return phase.substring("verification_".length()).toUpperCase(java.util.Locale.ROOT);
+        }
+        return "UNKNOWN";
     }
 
     public static boolean setStep(Context context, String taskId, int step) {
@@ -911,7 +1138,8 @@ public final class LocalTaskStore {
         if (!directory.exists() && !directory.mkdirs()) {
             throw new IOException("could not create private task evidence directory");
         }
-        String normalized = "AFTER".equals(captureType) ? "after" : "before";
+        String normalized = "AFTER".equals(captureType) ? "after"
+                : "RECOVERY".equals(captureType) ? "recovery" : "before";
         File file = new File(directory, "screenshot-" + observationVersion + "-" + normalized + ".png");
         try {
             writeSync(file, bytes);
