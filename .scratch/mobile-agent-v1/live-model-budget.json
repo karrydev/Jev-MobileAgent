@@ -1342,8 +1342,34 @@
       "requests": 1,
       "jev_requests": 0,
       "accounted_cny_in_app": 0.002931
+    },
+    {
+      "id": "planning25-off-input02",
+      "source_commit": "9633ea3c0cf744080b6c637402a9885876396199",
+      "result": "CANCELLED: user_ended_after_fresh_reconciliation",
+      "budget_reservation_cny": 0.009999999999999995,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.039343499999999997,
+      "actual_billed_cny": null,
+      "requests": 10,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.04934349999999999
+    },
+    {
+      "id": "planning25-on-input01",
+      "source_commit": "9633ea3c0cf744080b6c637402a9885876396199",
+      "result": "CANCELLED: user_ended_after_fresh_reconciliation",
+      "budget_reservation_cny": 0,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0,
+      "actual_billed_cny": null,
+      "requests": 0,
+      "jev_requests": 0,
+      "accounted_cny_in_app": 0
     }
   ],
-  "estimated_list_price_total_cny": 1.6295715,
+  "estimated_list_price_total_cny": 1.668915,
   "unknown_usage_request_count": 4
 }

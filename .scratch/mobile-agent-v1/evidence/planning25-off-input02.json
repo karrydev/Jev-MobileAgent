@@ -1,0 +1,1349 @@
+{
+  "task_id": "6d1fe66a-52fa-4ee4-8705-74e221a011b7",
+  "goal": "在中文输入框中输入“独立手机测试成功”",
+  "state": "CANCELLED",
+  "state_reason": "user_ended_after_fresh_reconciliation",
+  "created_at": "2026-09-25T12:10:48.635230Z",
+  "updated_at": "2026-09-25T12:12:35.235424Z",
+  "step_count": 5,
+  "request_count": 10,
+  "jev_shadow_enabled": false,
+  "jev_selection_enabled": true,
+  "jev_shadow_call_count": 1,
+  "jev_shadow_reserved_cny": 0.01,
+  "accounted_cost_cny": 0.04934349999999999,
+  "usage_missing": false,
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 1567,
+        "output_tokens": 118,
+        "total_tokens": 1685
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0028815,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-f951029538c24a09926c11e609f28dfc"
+      ]
+    },
+    {
+      "attempt": 2,
+      "role": "executor",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2460,
+        "output_tokens": 101,
+        "total_tokens": 2561
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0041445,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-f951029538c24a09926c11e609f28dfc"
+      ]
+    },
+    {
+      "attempt": 3,
+      "role": "action_reflector",
+      "step": 1,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2766,
+        "output_tokens": 51,
+        "total_tokens": 2817
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0043785,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 2,
+      "screenshot_ids": [
+        "local-shot-f951029538c24a09926c11e609f28dfc",
+        "local-shot-64a41539f9c4441984fd24e9ac0a11e6"
+      ]
+    },
+    {
+      "attempt": 4,
+      "role": "manager",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 1947,
+        "output_tokens": 124,
+        "total_tokens": 2071
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0034785,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-a326858d517642cd9af57c952ea40a0e"
+      ]
+    },
+    {
+      "attempt": 5,
+      "role": "executor",
+      "step": 2,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2466,
+        "output_tokens": 85,
+        "total_tokens": 2551
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0040815,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-a326858d517642cd9af57c952ea40a0e"
+      ]
+    },
+    {
+      "attempt": 6,
+      "role": "executor",
+      "step": 3,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2509,
+        "output_tokens": 102,
+        "total_tokens": 2611
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0042225,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-bcc31866ceec4c8c9cd1e8aaaa2a91ed"
+      ]
+    },
+    {
+      "attempt": 7,
+      "role": "manager",
+      "step": 4,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2059,
+        "output_tokens": 148,
+        "total_tokens": 2207
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0037545,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-ebf3826ac4ba455cab60f7389d30917b"
+      ]
+    },
+    {
+      "attempt": 8,
+      "role": "executor",
+      "step": 4,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2564,
+        "output_tokens": 101,
+        "total_tokens": 2665
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0043005,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-ebf3826ac4ba455cab60f7389d30917b"
+      ]
+    },
+    {
+      "attempt": 9,
+      "role": "manager",
+      "step": 5,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2083,
+        "output_tokens": 133,
+        "total_tokens": 2216
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.003723,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-17db405a9d82405494fef98e4f68f57c"
+      ]
+    },
+    {
+      "attempt": 10,
+      "role": "executor",
+      "step": 5,
+      "status": "usage_known",
+      "usage": {
+        "input_tokens": 2607,
+        "output_tokens": 104,
+        "total_tokens": 2711
+      },
+      "usage_present": true,
+      "estimated_cost_cny": 0.0043785,
+      "reserved_cost_cny": 0,
+      "http_status": 200,
+      "error_code": null,
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-17db405a9d82405494fef98e4f68f57c"
+      ]
+    }
+  ],
+  "jev_shadow_attempts": [
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T12:10:55.440328Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 1,
+      "observation_id": "standalone-device-obs-3561-743a8b82d1224ecca642f5b7f263105c",
+      "observation_version": 3561,
+      "candidate_count": 10,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 10,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-3-b47ae2abeca0",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-3-e3776c279ebb",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "在“中文输入框”中输入“独立手机测试成功”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-7-83aa6cdee58e",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-7-91e0277efe71",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "Type “独立手机测试成功” into Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-8-5cad8f675ad6",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-9-da0510f7aaf4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-10-cf1ed44f38d3",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-161-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-1-d1fe83d79363",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-161-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-2-1e2ae23c18c4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-161-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-3-fb964c51d1c7",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-161-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [],
+        "warnings": []
+      },
+      "action_dispatched": false,
+      "comparison": {
+        "status": "vlm_candidate_missing"
+      },
+      "known_parameter_source": "instruction_quote",
+      "candidate_coverage_status": "vlm_candidate_missing",
+      "status": "fallback",
+      "selection_status": "fallback",
+      "fallback_reason": "candidate_coverage_vlm_candidate_missing",
+      "fallback_target": "existing_vlm_action",
+      "request_sent": false,
+      "protocol_status": "not_run",
+      "usage": {
+        "status": "not_requested",
+        "input_tokens": null,
+        "output_tokens": null
+      },
+      "cost": {
+        "status": "not_incurred",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0
+      },
+      "attempt": 1,
+      "dispatch_status": "fallback_vlm"
+    },
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T12:10:56.170806Z",
+      "source": "task_verification",
+      "request_purpose": "verification",
+      "step": 1,
+      "observation_id": "standalone-device-obs-3567-788056938ab94a6289528836545f9851",
+      "observation_version": 3567,
+      "candidate_count": 4,
+      "question_id": "action_verification",
+      "verification_policy_id": "jev-android-tree-verification-rules-v1",
+      "verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+      "action_dispatched": false,
+      "rule_status": "UNKNOWN",
+      "rule_reason": "no_supported_unique_tree_postcondition",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "elapsed_ms": 1025,
+      "request_sent": true,
+      "http_status": 200,
+      "protocol_status": "valid",
+      "usage": {
+        "status": "known",
+        "input_tokens": 1604,
+        "output_tokens": 52
+      },
+      "choice_id": "UNKNOWN",
+      "confidence": 0.53,
+      "status": "valid_recommendation",
+      "confidence_status": "meets_frozen_threshold",
+      "verification_status": "UNKNOWN",
+      "cost": {
+        "status": "reserved_actual_unknown",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0.01
+      },
+      "attempt": 2
+    },
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T12:11:05.320718Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 2,
+      "observation_id": "standalone-device-obs-3568-25ab30b9ef2d41468f2b48e172e8f40d",
+      "observation_version": 3568,
+      "candidate_count": 10,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 10,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-3-b47ae2abeca0",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-3-e3776c279ebb",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "在“中文输入框”中输入“独立手机测试成功”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-7-83aa6cdee58e",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-7-91e0277efe71",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "Type “独立手机测试成功” into Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-8-5cad8f675ad6",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-9-da0510f7aaf4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-10-cf1ed44f38d3",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-161-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-1-d1fe83d79363",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-161-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-2-1e2ae23c18c4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-161-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-3-fb964c51d1c7",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-161-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [],
+        "warnings": []
+      },
+      "action_dispatched": false,
+      "comparison": {
+        "status": "not_compared"
+      },
+      "known_parameter_source": "instruction_quote",
+      "candidate_coverage_status": "not_compared",
+      "status": "fallback",
+      "selection_status": "fallback",
+      "fallback_reason": "candidate_coverage_not_compared",
+      "fallback_target": "existing_vlm_action",
+      "request_sent": false,
+      "protocol_status": "not_run",
+      "usage": {
+        "status": "not_requested",
+        "input_tokens": null,
+        "output_tokens": null
+      },
+      "cost": {
+        "status": "not_incurred",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0
+      },
+      "attempt": 3,
+      "dispatch_status": "fallback_vlm"
+    },
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T12:11:08.708678Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 3,
+      "observation_id": "standalone-device-obs-3571-243e7cb65a07439b8e3ac70398754bbb",
+      "observation_version": 3571,
+      "candidate_count": 10,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 10,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-3-b47ae2abeca0",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-3-e3776c279ebb",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "在“中文输入框”中输入“独立手机测试成功”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-7-83aa6cdee58e",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-7-91e0277efe71",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "Type “独立手机测试成功” into Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-8-5cad8f675ad6",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-9-da0510f7aaf4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-10-cf1ed44f38d3",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-161-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-1-d1fe83d79363",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-161-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-2-1e2ae23c18c4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-161-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-3-fb964c51d1c7",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-161-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [],
+        "warnings": []
+      },
+      "action_dispatched": false,
+      "comparison": {
+        "status": "not_compared"
+      },
+      "known_parameter_source": "instruction_quote",
+      "candidate_coverage_status": "not_compared",
+      "status": "fallback",
+      "selection_status": "fallback",
+      "fallback_reason": "candidate_coverage_not_compared",
+      "fallback_target": "existing_vlm_action",
+      "request_sent": false,
+      "protocol_status": "not_run",
+      "usage": {
+        "status": "not_requested",
+        "input_tokens": null,
+        "output_tokens": null
+      },
+      "cost": {
+        "status": "not_incurred",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0
+      },
+      "attempt": 4,
+      "dispatch_status": "fallback_vlm"
+    },
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T12:11:15.622674Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 4,
+      "observation_id": "standalone-device-obs-3574-22ec135dccc64dcabcea9abfafc1c548",
+      "observation_version": 3574,
+      "candidate_count": 10,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 10,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-3-b47ae2abeca0",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-3-e3776c279ebb",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "在“中文输入框”中输入“独立手机测试成功”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-7-83aa6cdee58e",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-7-91e0277efe71",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "Type “独立手机测试成功” into Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-8-5cad8f675ad6",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-9-da0510f7aaf4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-10-cf1ed44f38d3",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-161-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-1-d1fe83d79363",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-161-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-2-1e2ae23c18c4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-161-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-3-fb964c51d1c7",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-161-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [],
+        "warnings": []
+      },
+      "action_dispatched": false,
+      "comparison": {
+        "status": "not_compared"
+      },
+      "known_parameter_source": "instruction_quote",
+      "candidate_coverage_status": "not_compared",
+      "status": "fallback",
+      "selection_status": "fallback",
+      "fallback_reason": "candidate_coverage_not_compared",
+      "fallback_target": "existing_vlm_action",
+      "request_sent": false,
+      "protocol_status": "not_run",
+      "usage": {
+        "status": "not_requested",
+        "input_tokens": null,
+        "output_tokens": null
+      },
+      "cost": {
+        "status": "not_incurred",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0
+      },
+      "attempt": 5,
+      "dispatch_status": "fallback_vlm"
+    },
+    {
+      "report_version": "jev-shadow-attempt/android-v1",
+      "created_at": "2026-09-25T12:11:22.237174Z",
+      "source": "task_controlled",
+      "request_purpose": "selection",
+      "step": 5,
+      "observation_id": "standalone-device-obs-3577-d6fc8ffc70de4b5c9e0b64518844f073",
+      "observation_version": 3577,
+      "candidate_count": 10,
+      "instruction_language": "zh-CN",
+      "candidate_policy_id": "jev-android-current-observation-v1",
+      "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+      "confidence_threshold": 0.5,
+      "candidate_metadata": {
+        "candidate_count": 10,
+        "candidates": [
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-3-b47ae2abeca0",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {},
+            "description": "点击“中文输入框”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-3-e3776c279ebb",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-3",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "在“中文输入框”中输入“独立手机测试成功”",
+            "equivalence_group": "node:window-161-1-node-0-0-3"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-7-83aa6cdee58e",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {},
+            "description": "Tap Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-input_text-window-161-1-node-0-0-7-91e0277efe71",
+            "kind": "input_text",
+            "target_node_id": "window-161-1-node-0-0-7",
+            "parameters": {
+              "text": "独立手机测试成功"
+            },
+            "description": "Type “独立手机测试成功” into Local VLM task goal",
+            "equivalence_group": "node:window-161-1-node-0-0-7"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-8-5cad8f675ad6",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-8",
+            "parameters": {},
+            "description": "点击“中文输入目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-8"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-9-da0510f7aaf4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-9",
+            "parameters": {},
+            "description": "点击“视觉手势目标”",
+            "equivalence_group": "node:window-161-1-node-0-0-9"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-0-10-cf1ed44f38d3",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-0-10",
+            "parameters": {},
+            "description": "点击“VLM / JEV 凭据设置”",
+            "equivalence_group": "node:window-161-1-node-0-0-10"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-1-d1fe83d79363",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-1",
+            "parameters": {},
+            "description": "Tap Start local VLM task",
+            "equivalence_group": "node:window-161-1-node-0-1"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-2-1e2ae23c18c4",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-2",
+            "parameters": {},
+            "description": "点击“暂停”",
+            "equivalence_group": "node:window-161-1-node-0-2"
+          },
+          {
+            "candidate_id": "candidate-tap-window-161-1-node-0-3-fb964c51d1c7",
+            "kind": "tap",
+            "target_node_id": "window-161-1-node-0-3",
+            "parameters": {},
+            "description": "点击“取消”",
+            "equivalence_group": "node:window-161-1-node-0-3"
+          }
+        ],
+        "missing_parameters": [],
+        "warnings": []
+      },
+      "action_dispatched": false,
+      "comparison": {
+        "status": "not_compared"
+      },
+      "known_parameter_source": "instruction_quote",
+      "candidate_coverage_status": "not_compared",
+      "status": "fallback",
+      "selection_status": "fallback",
+      "fallback_reason": "candidate_coverage_not_compared",
+      "fallback_target": "existing_vlm_action",
+      "request_sent": false,
+      "protocol_status": "not_run",
+      "usage": {
+        "status": "not_requested",
+        "input_tokens": null,
+        "output_tokens": null
+      },
+      "cost": {
+        "status": "not_incurred",
+        "currency": "USD",
+        "amount_usd": null,
+        "fx_status": "not_converted",
+        "actual_bill_status": "unknown",
+        "reserved_cny": 0
+      },
+      "attempt": 6,
+      "dispatch_status": "fallback_vlm"
+    }
+  ],
+  "tree_verification_enabled": true,
+  "tree_verification_policy_id": "jev-android-tree-verification-rules-v1",
+  "tree_verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3561-743a8b82d1224ecca642f5b7f263105c",
+      "observation_version": 3561,
+      "screenshot_id": "local-shot-f951029538c24a09926c11e609f28dfc",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3561-before.png",
+      "captured_at": "2026-09-25T12:10:49.559532Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "AFTER",
+      "observation_id": "standalone-device-obs-3567-788056938ab94a6289528836545f9851",
+      "observation_version": 3567,
+      "screenshot_id": "local-shot-64a41539f9c4441984fd24e9ac0a11e6",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3567-after.png",
+      "captured_at": "2026-09-25T12:10:56.099635Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3568-25ab30b9ef2d41468f2b48e172e8f40d",
+      "observation_version": 3568,
+      "screenshot_id": "local-shot-a326858d517642cd9af57c952ea40a0e",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3568-before.png",
+      "captured_at": "2026-09-25T12:10:59.838083Z",
+      "attempt": 3
+    },
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3571-243e7cb65a07439b8e3ac70398754bbb",
+      "observation_version": 3571,
+      "screenshot_id": "local-shot-bcc31866ceec4c8c9cd1e8aaaa2a91ed",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3571-before.png",
+      "captured_at": "2026-09-25T12:11:05.849728Z",
+      "attempt": 4
+    },
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3574-22ec135dccc64dcabcea9abfafc1c548",
+      "observation_version": 3574,
+      "screenshot_id": "local-shot-ebf3826ac4ba455cab60f7389d30917b",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3574-before.png",
+      "captured_at": "2026-09-25T12:11:09.286288Z",
+      "attempt": 5
+    },
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3577-d6fc8ffc70de4b5c9e0b64518844f073",
+      "observation_version": 3577,
+      "screenshot_id": "local-shot-17db405a9d82405494fef98e4f68f57c",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3577-before.png",
+      "captured_at": "2026-09-25T12:11:16.176281Z",
+      "attempt": 6
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3586-2530015520794df193a5eea6615d5358",
+      "observation_version": 3586,
+      "screenshot_id": "local-shot-f9ceddf997074965ba65a4ec82c4f371",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3586-recovery.png",
+      "captured_at": "2026-09-25T12:12:19.781498Z",
+      "attempt": 7
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3591-0226630b81ce4f888f7acaa9aff86817",
+      "observation_version": 3591,
+      "screenshot_id": "local-shot-fb9298e57a53412597e51e914e665786",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6d1fe66a-52fa-4ee4-8705-74e221a011b7/screenshot-3591-recovery.png",
+      "captured_at": "2026-09-25T12:12:35.014420Z",
+      "attempt": 8
+    }
+  ],
+  "on_demand_planning_enabled": false,
+  "planning_plan_step": -1,
+  "planning_events": [
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 1,
+      "plan_step": null,
+      "plan_age_steps": null,
+      "active_subgoal": "",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 1,
+      "previous_subgoal": "",
+      "next_subgoal": "Click on the input field labeled \"请输入中文\" to activate it. 2. Type the text \"独立手机测试成功\" into the activated input field. 3. Perform the `answer` action to confirm completion of the task.",
+      "subgoal_changed": false
+    },
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 2,
+      "plan_step": 1,
+      "plan_age_steps": 1,
+      "active_subgoal": "Click on the input field labeled \"请输入中文\" to activate it. 2. Type the text \"独立手机测试成功\" into the activated input field. 3. Perform the `answer` action to confirm completion of the task.",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 2,
+      "previous_subgoal": "Click on the input field labeled \"请输入中文\" to activate it. 2. Type the text \"独立手机测试成功\" into the activated input field. 3. Perform the `answer` action to confirm completion of the task.",
+      "next_subgoal": "Type the text \"独立手机测试成功\" into the activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "subgoal_changed": true
+    },
+    {
+      "event": "planner_decision",
+      "decision": "reuse_plan",
+      "reason": "plan_current",
+      "step": 3,
+      "plan_step": 2,
+      "plan_age_steps": 1,
+      "active_subgoal": "Type the text \"独立手机测试成功\" into the activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 4,
+      "plan_step": 2,
+      "plan_age_steps": 2,
+      "active_subgoal": "Type the text \"独立手机测试成功\" into the activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 4,
+      "previous_subgoal": "Type the text \"独立手机测试成功\" into the activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "next_subgoal": "Use the appropriate method to type the text \"独立手机测试成功\" into the currently activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "subgoal_changed": true
+    },
+    {
+      "event": "planner_decision",
+      "decision": "replan",
+      "reason": "legacy_policy_manager_refresh",
+      "step": 5,
+      "plan_step": 4,
+      "plan_age_steps": 1,
+      "active_subgoal": "Use the appropriate method to type the text \"独立手机测试成功\" into the currently activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "on_demand_enabled": false
+    },
+    {
+      "event": "plan_updated",
+      "decision": "replanned",
+      "reason": "legacy_policy_manager_refresh",
+      "role": "manager",
+      "step": 5,
+      "previous_subgoal": "Use the appropriate method to type the text \"独立手机测试成功\" into the currently activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "next_subgoal": "Use the appropriate method to type the text \"独立手机测试成功\" into the currently activated input field. 2. Perform the `answer` action to confirm completion of the task.",
+      "subgoal_changed": false
+    }
+  ],
+  "schema_version": "standalone-phone-evidence-v1",
+  "attempt": "planning25-off-input02",
+  "source_commit": "9633ea3c0cf744080b6c637402a9885876396199",
+  "apk_sha256": "82eee27086f18008e3ce948fca4ac78a3db53cfef9e5787f2000b0ae9ee3db18",
+  "device": "OnePlus 8T / Android14 API34",
+  "vlm_model": "gui-plus",
+  "jev_model": "jev-1.13.0",
+  "execution_boundary": "Android app direct HTTPS; USB for setup and read-only evidence, no host orchestration; not a disconnected acceptance",
+  "final_device_state": "Dozing",
+  "final_observation_sha256": "c9d906ea8a5dff09db553eb223a897a4492e8884b21adf9646c75c958f1552a6",
+  "independent_page_evidence": [
+    {
+      "node_id": "window-161-1-node-0-0-3",
+      "text": "请输入中文",
+      "content_description": "中文输入框",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-161-1-node-0-0-4",
+      "text": "Controlled input state: empty",
+      "content_description": "Controlled input state empty",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-161-1-node-0-0-6",
+      "text": "Visual gesture state: ready",
+      "content_description": "Visual gesture state ready",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-161-1-node-0-0-7",
+      "text": "在中文输入框中输入“独立手机测试成功”",
+      "content_description": "Local VLM task goal",
+      "label": null,
+      "role": null
+    }
+  ],
+  "elapsed_seconds": 106.600194,
+  "recovery_evidence": {
+    "debug_recovery_fault": null,
+    "recovery_review": {
+      "observation_id": "standalone-device-obs-3586-2530015520794df193a5eea6615d5358",
+      "observation_version": 3586,
+      "captured_at": "2026-09-25T12:12:19.463883Z",
+      "scene_fingerprint": "4b04804a074fd046f9c03abf07c3c6b3dda7f634040523d78d9ba4785e1c467a",
+      "semantic_fingerprint": "2d4335e4c81e7a14b73250e1bdf97da8117166365e6b000da07c714cd6a8eb23",
+      "target_application_package": "com.jev.mobileagent",
+      "goal": "在中文输入框中输入“独立手机测试成功”",
+      "goal_outcome": "NOT_VERIFIED",
+      "valid": false,
+      "action_facts": [
+        {
+          "action_id": "local-vlm-action-6d1fe66a-52fa-4ee4-8705-74e221a011b7-1",
+          "execution_fact": "EXECUTED",
+          "phase": "verified",
+          "receipt_success": true,
+          "verification_status": "SUCCESS"
+        }
+      ],
+      "invalidated_reason": "confirmation_consumed"
+    },
+    "recovery_decisions": [
+      {
+        "decision": "end",
+        "decision_actor": "user",
+        "review_observation_id": "standalone-device-obs-3586-2530015520794df193a5eea6615d5358",
+        "confirmation_observation_id": "standalone-device-obs-3591-0226630b81ce4f888f7acaa9aff86817",
+        "confirmed_at": "2026-09-25T12:12:35.191492Z",
+        "execution_facts_known": true,
+        "unresolved_postcondition_retained": false,
+        "review_goal_outcome": "NOT_VERIFIED",
+        "confirmation_goal_outcome": "NOT_VERIFIED",
+        "confirmation_sample_count": 1,
+        "step_count_before": 5,
+        "request_count_at_confirmation": 10,
+        "accounted_cost_cny_at_confirmation": 0.04934349999999999
+      }
+    ],
+    "recovery_history": null,
+    "debug_recovery_window": {
+      "expectedTargetPackage": "com.jev.mobileagent",
+      "phase": "stable_target",
+      "error": "",
+      "readinessError": "",
+      "elapsedMs": 1183,
+      "screenInteractive": true,
+      "keyguardLocked": false,
+      "capturedAt": "2026-09-25T12:12:34.629632Z",
+      "availability": "AVAILABLE",
+      "screen": {
+        "widthPx": 1080,
+        "heightPx": 2400,
+        "rotation": 0,
+        "activeWindowId": 161,
+        "activeWindowBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 2400
+        },
+        "recoverySystemBarInsets": {
+          "available": true,
+          "source": "window_metrics_system_bars",
+          "reason": "",
+          "statusBarsVisible": true,
+          "navigationBarsVisible": true,
+          "left": 0,
+          "top": 103,
+          "right": 0,
+          "bottom": 48,
+          "metricsBoundsPx": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      },
+      "windowCount": 2,
+      "windows": [
+        {
+          "id": 146,
+          "type": 3,
+          "packageName": "com.android.systemui",
+          "className": "android.widget.FrameLayout",
+          "active": false,
+          "focused": false,
+          "layer": 1,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 103
+          }
+        },
+        {
+          "id": 161,
+          "type": 1,
+          "packageName": "com.jev.mobileagent",
+          "className": "android.widget.FrameLayout",
+          "active": true,
+          "focused": true,
+          "layer": 0,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      ]
+    },
+    "completion_attribution": null,
+    "decision_actor": null,
+    "execution_actor": null
+  },
+  "actions": [
+    {
+      "action_id": "local-vlm-action-6d1fe66a-52fa-4ee4-8705-74e221a011b7-1",
+      "phase": "verified",
+      "kind": "coordinate_tap",
+      "source": "mobileagent-v3.5-vlm-role",
+      "target_node_label": "",
+      "parameters": {
+        "x": 129,
+        "y": 696
+      },
+      "result": {
+        "success": true,
+        "error_code": null,
+        "message": null
+      },
+      "reflection": null,
+      "verification": {
+        "status": "SUCCESS",
+        "source": "vlm_reflector",
+        "reason": "visual_reflector_decision",
+        "evidence": {
+          "reason": "The input field labeled \"请输入中文\" is visible and appears to be active, as indicated by the blue border around it. This suggests that the click action on this field was successful, allowing for text input."
+        },
+        "policy_id": "jev-android-tree-verification-rules-v1",
+        "policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+        "wait_attempts": 0,
+        "rule_attempts": [
+          {
+            "point": "initial",
+            "status": "UNKNOWN",
+            "reason": "no_supported_unique_tree_postcondition",
+            "observation_id": "standalone-device-obs-3567-788056938ab94a6289528836545f9851",
+            "screenshot_available": true
+          }
+        ],
+        "before_observation_id": "standalone-device-obs-3561-743a8b82d1224ecca642f5b7f263105c",
+        "after_observation_id": "standalone-device-obs-3567-788056938ab94a6289528836545f9851",
+        "before_screenshot": {
+          "status": "captured",
+          "screenshot_id": "local-shot-f951029538c24a09926c11e609f28dfc",
+          "observation_id": "standalone-device-obs-3561-743a8b82d1224ecca642f5b7f263105c",
+          "reason": ""
+        },
+        "after_screenshot": {
+          "status": "captured",
+          "screenshot_id": "local-shot-64a41539f9c4441984fd24e9ac0a11e6",
+          "observation_id": "standalone-device-obs-3567-788056938ab94a6289528836545f9851",
+          "reason": ""
+        },
+        "jev": {
+          "status": "valid_recommendation",
+          "verification_status": "UNKNOWN",
+          "confidence": 0.53,
+          "request_sent": true
+        }
+      }
+    }
+  ],
+  "estimated_list_price_cny": 0.039343499999999997,
+  "actual_billed_cny": null,
+  "role_request_counts": {
+    "manager": 4,
+    "executor": 5,
+    "action_reflector": 1
+  },
+  "screenshot_capture_attempt_count": 8,
+  "screenshot_capture_status_counts": {
+    "captured": 8
+  },
+  "image_upload_count": 11,
+  "unique_uploaded_screenshot_count": 6,
+  "trial_result_before_reconciliation": "PAUSED: max_steps_reached",
+  "independent_goal_completed": false,
+  "history_summary": {
+    "actions": [
+      "coordinate click normalized [120,290] -> pixel [129,696]",
+      "four later action validations rejected before dispatch"
+    ],
+    "caveat": "Wrong initial target click; model visual reflector reported focus SUCCESS despite actual input remaining unfocused/empty. Later generic invalid-action history does not retain exact exception or raw rejected response, so do not assert malformed JSON specifically."
+  }
+}

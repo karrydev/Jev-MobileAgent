@@ -31,5 +31,14 @@
     "assemble": "passed",
     "change": "bounded staggered screenshot resampling; geometry and final image equality checks retained",
     "phone": "paused task and fees survived upgrade; focused fresh review and explicit resume succeeded with first comparison sample. This does not prove multi-sample cadence on hardware."
+  },
+  "layout_follow_up": {
+    "source_commit": "9633ea3c0cf744080b6c637402a9885876396199",
+    "apk_sha256": "82eee27086f18008e3ce948fca4ac78a3db53cfef9e5787f2000b0ae9ee3db18",
+    "apk_path": "/tmp/recovery27-evidence/integrated-9633ea3.apk",
+    "assemble": "passed",
+    "diff": "two setMaxLines(3) replaced with setLines(3); no scene guard changes",
+    "review": "main inspected exact two-line UI fix; existing policy review remains applicable",
+    "unit_tests": "not repeated for fixed line count UI change; phone geometry check pending"
   }
 }
