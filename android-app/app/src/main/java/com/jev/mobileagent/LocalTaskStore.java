@@ -28,6 +28,7 @@ public final class LocalTaskStore {
     private static final String JEV_SELECTION_ENABLED = "jev_selection_enabled";
     private static final String TREE_VERIFICATION_ENABLED = "tree_verification_enabled";
     private static final String TASK_PREFIX = "task.";
+    private static final int MAX_RECOVERY_DIAGNOSTIC_WINDOWS = 6;
     static final String DEBUG_FAULT_BEFORE_DISPATCH = "BEFORE_DISPATCH";
     static final String DEBUG_FAULT_AFTER_SIDE_EFFECT = "AFTER_SIDE_EFFECT_BEFORE_RECEIPT";
     static final String DEBUG_FAULT_AFTER_RECEIPT = "AFTER_RECEIPT_BEFORE_VERIFICATION";
@@ -127,6 +128,78 @@ public final class LocalTaskStore {
         } catch (JSONException exception) {
             return null;
         }
+    }
+
+    /** Store only allowlisted, compact window metadata in Debug task records. */
+    public static boolean recordDebugRecoveryWindowDiagnostic(Context context, String taskId,
+            JSONObject source) {
+        if (!BuildConfig.DEBUG || context == null || taskId == null || taskId.isEmpty() || source == null) {
+            return false;
+        }
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null) return false;
+            try {
+                JSONObject diagnostic = new JSONObject()
+                        .put("expectedTargetPackage", source.optString("expectedTargetPackage", ""))
+                        .put("phase", source.optString("phase", ""))
+                        .put("error", source.optString("error", ""))
+                        .put("readinessError", source.optString("readinessError", ""))
+                        .put("elapsedMs", Math.max(0L, source.optLong("elapsedMs", 0L)))
+                        .put("screenInteractive", source.optBoolean("screenInteractive", false))
+                        .put("keyguardLocked", source.optBoolean("keyguardLocked", false))
+                        .put("capturedAt", Instant.now().toString());
+                JSONObject observation = source.optJSONObject("observation");
+                if (observation != null) {
+                    diagnostic.put("availability", observation.optString("availability", ""));
+                    JSONObject sourceScreen = observation.optJSONObject("screen");
+                    if (sourceScreen != null) {
+                        JSONObject screen = new JSONObject()
+                                .put("widthPx", Math.max(0, sourceScreen.optInt("width_px", 0)))
+                                .put("heightPx", Math.max(0, sourceScreen.optInt("height_px", 0)))
+                                .put("rotation", sourceScreen.optInt("rotation", -1))
+                                .put("activeWindowId", sourceScreen.optInt("active_window_id", -1));
+                        JSONObject bounds = debugBounds(sourceScreen.optJSONObject("active_window_bounds"));
+                        if (bounds != null) screen.put("activeWindowBounds", bounds);
+                        diagnostic.put("screen", screen);
+                    }
+                    JSONArray sourceWindows = observation.optJSONArray("windows");
+                    JSONArray windows = new JSONArray();
+                    if (sourceWindows != null) {
+                        for (int i = 0; i < Math.min(sourceWindows.length(), MAX_RECOVERY_DIAGNOSTIC_WINDOWS); i++) {
+                            JSONObject window = sourceWindows.optJSONObject(i);
+                            if (window == null) continue;
+                            JSONObject safeWindow = new JSONObject()
+                                    .put("id", window.optInt("window_id", -1))
+                                    .put("type", window.optInt("window_type", -1))
+                                    .put("packageName", window.optString("package_name", ""))
+                                    .put("active", window.optBoolean("active", false))
+                                    .put("focused", window.optBoolean("focused", false))
+                                    .put("layer", window.optInt("layer", -1));
+                            JSONObject bounds = debugBounds(window.optJSONObject("bounds"));
+                            if (bounds != null) safeWindow.put("bounds", bounds);
+                            windows.put(safeWindow);
+                        }
+                    }
+                    diagnostic.put("windowCount", sourceWindows == null ? 0 : sourceWindows.length())
+                            .put("windows", windows);
+                }
+                task.put("debug_recovery_window", diagnostic);
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    private static JSONObject debugBounds(JSONObject source) throws JSONException {
+        if (source == null) return null;
+        return new JSONObject()
+                .put("left", source.optInt("left", 0))
+                .put("top", source.optInt("top", 0))
+                .put("right", source.optInt("right", 0))
+                .put("bottom", source.optInt("bottom", 0));
     }
 
     /** Resolve the task's original foreground app from its durable observation history. */

@@ -124,6 +124,49 @@ final class LocalTaskControlPolicy {
                 && !hasFullScreenSystemOverlayAboveTarget(observation, targetPackage);
     }
 
+    /** Recovery accepts only a readable target window with no unrelated window covering it. */
+    static String recoveryTargetReadinessError(JSONObject observation, String targetPackage) {
+        if (observation == null || !"AVAILABLE".equals(observation.optString("availability", ""))) {
+            return "observation_unavailable";
+        }
+        if (targetPackage == null || targetPackage.isEmpty()) return "recovery_target_unknown";
+        JSONObject targetWindow = activeWindow(observation);
+        if (targetWindow == null || targetWindow.optInt("window_type", -1) != 1
+                || !targetPackage.equals(targetWindow.optString("package_name", ""))) {
+            return "target_package_mismatch";
+        }
+        JSONObject targetBounds = targetWindow.optJSONObject("bounds");
+        JSONArray windows = observation.optJSONArray("windows");
+        if (targetBounds == null || windows == null) return "target_window_metadata_missing";
+        int targetLayer = targetWindow.optInt("layer", Integer.MIN_VALUE);
+        for (int i = 0; i < windows.length(); i++) {
+            JSONObject window = windows.optJSONObject(i);
+            if (window == null || window.optInt("window_id", -2)
+                    == targetWindow.optInt("window_id", -1)
+                    || window.optInt("layer", Integer.MIN_VALUE) <= targetLayer
+                    || targetPackage.equals(window.optString("package_name", ""))
+                    || isSystemBarWindow(window)) {
+                continue;
+            }
+            if (overlaps(window.optJSONObject("bounds"), targetBounds)) {
+                return "target_window_covered";
+            }
+        }
+        return "";
+    }
+
+    static boolean isStableRecoveryObservationPair(JSONObject previous, JSONObject current,
+            String targetPackage) {
+        return recoveryTargetReadinessError(previous, targetPackage).isEmpty()
+                && recoveryTargetReadinessError(current, targetPackage).isEmpty()
+                && sceneFingerprint(previous, "").equals(sceneFingerprint(current, ""));
+    }
+
+    static boolean shouldContinueRecoveryWindowWait(boolean cancelled, long elapsedMs,
+            long timeoutMs) {
+        return !cancelled && elapsedMs >= 0L && elapsedMs < timeoutMs;
+    }
+
     /**
      * A notification shade can hide the target app's Accessibility window entirely.
      * Only an explicit, unlocked recovery may try the dedicated shade action, and only
@@ -251,6 +294,14 @@ final class LocalTaskControlPolicy {
                 || identity.contains("status bar") || identity.contains("状态栏")
                 || identity.contains("navigationbar") || identity.contains("navigation_bar")
                 || identity.contains("navigation bar") || identity.contains("导航栏");
+    }
+
+    private static boolean overlaps(JSONObject left, JSONObject right) {
+        return left != null && right != null
+                && left.optInt("left", Integer.MAX_VALUE) < right.optInt("right", Integer.MIN_VALUE)
+                && left.optInt("right", Integer.MIN_VALUE) > right.optInt("left", Integer.MAX_VALUE)
+                && left.optInt("top", Integer.MAX_VALUE) < right.optInt("bottom", Integer.MIN_VALUE)
+                && left.optInt("bottom", Integer.MIN_VALUE) > right.optInt("top", Integer.MAX_VALUE);
     }
 
     static boolean hasUnresolvedDeviceAction(JSONObject task) {

@@ -157,6 +157,45 @@ public final class LocalTaskControlPolicyTest {
     }
 
     @Test
+    public void recoveryWaitRequiresReadableExposedTargetAndStableScene() throws Exception {
+        JSONObject target = sceneObservation();
+        assertEquals("", LocalTaskControlPolicy.recoveryTargetReadinessError(target, "com.jev.mobileagent"));
+        JSONObject nextStableTarget = new JSONObject(target.toString())
+                .put("observation_id", "next")
+                .put("captured_at", "later");
+        assertTrue(LocalTaskControlPolicy.isStableRecoveryObservationPair(
+                target, nextStableTarget, "com.jev.mobileagent"));
+
+        JSONObject transition = new JSONObject(target.toString()).put("availability", "EMPTY_TREE");
+        assertEquals("observation_unavailable", LocalTaskControlPolicy.recoveryTargetReadinessError(
+                transition, "com.jev.mobileagent"));
+        assertFalse(LocalTaskControlPolicy.isStableRecoveryObservationPair(
+                target, transition, "com.jev.mobileagent"));
+
+        JSONObject wrongApp = new JSONObject(target.toString());
+        wrongApp.getJSONArray("windows").getJSONObject(0).put("package_name", "com.example.other");
+        assertEquals("target_package_mismatch", LocalTaskControlPolicy.recoveryTargetReadinessError(
+                wrongApp, "com.jev.mobileagent"));
+
+        JSONObject covered = new JSONObject(target.toString());
+        covered.getJSONArray("windows").put(new JSONObject().put("window_id", 2)
+                .put("window_type", 3).put("package_name", "com.android.permissioncontroller")
+                .put("active", false).put("focused", false).put("layer", 2)
+                .put("bounds", new JSONObject().put("left", 100).put("top", 300)
+                        .put("right", 800).put("bottom", 900)));
+        assertEquals("target_window_covered", LocalTaskControlPolicy.recoveryTargetReadinessError(
+                covered, "com.jev.mobileagent"));
+    }
+
+    @Test
+    public void recoveryWaitHasHardDeadlineAndCancellationPreemptsFurtherPolling() {
+        assertTrue(LocalTaskControlPolicy.shouldContinueRecoveryWindowWait(false, 2499L, 2500L));
+        assertFalse(LocalTaskControlPolicy.shouldContinueRecoveryWindowWait(false, 2500L, 2500L));
+        assertFalse(LocalTaskControlPolicy.shouldContinueRecoveryWindowWait(true, 100L, 2500L));
+        assertFalse(LocalTaskControlPolicy.shouldContinueRecoveryWindowWait(false, -1L, 2500L));
+    }
+
+    @Test
     public void recoveryScreenshotCropUsesObservedSystemBarBoundsOnly() throws Exception {
         JSONObject observation = sceneObservation();
         observation.getJSONObject("screen").put("active_window_bounds", new JSONObject()

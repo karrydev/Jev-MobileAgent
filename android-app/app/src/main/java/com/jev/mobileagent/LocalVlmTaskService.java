@@ -361,6 +361,8 @@ public final class LocalVlmTaskService extends Service {
             if (task == null) return;
             String targetPackage = LocalTaskStore.recoveryTargetPackage(this, reviewTaskId);
             if (targetPackage.isEmpty()) {
+                recordRecoveryWindowDiagnostic(reviewTaskId, "resolve_expected_target",
+                        "recovery_target_unknown", "");
                 throw new TaskFailure("recovery_target_unknown", "无法从此前记录确认原目标应用；任务继续暂停");
             }
             JSONObject observation = observeForRecovery(reviewTaskId, targetPackage);
@@ -456,6 +458,8 @@ public final class LocalVlmTaskService extends Service {
             String targetPackage = review == null ? ""
                     : review.optString("target_application_package", "");
             if (targetPackage.isEmpty()) {
+                recordRecoveryWindowDiagnostic(currentTaskId, "resolve_review_target",
+                        "recovery_target_unknown", "");
                 throw new TaskFailure("recovery_target_unknown", "原目标应用记录缺失；任务继续暂停");
             }
             JSONObject confirmation = observeForRecovery(currentTaskId, targetPackage);
@@ -1006,7 +1010,7 @@ public final class LocalVlmTaskService extends Service {
         JSONObject first;
         try {
             first = await(callback -> ObservationAccessibilityService.requestRecoveryObservation(
-                    runTaskId, targetPackage, cancelled,
+                    this, runTaskId, targetPackage, cancelled,
                     new ObservationAccessibilityService.LocalObservationCallback() {
                         @Override
                         public void onSuccess(JSONObject value) {
@@ -1021,19 +1025,25 @@ public final class LocalVlmTaskService extends Service {
         } finally {
             if (activeRequestCancellation == cancelled) activeRequestCancellation = null;
         }
-        if (!"AVAILABLE".equals(first.optString("availability", ""))
-                || !LocalTaskControlPolicy.isTargetApplicationForeground(first, targetPackage)) {
-            throw new TaskFailure("recovery_target_unavailable", "原目标应用未稳定回到前台；任务继续暂停");
+        if (!LocalTaskControlPolicy.recoveryTargetReadinessError(first, targetPackage).isEmpty()) {
+            throw new TaskFailure("recovery_target_unavailable", "原目标应用观察不可用；任务继续暂停");
         }
-        String firstScene = LocalTaskControlPolicy.sceneFingerprint(first, "");
-        Thread.sleep(350L);
-        if (hasControlRequest()) throw new TaskStopped();
-        JSONObject fresh = observe(runTaskId, false);
-        if (!LocalTaskControlPolicy.isTargetApplicationForeground(fresh, targetPackage)
-                || !firstScene.equals(LocalTaskControlPolicy.sceneFingerprint(fresh, ""))) {
-            throw new TaskFailure("recovery_target_unstable", "原目标页面在确认前仍有变化；任务继续暂停");
+        return first;
+    }
+
+    private void recordRecoveryWindowDiagnostic(String runTaskId, String phase, String error,
+            String readinessError) {
+        if (!BuildConfig.DEBUG) return;
+        try {
+            JSONObject diagnostic = new JSONObject()
+                    .put("expectedTargetPackage", "")
+                    .put("phase", phase)
+                    .put("error", error)
+                    .put("readinessError", readinessError);
+            LocalTaskStore.recordDebugRecoveryWindowDiagnostic(this, runTaskId, diagnostic);
+        } catch (JSONException ignored) {
+            // Keep fail-closed target resolution independent from diagnostics.
         }
-        return fresh;
     }
 
     private JSONObject captureScreenshot(String runTaskId, JSONObject observation, String type)

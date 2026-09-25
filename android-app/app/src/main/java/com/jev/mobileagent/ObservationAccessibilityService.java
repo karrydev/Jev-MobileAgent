@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.KeyguardManager;
 import android.accessibilityservice.GestureDescription;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Path;
 import android.graphics.Rect;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
@@ -45,6 +47,9 @@ public class ObservationAccessibilityService extends AccessibilityService {
     private static final int MAX_NODES = 512;
     private static final long AUTO_CAPTURE_DELAY_MS = 250L;
     private static final long POST_ACTION_CAPTURE_DELAY_MS = 350L;
+    private static final long RECOVERY_WINDOW_TIMEOUT_MS = 2500L;
+    private static final long RECOVERY_WINDOW_POLL_MS = 120L;
+    private static final long RECOVERY_STABILITY_SAMPLE_MS = 150L;
     private static volatile ObservationAccessibilityService instance;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -87,6 +92,28 @@ public class ObservationAccessibilityService extends AccessibilityService {
             Rect sourceBounds = new Rect();
             source.getBoundsInScreen(sourceBounds);
             bounds = new Rect(sourceBounds);
+        }
+    }
+
+    private static final class RecoveryObservationAttempt {
+        final String taskId;
+        final String targetPackage;
+        final AtomicBoolean cancelled;
+        final LocalObservationCallback callback;
+        final long startedAtMs;
+        String phase = "starting";
+        String readinessError = "";
+        JSONObject stableCandidate;
+        JSONObject lastObservation;
+        boolean shadeDismissed;
+
+        RecoveryObservationAttempt(String taskId, String targetPackage, AtomicBoolean cancelled,
+                LocalObservationCallback callback) {
+            this.taskId = taskId;
+            this.targetPackage = targetPackage;
+            this.cancelled = cancelled;
+            this.callback = callback;
+            this.startedAtMs = SystemClock.elapsedRealtime();
         }
     }
     private final Runnable autoCapture = new Runnable() {
@@ -255,17 +282,21 @@ public class ObservationAccessibilityService extends AccessibilityService {
     }
 
     /** Return to the task's original app without launching or recreating an Activity, then wait for a stable tree. */
-    public static void requestRecoveryObservation(final String taskId, final String targetPackage,
-            final AtomicBoolean cancelled, final LocalObservationCallback callback) {
+    public static void requestRecoveryObservation(final Context diagnosticContext, final String taskId,
+            final String targetPackage, final AtomicBoolean cancelled,
+            final LocalObservationCallback callback) {
         final ObservationAccessibilityService service = instance;
         if (service == null) {
+            recordUnavailableRecoveryDiagnostic(diagnosticContext, taskId, targetPackage,
+                    "accessibility_service_unavailable", "permission_unavailable");
             reportLocalObservationError(callback, "permission_unavailable", "Accessibility service is not running");
             return;
         }
         service.mainHandler.post(() -> {
             service.taskCaptureHeld = true;
             service.mainHandler.removeCallbacks(service.autoCapture);
-            service.captureRecoveryObservation(taskId, targetPackage, cancelled, callback, false);
+            service.captureRecoveryObservation(new RecoveryObservationAttempt(
+                    taskId, targetPackage, cancelled, callback));
         });
     }
 
@@ -327,56 +358,172 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
     }
 
-    private void captureRecoveryObservation(String taskId, String targetPackage,
-            AtomicBoolean cancelled, LocalObservationCallback callback, boolean shadeDismissed) {
-        if (cancelled != null && cancelled.get()) return;
-        if (!isEnabled(this)) {
-            reportLocalObservationError(callback, "permission_unavailable", "Accessibility permission is unavailable");
+    private void captureRecoveryObservation(RecoveryObservationAttempt attempt) {
+        if (attempt.cancelled != null && attempt.cancelled.get()) {
+            recordRecoveryDiagnostic(attempt, "cancelled", "cancelled", null, "");
             return;
         }
-        try {
-            BridgeConfig identity = new BridgeConfig("", "", "standalone-device", taskId,
-                    "", "", "", "", "");
-            JSONObject observation = captureOnServiceThread(identity);
-            boolean fullScreenSystemWindow = LocalTaskControlPolicy
-                    .shouldAttemptNotificationShadeDismiss(observation, true, true);
-            if (fullScreenSystemWindow) {
-                if (cancelled != null && cancelled.get()) return;
-                if (shadeDismissed) {
-                    reportLocalObservationError(callback, "target_window_unavailable",
-                            "系统覆盖关闭后仍未返回目标页面；任务继续暂停");
-                    return;
-                }
-                PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
-                KeyguardManager keyguard = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-                boolean deviceUnlocked = power != null && keyguard != null
-                        && power.isInteractive() && !keyguard.isKeyguardLocked();
-                if (!LocalTaskControlPolicy.shouldAttemptNotificationShadeDismiss(
-                        observation, true, deviceUnlocked)) {
-                    reportLocalObservationError(callback, "screen_locked", "手机已锁定；请解锁后重新核对");
-                    return;
-                }
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S
-                        || !performGlobalAction(GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE)) {
-                    reportLocalObservationError(callback, "notification_shade_unavailable",
-                            "无法安全关闭通知栏；请返回原目标应用后重新核对");
-                    return;
-                }
-                mainHandler.postDelayed(() -> captureRecoveryObservation(
-                        taskId, targetPackage, cancelled, callback, true), 350L);
-                return;
-            }
-            if (!LocalTaskControlPolicy.isTargetApplicationForeground(observation, targetPackage)) {
-                reportLocalObservationError(callback, "target_window_unavailable",
-                        "原目标应用未处于前台；请手动返回原目标页面后重新核对");
-                return;
-            }
-            if (callback != null) callback.onSuccess(observation);
-        } catch (SecurityException exception) {
-            reportLocalObservationError(callback, "permission_unavailable", "Accessibility permission is unavailable");
-        } catch (JSONException | RuntimeException exception) {
-            reportLocalObservationError(callback, "capture_failed", "Local recovery observation failed");
+        if (!isDeviceUnlocked()) {
+            finishRecoveryObservation(attempt, "screen_locked", "screen_locked", null, "");
+            return;
         }
+        if (!isEnabled(this)) {
+            finishRecoveryObservation(attempt, "permission_unavailable", "permission_check", null, "");
+            return;
+        }
+        JSONObject observation;
+        try {
+            BridgeConfig identity = new BridgeConfig("", "", "standalone-device", attempt.taskId,
+                    "", "", "", "", "");
+            observation = captureOnServiceThread(identity);
+        } catch (SecurityException exception) {
+            finishRecoveryObservation(attempt, "permission_unavailable", "window_capture", null, "");
+            return;
+        } catch (JSONException | RuntimeException exception) {
+            finishRecoveryObservation(attempt, "capture_failed", "window_capture", null, "");
+            return;
+        }
+        attempt.lastObservation = observation;
+        if (attempt.cancelled != null && attempt.cancelled.get()) {
+            recordRecoveryDiagnostic(attempt, "cancelled", "cancelled", observation, "");
+            return;
+        }
+        if (!isDeviceUnlocked()) {
+            finishRecoveryObservation(attempt, "screen_locked", "screen_check_after_capture",
+                    observation, "");
+            return;
+        }
+        if (!isEnabled(this)) {
+            finishRecoveryObservation(attempt, "permission_unavailable", "permission_check_after_capture",
+                    observation, "");
+            return;
+        }
+        boolean fullScreenSystemWindow = LocalTaskControlPolicy
+                .shouldAttemptNotificationShadeDismiss(observation, true, true);
+        if (fullScreenSystemWindow && !attempt.shadeDismissed) {
+            if (attempt.cancelled != null && attempt.cancelled.get()) {
+                recordRecoveryDiagnostic(attempt, "cancelled", "cancelled", observation, "");
+                return;
+            }
+            if (!isDeviceUnlocked()) {
+                finishRecoveryObservation(attempt, "screen_locked", "screen_check_before_dismiss",
+                        observation, "");
+                return;
+            }
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+                    || !performGlobalAction(GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE)) {
+                finishRecoveryObservation(attempt, "notification_shade_unavailable",
+                        "notification_shade_dismiss", observation, "");
+                return;
+            }
+            attempt.shadeDismissed = true;
+            attempt.stableCandidate = null;
+            attempt.phase = "waiting_after_notification_dismiss";
+            scheduleRecoveryObservation(attempt, RECOVERY_WINDOW_POLL_MS);
+            return;
+        }
+
+        String readinessError = LocalTaskControlPolicy.recoveryTargetReadinessError(
+                observation, attempt.targetPackage);
+        if (readinessError.isEmpty()) {
+            if (attempt.stableCandidate != null
+                    && LocalTaskControlPolicy.isStableRecoveryObservationPair(
+                            attempt.stableCandidate, observation, attempt.targetPackage)) {
+                finishRecoveryObservation(attempt, "", "stable_target", observation, "");
+                return;
+            }
+            attempt.stableCandidate = observation;
+            attempt.readinessError = "";
+            attempt.phase = "checking_target_stability";
+        } else {
+            attempt.stableCandidate = null;
+            attempt.readinessError = readinessError;
+            attempt.phase = "waiting_for_target_window";
+        }
+
+        long elapsedMs = SystemClock.elapsedRealtime() - attempt.startedAtMs;
+        if (!LocalTaskControlPolicy.shouldContinueRecoveryWindowWait(
+                attempt.cancelled != null && attempt.cancelled.get(),
+                elapsedMs, RECOVERY_WINDOW_TIMEOUT_MS)) {
+            if (attempt.cancelled != null && attempt.cancelled.get()) {
+                recordRecoveryDiagnostic(attempt, "cancelled", "cancelled", observation, readinessError);
+                return;
+            }
+            finishRecoveryObservation(attempt, "recovery_target_wait_timeout",
+                    "target_transition_timeout", observation, readinessError);
+            return;
+        }
+        long interval = attempt.stableCandidate == null
+                ? RECOVERY_WINDOW_POLL_MS : RECOVERY_STABILITY_SAMPLE_MS;
+        long remainingMs = RECOVERY_WINDOW_TIMEOUT_MS - elapsedMs;
+        scheduleRecoveryObservation(attempt, Math.max(1L, Math.min(interval, remainingMs)));
+    }
+
+    private void scheduleRecoveryObservation(RecoveryObservationAttempt attempt, long delayMs) {
+        mainHandler.postDelayed(() -> captureRecoveryObservation(attempt), Math.max(1L, delayMs));
+    }
+
+    private boolean isDeviceUnlocked() {
+        PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
+        KeyguardManager keyguard = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+        return power != null && keyguard != null && power.isInteractive() && !keyguard.isKeyguardLocked();
+    }
+
+    private void finishRecoveryObservation(RecoveryObservationAttempt attempt, String errorCode,
+            String phase, JSONObject observation, String readinessError) {
+        recordRecoveryDiagnostic(attempt, phase, errorCode, observation, readinessError);
+        if (errorCode == null || errorCode.isEmpty()) {
+            if (attempt.callback != null) attempt.callback.onSuccess(observation);
+        } else if (attempt.callback != null) {
+            String message = "recovery_target_wait_timeout".equals(errorCode)
+                    ? "等待原目标应用稳定超时；任务继续暂停"
+                    : "无法安全取得原目标应用的本地观察；任务继续暂停";
+            attempt.callback.onError(errorCode, message);
+        }
+    }
+
+    private void recordRecoveryDiagnostic(RecoveryObservationAttempt attempt, String phase,
+            String errorCode, JSONObject observation, String readinessError) {
+        try {
+            PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
+            KeyguardManager keyguard = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+            JSONObject diagnostic = new JSONObject()
+                    .put("expectedTargetPackage", attempt.targetPackage == null ? "" : attempt.targetPackage)
+                    .put("phase", phase == null ? attempt.phase : phase)
+                    .put("error", errorCode == null ? "" : errorCode)
+                    .put("readinessError", readinessError == null ? "" : readinessError)
+                    .put("elapsedMs", Math.max(0L, SystemClock.elapsedRealtime() - attempt.startedAtMs))
+                    .put("screenInteractive", power != null && power.isInteractive())
+                    .put("keyguardLocked", keyguard == null || keyguard.isKeyguardLocked())
+                    .put("observation", observation == null ? attempt.lastObservation : observation);
+            LocalTaskStore.recordDebugRecoveryWindowDiagnostic(this, attempt.taskId, diagnostic);
+        } catch (JSONException | RuntimeException ignored) {
+            // This is Debug-only, best-effort local diagnostic data.
+        }
+    }
+
+    private static void recordUnavailableRecoveryDiagnostic(Context context, String taskId,
+            String targetPackage, String phase, String errorCode) {
+        if (!BuildConfig.DEBUG || context == null) return;
+        try {
+            LocalTaskStore.recordDebugRecoveryWindowDiagnostic(context, taskId,
+                    new JSONObject().put("expectedTargetPackage", targetPackage == null ? "" : targetPackage)
+                            .put("phase", phase).put("error", errorCode));
+        } catch (JSONException ignored) {
+            // Keep service-unavailable handling independent from diagnostics.
+        }
+    }
+
+    private void recordRecoveryScreenshotDiagnostic(JSONObject reviewedObservation, JSONObject currentObservation,
+            String errorCode, String readinessError) {
+        if (!BuildConfig.DEBUG) return;
+        String taskId = reviewedObservation == null ? "" : reviewedObservation.optString("task_id", "");
+        String targetPackage = reviewedObservation == null ? ""
+                : LocalTaskControlPolicy.activeApplicationPackage(reviewedObservation);
+        RecoveryObservationAttempt attempt = new RecoveryObservationAttempt(taskId, targetPackage, null, null);
+        attempt.lastObservation = currentObservation;
+        recordRecoveryDiagnostic(attempt, "recovery_screenshot_guard", errorCode,
+                currentObservation, readinessError);
     }
 
     private void captureLocalScreenshot(
@@ -393,17 +540,25 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
         if ("RECOVERY".equals(captureType)) {
             String targetPackage = LocalTaskControlPolicy.activeApplicationPackage(observation);
+            JSONObject current = null;
             try {
-                JSONObject current = captureOnServiceThread(new BridgeConfig("", "", "standalone-device",
+                current = captureOnServiceThread(new BridgeConfig("", "", "standalone-device",
                         observation.optString("task_id", ""), "", "", "", "", ""));
-                if (!LocalTaskControlPolicy.isTargetApplicationForeground(current, targetPackage)
-                        || !LocalTaskControlPolicy.sceneFingerprint(current, "")
-                                .equals(LocalTaskControlPolicy.sceneFingerprint(observation, ""))) {
+                String readinessError = LocalTaskControlPolicy.recoveryTargetReadinessError(
+                        current, targetPackage);
+                boolean sameScene = readinessError.isEmpty()
+                        && LocalTaskControlPolicy.sceneFingerprint(current, "")
+                                .equals(LocalTaskControlPolicy.sceneFingerprint(observation, ""));
+                if (!readinessError.isEmpty() || !sameScene) {
+                    recordRecoveryScreenshotDiagnostic(observation, current,
+                            "target_window_changed", readinessError.isEmpty() ? "scene_changed" : readinessError);
                     reportLocalScreenshotError(callback, "target_window_changed",
                             "截图前原目标页面已变化；请重新观察核对");
                     return;
                 }
             } catch (RuntimeException | JSONException exception) {
+                recordRecoveryScreenshotDiagnostic(observation, current,
+                        "target_window_unavailable", "screenshot_window_check_failed");
                 reportLocalScreenshotError(callback, "target_window_unavailable",
                         "截图前无法确认原目标页面；请重新观察核对");
                 return;
