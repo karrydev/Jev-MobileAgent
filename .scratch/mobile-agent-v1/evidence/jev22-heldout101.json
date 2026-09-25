@@ -1,0 +1,82 @@
+{
+  "report_version": "jev-shadow-debug-report/android-v1",
+  "created_at": "2026-09-25T05:48:44.151689Z",
+  "mode": "private_case",
+  "task_id": "76f5ff31-1438-4c49-8a60-fe110fc7a177",
+  "attempt": {
+    "report_version": "jev-shadow-attempt/android-v1",
+    "created_at": "2026-09-25T05:48:43.040835Z",
+    "source": "debug_case",
+    "step": 1,
+    "observation_id": "obs-jev22-heldout-music-pause",
+    "observation_version": 1,
+    "candidate_count": 2,
+    "case_id": "jev22-heldout-music-pause",
+    "split": "holdout",
+    "instruction_language": "zh-CN",
+    "candidate_policy_id": "jev-android-current-observation-v1",
+    "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+    "confidence_threshold": 0.5,
+    "candidate_metadata": {
+      "candidate_count": 2,
+      "candidates": [
+        {
+          "candidate_id": "candidate-tap-pause-2d372bd111b4",
+          "kind": "tap",
+          "target_node_id": "pause",
+          "parameters": {},
+          "description": "点击“暂停”",
+          "equivalence_group": "node:pause"
+        },
+        {
+          "candidate_id": "candidate-tap-next-track-57de51b0d710",
+          "kind": "tap",
+          "target_node_id": "next-track",
+          "parameters": {},
+          "description": "点击“下一首”",
+          "equivalence_group": "node:next-track"
+        }
+      ],
+      "missing_parameters": [],
+      "warnings": []
+    },
+    "action_dispatched": false,
+    "comparison": {
+      "status": "not_compared",
+      "jev_choice_id": "candidate-tap-pause-2d372bd111b4"
+    },
+    "provider": "TypeSafe",
+    "model": "jev-1.13.0",
+    "question_id": "next_action",
+    "elapsed_ms": 1000,
+    "request_sent": true,
+    "http_status": 200,
+    "protocol_status": "valid",
+    "usage": {
+      "status": "known",
+      "input_tokens": 435,
+      "output_tokens": 80
+    },
+    "choice_id": "candidate-tap-pause-2d372bd111b4",
+    "confidence": 1,
+    "status": "valid_recommendation",
+    "confidence_status": "meets_frozen_threshold",
+    "cost": {
+      "status": "reserved_actual_unknown",
+      "currency": "USD",
+      "amount_usd": null,
+      "fx_status": "not_converted",
+      "actual_bill_status": "unknown",
+      "reserved_cny": 0.01
+    }
+  },
+  "action_dispatched": false,
+  "case_id": "jev22-heldout-music-pause",
+  "split": "holdout",
+  "source_commit": "0142589",
+  "apk_sha256": "b19c999d7dd039574087205bd5c0e57d6bdcf04a441f32bfc2dfe966ceaebd69",
+  "independent_classification": "correct_choice",
+  "runtime_input_sha256": "7dcc2482272064da4233db54d816ab01dcf4b9c3eac53c13cc84a733728dd898",
+  "truth_sent_to_app": false,
+  "phone_locked_after": true
+}

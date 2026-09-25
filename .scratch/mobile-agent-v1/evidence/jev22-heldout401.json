@@ -1,0 +1,84 @@
+{
+  "report_version": "jev-shadow-debug-report/android-v1",
+  "created_at": "2026-09-25T05:49:19.626472Z",
+  "mode": "private_case",
+  "task_id": "91c74f0c-70d1-449a-bb8b-c9c7865b55d4",
+  "attempt": {
+    "report_version": "jev-shadow-attempt/android-v1",
+    "created_at": "2026-09-25T05:49:18.660456Z",
+    "source": "debug_case",
+    "step": 1,
+    "observation_id": "obs-jev22-heldout-city-text",
+    "observation_version": 1,
+    "candidate_count": 2,
+    "case_id": "jev22-heldout-city-text",
+    "split": "holdout",
+    "instruction_language": "zh-CN",
+    "candidate_policy_id": "jev-android-current-observation-v1",
+    "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+    "confidence_threshold": 0.5,
+    "candidate_metadata": {
+      "candidate_count": 2,
+      "candidates": [
+        {
+          "candidate_id": "candidate-input_text-city-input-2f7c7e7b4b34",
+          "kind": "input_text",
+          "target_node_id": "city-input",
+          "parameters": {
+            "text": "上海"
+          },
+          "description": "在“城市”中输入“上海”",
+          "equivalence_group": "node:city-input"
+        },
+        {
+          "candidate_id": "candidate-tap-submit-771bedb0d6c6",
+          "kind": "tap",
+          "target_node_id": "submit",
+          "parameters": {},
+          "description": "点击“提交”",
+          "equivalence_group": "node:submit"
+        }
+      ],
+      "missing_parameters": [],
+      "warnings": []
+    },
+    "action_dispatched": false,
+    "comparison": {
+      "status": "not_compared",
+      "jev_choice_id": "candidate-input_text-city-input-2f7c7e7b4b34"
+    },
+    "provider": "TypeSafe",
+    "model": "jev-1.13.0",
+    "question_id": "next_action",
+    "elapsed_ms": 879,
+    "request_sent": true,
+    "http_status": 200,
+    "protocol_status": "valid",
+    "usage": {
+      "status": "known",
+      "input_tokens": 447,
+      "output_tokens": 80
+    },
+    "choice_id": "candidate-input_text-city-input-2f7c7e7b4b34",
+    "confidence": 1,
+    "status": "valid_recommendation",
+    "confidence_status": "meets_frozen_threshold",
+    "cost": {
+      "status": "reserved_actual_unknown",
+      "currency": "USD",
+      "amount_usd": null,
+      "fx_status": "not_converted",
+      "actual_bill_status": "unknown",
+      "reserved_cny": 0.01
+    }
+  },
+  "action_dispatched": false,
+  "case_id": "jev22-heldout-city-text",
+  "split": "holdout",
+  "source_commit": "0142589",
+  "apk_sha256": "b19c999d7dd039574087205bd5c0e57d6bdcf04a441f32bfc2dfe966ceaebd69",
+  "independent_classification": "correct_choice",
+  "runtime_input_sha256": "18bdf18343ffc326142109e022eeec671d32c768220edac99bf0e16377897b27",
+  "truth_sent_to_app": false,
+  "phone_locked_after": true
+}

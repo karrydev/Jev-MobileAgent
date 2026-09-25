@@ -1,0 +1,82 @@
+{
+  "report_version": "jev-shadow-debug-report/android-v1",
+  "created_at": "2026-09-25T05:49:13.478900Z",
+  "mode": "private_case",
+  "task_id": "3a4f512c-9703-4cb5-9a12-663120098eeb",
+  "attempt": {
+    "report_version": "jev-shadow-attempt/android-v1",
+    "created_at": "2026-09-25T05:49:12.429284Z",
+    "source": "debug_case",
+    "step": 1,
+    "observation_id": "obs-jev22-heldout-keep-draft",
+    "observation_version": 1,
+    "candidate_count": 2,
+    "case_id": "jev22-heldout-keep-draft",
+    "split": "holdout",
+    "instruction_language": "zh-CN",
+    "candidate_policy_id": "jev-android-current-observation-v1",
+    "candidate_policy_sha256": "df2b293ad48f0a77b0cbb4cdb1f520156e65a978569ccfdc0eabb7750605669e",
+    "confidence_threshold": 0.5,
+    "candidate_metadata": {
+      "candidate_count": 2,
+      "candidates": [
+        {
+          "candidate_id": "candidate-tap-discard-68c91f203f43",
+          "kind": "tap",
+          "target_node_id": "discard",
+          "parameters": {},
+          "description": "点击“丢弃草稿”",
+          "equivalence_group": "node:discard"
+        },
+        {
+          "candidate_id": "candidate-tap-keep-and-back-8a2c69c1cbd7",
+          "kind": "tap",
+          "target_node_id": "keep-and-back",
+          "parameters": {},
+          "description": "点击“保留草稿并返回”",
+          "equivalence_group": "node:keep-and-back"
+        }
+      ],
+      "missing_parameters": [],
+      "warnings": []
+    },
+    "action_dispatched": false,
+    "comparison": {
+      "status": "not_compared",
+      "jev_choice_id": "candidate-tap-keep-and-back-8a2c69c1cbd7"
+    },
+    "provider": "TypeSafe",
+    "model": "jev-1.13.0",
+    "question_id": "next_action",
+    "elapsed_ms": 960,
+    "request_sent": true,
+    "http_status": 200,
+    "protocol_status": "valid",
+    "usage": {
+      "status": "known",
+      "input_tokens": 450,
+      "output_tokens": 85
+    },
+    "choice_id": "candidate-tap-keep-and-back-8a2c69c1cbd7",
+    "confidence": 1,
+    "status": "valid_recommendation",
+    "confidence_status": "meets_frozen_threshold",
+    "cost": {
+      "status": "reserved_actual_unknown",
+      "currency": "USD",
+      "amount_usd": null,
+      "fx_status": "not_converted",
+      "actual_bill_status": "unknown",
+      "reserved_cny": 0.01
+    }
+  },
+  "action_dispatched": false,
+  "case_id": "jev22-heldout-keep-draft",
+  "split": "holdout",
+  "source_commit": "0142589",
+  "apk_sha256": "b19c999d7dd039574087205bd5c0e57d6bdcf04a441f32bfc2dfe966ceaebd69",
+  "independent_classification": "correct_choice",
+  "runtime_input_sha256": "d041ffb45c272b03cc4c1b116138d53b16d085bed7e1eca36480df9ece4ac02b",
+  "truth_sent_to_app": false,
+  "phone_locked_after": true
+}

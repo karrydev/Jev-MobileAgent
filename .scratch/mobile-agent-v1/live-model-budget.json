@@ -906,46 +906,100 @@
       "provider": "TypeSafe",
       "model": "jev-1.13.0",
       "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
-      "result": "reserved before frozen heldout request",
+      "result": "correct_choice",
       "max_requests": 1,
       "budget_reservation_cny": 0.01,
       "estimated_list_price_cny": null,
-      "actual_billed_cny": null
+      "actual_billed_cny": null,
+      "requests": 1,
+      "provider_usage": {
+        "status": "known",
+        "input_tokens": 435,
+        "output_tokens": 80
+      },
+      "estimated_list_price_usd": null
     },
     {
       "id": "jev22-heldout-201",
       "provider": "TypeSafe",
       "model": "jev-1.13.0",
       "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
-      "result": "reserved before frozen heldout request",
+      "result": "correct_choice",
       "max_requests": 1,
       "budget_reservation_cny": 0.01,
       "estimated_list_price_cny": null,
-      "actual_billed_cny": null
+      "actual_billed_cny": null,
+      "requests": 1,
+      "provider_usage": {
+        "status": "known",
+        "input_tokens": 477,
+        "output_tokens": 106
+      },
+      "estimated_list_price_usd": null
     },
     {
       "id": "jev22-heldout-301",
       "provider": "TypeSafe",
       "model": "jev-1.13.0",
       "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
-      "result": "reserved before frozen heldout request",
+      "result": "correct_choice",
       "max_requests": 1,
       "budget_reservation_cny": 0.01,
       "estimated_list_price_cny": null,
-      "actual_billed_cny": null
+      "actual_billed_cny": null,
+      "requests": 1,
+      "provider_usage": {
+        "status": "known",
+        "input_tokens": 450,
+        "output_tokens": 85
+      },
+      "estimated_list_price_usd": null
     },
     {
       "id": "jev22-heldout-401",
       "provider": "TypeSafe",
       "model": "jev-1.13.0",
       "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
-      "result": "reserved before frozen heldout request",
+      "result": "correct_choice",
       "max_requests": 1,
       "budget_reservation_cny": 0.01,
       "estimated_list_price_cny": null,
-      "actual_billed_cny": null
+      "actual_billed_cny": null,
+      "requests": 1,
+      "provider_usage": {
+        "status": "known",
+        "input_tokens": 447,
+        "output_tokens": 80
+      },
+      "estimated_list_price_usd": null
+    },
+    {
+      "id": "jev22-shadow-input01",
+      "source_commit": "0142589",
+      "result": "VLM-controlled phone task succeeded; Jev suggestions report-only; original comparison defects retained",
+      "budget_reservation_cny": 0.03,
+      "estimated_list_price_cny": 0.056112,
+      "actual_billed_cny": null,
+      "reservation_includes_jev": true,
+      "requests": 9,
+      "jev_requests": 3,
+      "reservation_note": "Jev hold only; VLM reservation settled using provider usage",
+      "accounted_cny_in_app": 0.08611200000000004
+    },
+    {
+      "id": "jev22-shadow-visual01",
+      "source_commit": "0142589",
+      "result": "VLM-controlled phone task succeeded; Jev suggestions report-only; original comparison defects retained",
+      "budget_reservation_cny": 0.02,
+      "estimated_list_price_cny": 0.0307365,
+      "actual_billed_cny": null,
+      "reservation_includes_jev": true,
+      "requests": 5,
+      "jev_requests": 2,
+      "reservation_note": "Jev hold only; VLM reservation settled using provider usage",
+      "accounted_cny_in_app": 0.050736500000000004
     }
   ],
-  "estimated_list_price_total_cny": 0.909588,
+  "estimated_list_price_total_cny": 0.9964365,
   "unknown_usage_request_count": 4
 }
