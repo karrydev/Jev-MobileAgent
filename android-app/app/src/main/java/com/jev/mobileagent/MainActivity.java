@@ -13,6 +13,7 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -20,8 +21,10 @@ import android.widget.TextView;
 
 import org.json.JSONObject;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** App-local credential settings and task entry point. */
 public class MainActivity extends Activity {
@@ -40,6 +43,12 @@ public class MainActivity extends Activity {
     private TextView settingsStatus;
     private TextView taskStatus;
     private TextView accessibilityStatus;
+    private TextView jevDebugStatus;
+    private Button debugValidProbeButton;
+    private Button debugInvalidProbeButton;
+    private Button debugCaseButton;
+    private Button debugCancelButton;
+    private volatile AtomicBoolean debugCancellation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,6 +139,45 @@ public class MainActivity extends Activity {
         root.addView(label("预算限制", 18, Color.rgb(35, 50, 65)), marginTop(widthMatchWrap(), 14));
         root.addView(label("当前可执行模型：GUI-Plus gui-plus-2026-02-26。每任务上限 ¥1、全局累计上限 ¥10；usage 缺失或费用超限时会暂停。其他模型可保存，完成费率审查前不能启动付费任务。", 13,
                 Color.DKGRAY), widthMatchWrap());
+
+        CheckBox jevShadow = new CheckBox(this);
+        jevShadow.setText("启用 Jev 影子建议（只记录；VLM 仍控制手机动作）");
+        jevShadow.setChecked(LocalTaskStore.isJevShadowEnabled(this));
+        jevShadow.setOnCheckedChangeListener((button, checked) -> {
+            if (!LocalTaskStore.setJevShadowEnabled(this, checked)) {
+                button.setChecked(!checked);
+                settingsStatus.setText("Jev 影子设置未能保存；任务保持原配置。");
+            }
+        });
+        root.addView(jevShadow, marginTop(widthMatchWrap(), 10));
+        root.addView(label("启用后，新任务每步最多发送一次 Jev HTTPS 请求。每次请求前从任务和全局预算各预留 ¥0.01；美元 usage 单独记录，实际账单与汇率未知。费用预留不足会在后续 VLM 或设备请求前暂停。", 12,
+                Color.DKGRAY), widthMatchWrap());
+
+        if (BuildConfig.DEBUG) {
+            root.addView(label("Jev 协议验收（仅 Debug）", 18, Color.rgb(35, 50, 65)),
+                    marginTop(widthMatchWrap(), 16));
+            root.addView(label("探针每次各发送一条请求并预留 ¥0.01，不执行手机动作。单 case 输入：files/jev-shadow-debug/input.json；报告：files/jev-shadow-debug/report.json。", 12,
+                    Color.DKGRAY), widthMatchWrap());
+            debugValidProbeButton = button("运行一次中文有效协议探针");
+            debugValidProbeButton.setOnClickListener(view -> runJevDebug(false, false));
+            root.addView(debugValidProbeButton, widthMatchWrap());
+            debugInvalidProbeButton = button("运行一次显式无效协议探针");
+            debugInvalidProbeButton.setOnClickListener(view -> runJevDebug(false, true));
+            root.addView(debugInvalidProbeButton, widthMatchWrap());
+            debugCaseButton = button("运行私有 input.json 单 case");
+            debugCaseButton.setOnClickListener(view -> runJevDebug(true, false));
+            root.addView(debugCaseButton, widthMatchWrap());
+            debugCancelButton = button("取消当前 Jev 调试请求");
+            debugCancelButton.setEnabled(false);
+            debugCancelButton.setOnClickListener(view -> {
+                AtomicBoolean cancellation = debugCancellation;
+                if (cancellation != null) cancellation.set(true);
+            });
+            root.addView(debugCancelButton, widthMatchWrap());
+            jevDebugStatus = label("调试探针不会修改任务目标或执行动作。", 12, Color.DKGRAY);
+            jevDebugStatus.setTextIsSelectable(true);
+            root.addView(jevDebugStatus, marginTop(widthMatchWrap(), 4));
+        }
 
         accessibilityStatus = label("无障碍权限：检查中", 14, Color.DKGRAY);
         root.addView(accessibilityStatus, marginTop(widthMatchWrap(), 16));
@@ -345,12 +393,68 @@ public class MainActivity extends Activity {
         String summary = task.optString("state", "") + (status.isEmpty() ? "" : "：" + status);
         JSONObject history = task.optJSONObject("history");
         String answer = history == null ? "" : history.optString("last_answer", "").trim();
-        return answer.isEmpty() ? summary : summary + "\n模型答复：" + answer;
+        String result = answer.isEmpty() ? summary : summary + "\n模型答复：" + answer;
+        org.json.JSONArray jevAttempts = task.optJSONArray("jev_shadow_attempts");
+        if (jevAttempts != null && jevAttempts.length() > 0) {
+            int valid = 0;
+            for (int i = 0; i < jevAttempts.length(); i++) {
+                JSONObject attempt = jevAttempts.optJSONObject(i);
+                if (attempt != null && ("valid_recommendation".equals(attempt.optString("status", ""))
+                        || "valid_low_confidence".equals(attempt.optString("status", "")))) valid++;
+            }
+            result += "\nJev 影子：" + jevAttempts.length() + " 次尝试，" + valid + " 条合法建议；从未执行 Jev 动作";
+        }
+        return result;
+    }
+
+    private void runJevDebug(boolean privateCase, boolean invalidProbe) {
+        if (debugCancellation != null) return;
+        AtomicBoolean cancellation = new AtomicBoolean(false);
+        debugCancellation = cancellation;
+        setDebugButtonsEnabled(false);
+        if (jevDebugStatus != null) jevDebugStatus.setText("Jev 请求进行中；手机动作不会执行。可随时取消。");
+        Thread worker = new Thread(() -> {
+            String resultText;
+            try {
+                JSONObject report = privateCase
+                        ? JevShadowDebugRunner.runPrivateCase(this, cancellation::get)
+                        : JevShadowDebugRunner.runProtocolProbe(this, invalidProbe, cancellation::get);
+                File reportFile = JevShadowDebugRunner.reportFile(this);
+                resultText = "完成：" + report.optJSONObject("attempt").optString("status", "unknown")
+                        + "；报告：" + reportFile.getAbsolutePath();
+            } catch (Exception exception) {
+                resultText = "未完成：" + safeDebugError(exception) + "；没有 Jev 选择进入设备动作。";
+            }
+            String finalResultText = resultText;
+            runOnUiThread(() -> {
+                debugCancellation = null;
+                setDebugButtonsEnabled(true);
+                if (jevDebugStatus != null) jevDebugStatus.setText(finalResultText);
+            });
+        }, "jev-debug-acceptance");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private void setDebugButtonsEnabled(boolean enabled) {
+        if (debugValidProbeButton != null) debugValidProbeButton.setEnabled(enabled);
+        if (debugInvalidProbeButton != null) debugInvalidProbeButton.setEnabled(enabled);
+        if (debugCaseButton != null) debugCaseButton.setEnabled(enabled);
+        if (debugCancelButton != null) debugCancelButton.setEnabled(!enabled);
+    }
+
+    private static String safeDebugError(Exception exception) {
+        if (exception instanceof JevApiClient.JevApiException) {
+            return "Jev " + ((JevApiClient.JevApiException) exception).getCategory().name().toLowerCase(java.util.Locale.ROOT);
+        }
+        if (exception instanceof java.io.IOException) return "本地输入或配置错误";
+        if (exception instanceof org.json.JSONException) return "本地报告格式错误";
+        return "本地调试错误";
     }
 
     private String globalBudgetText() {
         LocalTaskStore.BudgetSnapshot budget = LocalTaskStore.budgetSnapshot(this, "");
-        return String.format(java.util.Locale.ROOT, "累计费用 ¥%.4f / ¥%.0f",
+        return String.format(java.util.Locale.ROOT, "预算已计费用与预留 ¥%.4f / ¥%.0f",
                 budget.globalAccountedCny, budget.globalBudgetCny);
     }
 

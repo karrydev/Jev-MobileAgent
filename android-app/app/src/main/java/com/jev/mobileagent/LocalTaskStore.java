@@ -22,6 +22,8 @@ public final class LocalTaskStore {
     private static final String ACTIVE_TASK_ID = "active_task_id";
     private static final String LATEST_TASK_ID = "latest_task_id";
     private static final String GLOBAL_ACCOUNTED_CNY = "global_accounted_cny";
+    private static final String GLOBAL_JEV_SHADOW_CALLS = "global_jev_shadow_calls";
+    private static final String JEV_SHADOW_ENABLED = "jev_shadow_enabled";
     private static final String TASK_PREFIX = "task.";
 
     public static final int MAX_STEPS = 5;
@@ -60,6 +62,7 @@ public final class LocalTaskStore {
                 record.put("updated_at", Instant.now().toString());
                 record.put("max_steps", MAX_STEPS);
                 record.put("max_requests", MAX_REQUESTS);
+                record.put("max_jev_shadow_calls", JevShadowBudgetPolicy.MAX_CALLS_PER_TASK);
                 record.put("max_output_tokens", MAX_OUTPUT_TOKENS);
                 record.put("budget_cny", TASK_BUDGET_CNY);
                 record.put("request_count", 0);
@@ -67,7 +70,11 @@ public final class LocalTaskStore {
                 record.put("accounted_cost_cny", 0.0);
                 record.put("cost_status", "known_so_far");
                 record.put("usage_missing", false);
+                record.put("jev_shadow_enabled", preferences.getBoolean(JEV_SHADOW_ENABLED, false));
+                record.put("jev_shadow_call_count", 0);
+                record.put("jev_shadow_reserved_cny", 0.0);
                 record.put("requests", new JSONArray());
+                record.put("jev_shadow_attempts", new JSONArray());
                 record.put("actions", new JSONArray());
                 record.put("observations", new JSONArray());
                 record.put("history", new JSONObject());
@@ -174,6 +181,178 @@ public final class LocalTaskStore {
             }
             try {
                 task.put("runtime_status", status == null ? "" : status);
+                touch(task);
+                return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    /** Shadow suggestions are task-scoped: settings are snapshotted when a task is created. */
+    public static boolean setJevShadowEnabled(Context context, boolean enabled) {
+        synchronized (LOCK) {
+            return preferences(context).edit().putBoolean(JEV_SHADOW_ENABLED, enabled).commit();
+        }
+    }
+
+    public static boolean isJevShadowEnabled(Context context) {
+        synchronized (LOCK) {
+            return preferences(context).getBoolean(JEV_SHADOW_ENABLED, false);
+        }
+    }
+
+    /** Reserve the frozen CNY hold before sending one Jev request. */
+    public static Reservation reserveJevShadowCall(Context context, String taskId, int step,
+            JSONObject attemptBase) {
+        synchronized (LOCK) {
+            SharedPreferences preferences = preferences(context);
+            JSONObject task = task(context, taskId);
+            if (task == null || !"RUNNING".equals(task.optString("state", ""))) {
+                return Reservation.denied("task_not_running");
+            }
+            if (step < 0 || step >= MAX_STEPS) {
+                return Reservation.denied("max_steps");
+            }
+            JSONArray attempts = task.optJSONArray("jev_shadow_attempts");
+            if (attempts == null || attemptBase == null) {
+                return Reservation.denied("attempt_journal_invalid");
+            }
+            for (int i = 0; i < attempts.length(); i++) {
+                JSONObject prior = attempts.optJSONObject(i);
+                if (prior != null && prior.optInt("step", -1) == step + 1
+                        && prior.optBoolean("request_sent", false)) {
+                    return Reservation.denied("jev_step_already_requested");
+                }
+            }
+            int taskCalls = task.optInt("jev_shadow_call_count", 0);
+            int globalCalls = shadowCallCount(preferences);
+            if (taskCalls >= JevShadowBudgetPolicy.MAX_CALLS_PER_TASK) {
+                return Reservation.denied("task_jev_call_limit");
+            }
+            if (globalCalls >= JevShadowBudgetPolicy.MAX_TOTAL_CALLS) {
+                return Reservation.denied("global_jev_call_limit");
+            }
+            double reserve = JevShadowBudgetPolicy.RESERVATION_CNY_PER_CALL;
+            double taskCost = task.optDouble("accounted_cost_cny", 0.0);
+            double globalCost = accountedTotal(preferences);
+            if (LocalVlmBudgetPolicy.exceeds(taskCost + reserve, TASK_BUDGET_CNY)) {
+                return Reservation.denied("task_budget_reserved");
+            }
+            if (LocalVlmBudgetPolicy.exceeds(globalCost + reserve, GLOBAL_BUDGET_CNY)) {
+                return Reservation.denied("global_budget_reserved");
+            }
+            JSONObject attempt;
+            try {
+                attempt = new JSONObject(attemptBase.toString())
+                        .put("attempt", attempts.length() + 1)
+                        .put("step", step + 1)
+                        .put("status", "reserved")
+                        .put("request_sent", false)
+                        .put("http_status", JSONObject.NULL)
+                        .put("cost", new JSONObject()
+                                .put("status", "reserved_unknown_actual")
+                                .put("currency", "USD")
+                                .put("amount_usd", JSONObject.NULL)
+                                .put("fx_status", JevShadowBudgetPolicy.FX_STATUS)
+                                .put("actual_bill_status", JevShadowBudgetPolicy.ACTUAL_BILL_STATUS)
+                                .put("reserved_cny", reserve));
+                attempts.put(attempt);
+                task.put("jev_shadow_attempts", attempts);
+                task.put("jev_shadow_call_count", taskCalls + 1);
+                task.put("jev_shadow_reserved_cny",
+                        task.optDouble("jev_shadow_reserved_cny", 0.0) + reserve);
+                task.put("accounted_cost_cny", taskCost + reserve);
+                task.put("cost_status", "reserved_or_partial");
+                touch(task);
+                boolean saved = preferences.edit()
+                        .putString(taskKey(taskId), task.toString())
+                        .putString(GLOBAL_ACCOUNTED_CNY, Double.toString(globalCost + reserve))
+                        .putInt(GLOBAL_JEV_SHADOW_CALLS, globalCalls + 1)
+                        .commit();
+                return saved ? Reservation.allowed(attempts.length() - 1, reserve)
+                        : Reservation.denied("jev_reservation_not_saved");
+            } catch (JSONException exception) {
+                return Reservation.denied("attempt_journal_invalid");
+            }
+        }
+    }
+
+    /** Complete a reserved Jev attempt without converting its USD usage to CNY. */
+    public static boolean completeJevShadowCall(Context context, String taskId, int attemptIndex,
+            JSONObject completion) {
+        synchronized (LOCK) {
+            SharedPreferences preferences = preferences(context);
+            JSONObject task = task(context, taskId);
+            JSONArray attempts = task == null ? null : task.optJSONArray("jev_shadow_attempts");
+            if (attempts == null || completion == null || attemptIndex < 0 || attemptIndex >= attempts.length()) {
+                return false;
+            }
+            JSONObject reserved = attempts.optJSONObject(attemptIndex);
+            if (reserved == null || !"reserved".equals(reserved.optString("status", ""))) {
+                return false;
+            }
+            try {
+                JSONObject finished = new JSONObject(completion.toString())
+                        .put("attempt", reserved.optInt("attempt", attemptIndex + 1))
+                        .put("step", reserved.optInt("step", 0));
+                double reserve = reserved.optJSONObject("cost") == null ? 0.0
+                        : reserved.getJSONObject("cost").optDouble("reserved_cny", 0.0);
+                boolean requestSent = finished.optBoolean("request_sent", false);
+                if (!requestSent) {
+                    JSONObject cost = finished.optJSONObject("cost");
+                    if (cost == null) cost = new JSONObject();
+                    cost.put("reserved_cny", 0.0).put("status", "released_before_send");
+                    finished.put("cost", cost);
+                    double taskCost = Math.max(0.0,
+                            task.optDouble("accounted_cost_cny", 0.0) - reserve);
+                    double globalCost = Math.max(0.0, accountedTotal(preferences) - reserve);
+                    double taskReserve = Math.max(0.0,
+                            task.optDouble("jev_shadow_reserved_cny", 0.0) - reserve);
+                    int taskCalls = Math.max(0, task.optInt("jev_shadow_call_count", 0) - 1);
+                    int globalCalls = Math.max(0, shadowCallCount(preferences) - 1);
+                    task.put("accounted_cost_cny", taskCost);
+                    task.put("jev_shadow_reserved_cny", taskReserve);
+                    task.put("jev_shadow_call_count", taskCalls);
+                    attempts.put(attemptIndex, finished);
+                    task.put("jev_shadow_attempts", attempts);
+                    touch(task);
+                    return preferences.edit().putString(taskKey(taskId), task.toString())
+                            .putString(GLOBAL_ACCOUNTED_CNY, Double.toString(globalCost))
+                            .putInt(GLOBAL_JEV_SHADOW_CALLS, globalCalls).commit();
+                }
+                JSONObject cost = finished.optJSONObject("cost");
+                if (cost == null) cost = new JSONObject();
+                cost.put("reserved_cny", reserve)
+                        .put("status", "reserved_actual_unknown")
+                        .put("currency", "USD")
+                        .put("amount_usd", JSONObject.NULL)
+                        .put("fx_status", JevShadowBudgetPolicy.FX_STATUS)
+                        .put("actual_bill_status", JevShadowBudgetPolicy.ACTUAL_BILL_STATUS);
+                finished.put("cost", cost);
+                attempts.put(attemptIndex, finished);
+                task.put("jev_shadow_attempts", attempts);
+                touch(task);
+                return preferences.edit().putString(taskKey(taskId), task.toString()).commit();
+            } catch (JSONException exception) {
+                return false;
+            }
+        }
+    }
+
+    /** Save a fallback or gate result that did not reserve or send a Jev request. */
+    public static boolean recordJevShadowAttempt(Context context, String taskId, JSONObject attempt) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null || attempt == null) return false;
+            JSONArray attempts = task.optJSONArray("jev_shadow_attempts");
+            if (attempts == null) attempts = new JSONArray();
+            try {
+                JSONObject saved = new JSONObject(attempt.toString())
+                        .put("attempt", attempts.length() + 1)
+                        .put("request_sent", false);
+                attempts.put(saved);
+                task.put("jev_shadow_attempts", attempts);
                 touch(task);
                 return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
             } catch (JSONException exception) {
@@ -620,6 +799,19 @@ public final class LocalTaskStore {
             } catch (ClassCastException ignored) {
                 return GLOBAL_BUDGET_CNY;
             }
+        }
+    }
+
+    private static int shadowCallCount(SharedPreferences preferences) {
+        if (!preferences.contains(GLOBAL_JEV_SHADOW_CALLS)) {
+            preferences.edit().putInt(GLOBAL_JEV_SHADOW_CALLS, 0).commit();
+            return 0;
+        }
+        try {
+            int count = preferences.getInt(GLOBAL_JEV_SHADOW_CALLS, JevShadowBudgetPolicy.MAX_TOTAL_CALLS);
+            return count < 0 ? JevShadowBudgetPolicy.MAX_TOTAL_CALLS : count;
+        } catch (ClassCastException exception) {
+            return JevShadowBudgetPolicy.MAX_TOTAL_CALLS;
         }
     }
 
