@@ -109,12 +109,6 @@ public final class JevCandidateBuilder {
             }
         }
 
-        if (candidates.size() < MAX_CANDIDATES && supportsBack(snapshot)) {
-            String id = candidateId("back", "system", new JSONObject());
-            candidates.add(new Candidate(id, "back", "", new JSONObject(),
-                    "返回上一页（系统 Back）", "back:system", null));
-        }
-
         if (candidates.isEmpty()) {
             String reason = !missingParameters.isEmpty()
                     ? "missing_required_parameter" : "empty_candidates";
@@ -263,19 +257,6 @@ public final class JevCandidateBuilder {
     private static boolean isSupported(String kind) {
         return "tap".equals(kind) || "input_text".equals(kind) || "long_press".equals(kind)
                 || "scroll".equals(kind) || "back".equals(kind);
-    }
-
-    private static boolean supportsBack(JSONObject observation) {
-        JSONArray capabilities = observation.optJSONArray("capabilities");
-        if (capabilities == null) {
-            return false;
-        }
-        for (int i = 0; i < capabilities.length(); i++) {
-            if ("system_back".equals(capabilities.optString(i, ""))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static String nodeLabel(JSONObject node) {
@@ -441,16 +422,25 @@ public final class JevCandidateBuilder {
         }
 
         public String compareVlmAction(JSONObject action) {
-            Candidate matching = matchingVlmCandidate(action);
-            return matching == null ? "different_action" : matching.id;
+            return compareVlmAction(action, null);
+        }
+
+        public String compareVlmAction(JSONObject action, String preferredCandidateId) {
+            VlmMatch match = matchingVlmCandidate(action, find(preferredCandidateId));
+            return match.candidate == null ? null : match.candidate.id;
         }
 
         public String compareRecommendation(String choiceId, JSONObject action) {
             Candidate chosen = find(choiceId);
-            Candidate vlm = matchingVlmCandidate(action);
-            if (chosen == null || vlm == null) return "different_action";
+            if (choiceId != null && chosen == null) return "invalid_choice";
+            if (action == null) return "not_compared";
+            VlmMatch match = matchingVlmCandidate(action, chosen);
+            if (match.candidate == null) return match.status;
+            if (chosen == null) return "recommendation_pending";
+            Candidate vlm = match.candidate;
             if (chosen.id.equals(vlm.id)) return "same_action";
-            return chosen.equivalenceGroup.equals(vlm.equivalenceGroup)
+            return sameActionParameters(chosen, vlm)
+                    && chosen.equivalenceGroup.equals(vlm.equivalenceGroup)
                     ? "legal_equivalent_action" : "different_action";
         }
 
@@ -460,49 +450,119 @@ public final class JevCandidateBuilder {
             return null;
         }
 
-        private Candidate matchingVlmCandidate(JSONObject action) {
-            if (action == null) return null;
+        private VlmMatch matchingVlmCandidate(JSONObject action, Candidate preferred) {
+            if (action == null) return new VlmMatch(null, "not_compared");
             String kind = action.optString("kind", "");
             JSONObject params = action.optJSONObject("parameters");
             if ("set_text".equals(kind)) {
                 String nodeId = action.optString("target_node_id", "");
                 String text = params == null ? "" : params.optString("text", "");
+                List<Candidate> matches = new ArrayList<>();
                 for (Candidate candidate : candidates) {
                     if ("input_text".equals(candidate.kind) && candidate.nodeId.equals(nodeId)
-                            && text.equals(candidate.parameters.optString("text", ""))) return candidate;
+                            && text.equals(candidate.parameters.optString("text", ""))
+                            && params != null && sameParameters(candidate.parameters, params)) matches.add(candidate);
                 }
-                return null;
+                return uniqueMatch(matches, preferred);
             }
-            if ("system_back".equals(kind)) return findKind("back", "");
+            if ("system_back".equals(kind)) {
+                JSONObject backParameters = params == null ? new JSONObject() : params;
+                if (backParameters.length() != 0) return new VlmMatch(null, "vlm_candidate_missing");
+                List<Candidate> matches = new ArrayList<>();
+                for (Candidate candidate : candidates) {
+                    if ("back".equals(candidate.kind) && candidate.parameters.length() == 0) matches.add(candidate);
+                }
+                return uniqueMatch(matches, preferred);
+            }
             double x = params == null ? Double.NaN : params.optDouble("x", Double.NaN);
             double y = params == null ? Double.NaN : params.optDouble("y", Double.NaN);
             String candidateKind = "coordinate_tap".equals(kind) ? "tap"
                     : "long_press".equals(kind) ? "long_press" : "";
             if (!candidateKind.isEmpty() && Double.isFinite(x) && Double.isFinite(y)) {
-                for (Candidate candidate : candidates) {
-                    if (candidateKind.equals(candidate.kind) && candidate.containsPoint(x, y)) return candidate;
+                JSONObject actionParameters = new JSONObject();
+                if ("long_press".equals(kind) && params.has("duration_ms")) {
+                    try {
+                        actionParameters.put("duration_ms", params.get("duration_ms"));
+                    } catch (JSONException ignored) {
+                        return new VlmMatch(null, "vlm_candidate_missing");
+                    }
                 }
+                List<Candidate> matches = new ArrayList<>();
+                for (Candidate candidate : candidates) {
+                    if (candidateKind.equals(candidate.kind) && candidate.containsPoint(x, y)
+                            && sameParameters(candidate.parameters, actionParameters)) matches.add(candidate);
+                }
+                return uniqueMatch(matches, preferred);
             }
             if ("swipe".equals(kind) && params != null) {
                 double x1 = params.optDouble("x1", Double.NaN);
                 double y1 = params.optDouble("y1", Double.NaN);
                 double x2 = params.optDouble("x2", Double.NaN);
                 double y2 = params.optDouble("y2", Double.NaN);
+                if (!Double.isFinite(x1) || !Double.isFinite(y1)
+                        || !Double.isFinite(x2) || !Double.isFinite(y2)) {
+                    return new VlmMatch(null, "vlm_candidate_missing");
+                }
                 String direction = Math.abs(y2 - y1) >= Math.abs(x2 - x1)
                         ? (y2 < y1 ? "up" : "down") : (x2 < x1 ? "left" : "right");
+                JSONObject actionParameters;
+                try {
+                    actionParameters = new JSONObject().put("direction", direction);
+                } catch (JSONException ignored) {
+                    return new VlmMatch(null, "vlm_candidate_missing");
+                }
+                List<Candidate> matches = new ArrayList<>();
                 for (Candidate candidate : candidates) {
                     if ("scroll".equals(candidate.kind) && direction.equals(candidate.parameters.optString("direction"))
-                            && candidate.containsPoint(x1, y1)) return candidate;
+                            && candidate.containsPoint(x1, y1)
+                            && sameParameters(candidate.parameters, actionParameters)) matches.add(candidate);
                 }
+                return uniqueMatch(matches, preferred);
             }
-            return null;
+            return new VlmMatch(null, "vlm_candidate_missing");
         }
 
-        private Candidate findKind(String kind, String nodeId) {
-            for (Candidate candidate : candidates) {
-                if (kind.equals(candidate.kind) && nodeId.equals(candidate.nodeId)) return candidate;
+        private static VlmMatch uniqueMatch(List<Candidate> matches, Candidate preferred) {
+            if (matches.isEmpty()) return new VlmMatch(null, "vlm_candidate_missing");
+            if (preferred != null && matches.contains(preferred)) {
+                if (matches.size() == 1) return new VlmMatch(preferred, "matched");
+                return new VlmMatch(null, "vlm_candidate_ambiguous");
             }
-            return null;
+            if (matches.size() > 1) return new VlmMatch(null, "vlm_candidate_ambiguous");
+            Candidate match = matches.get(0);
+            return new VlmMatch(match, "matched");
+        }
+
+        private static boolean sameActionParameters(Candidate left, Candidate right) {
+            return left.kind.equals(right.kind) && sameParameters(left.parameters, right.parameters);
+        }
+
+        private static boolean sameParameters(JSONObject left, JSONObject right) {
+            if (left.length() != right.length()) return false;
+            java.util.Iterator<String> keys = left.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                if (!right.has(key) || !sameValue(left.opt(key), right.opt(key))) return false;
+            }
+            return true;
+        }
+
+        private static boolean sameValue(Object left, Object right) {
+            if (left instanceof Number && right instanceof Number) {
+                return Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue()) == 0;
+            }
+            return left == null ? right == null : left.equals(right);
+        }
+
+    }
+
+    private static final class VlmMatch {
+        final Candidate candidate;
+        final String status;
+
+        VlmMatch(Candidate candidate, String status) {
+            this.candidate = candidate;
+            this.status = status;
         }
     }
 

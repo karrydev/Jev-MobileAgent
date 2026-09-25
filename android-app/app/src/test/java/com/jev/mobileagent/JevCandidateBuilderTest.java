@@ -52,7 +52,7 @@ public final class JevCandidateBuilderTest {
         JSONObject expired = observation(2, 100, 200,
                 new JSONObject().put("node_id", "submit").put("role", "button")
                         .put("label", "提交").put("enabled", true).put("actions", new JSONArray().put("tap")));
-        JSONObject empty = observation(3, 100, 400);
+        JSONObject empty = observation(3, 100, 400).put("capabilities", new JSONArray().put("system_back"));
         JSONObject unavailable = new JSONObject(expired.toString()).put("page_state", "unavailable");
 
         assertEquals("observation_expired",
@@ -61,6 +61,23 @@ public final class JevCandidateBuilderTest {
                 JevCandidateBuilder.build(empty, new JSONObject(), 300L).fallbackReason);
         assertEquals("observation_unavailable",
                 JevCandidateBuilder.build(unavailable, new JSONObject(), 150L).fallbackReason);
+    }
+
+    @Test
+    public void onlyAddsBackWhenAnObservationDeclaresAnExplicitBackAction() throws Exception {
+        JSONObject capableButEmpty = observation(1, 100, 400)
+                .put("capabilities", new JSONArray().put("system_back"));
+        JSONObject explicitBack = observation(2, 100, 400,
+                new JSONObject().put("node_id", "system-back").put("role", "system_navigation")
+                        .put("enabled", true).put("actions", new JSONArray().put("back")))
+                .put("capabilities", new JSONArray().put("system_back"));
+
+        assertEquals("empty_candidates",
+                JevCandidateBuilder.build(capableButEmpty, new JSONObject(), 300L).fallbackReason);
+        JevCandidateBuilder.CandidateSet result = JevCandidateBuilder.build(
+                explicitBack, new JSONObject(), 300L);
+        assertEquals(1, result.candidates.size());
+        assertEquals("back", result.candidates.get(0).kind);
     }
 
     @Test
@@ -104,6 +121,84 @@ public final class JevCandidateBuilderTest {
 
         assertEquals("legal_equivalent_action", relation);
         assertNotNull(result.candidateMetadata().getJSONArray("candidates"));
+    }
+
+    @Test
+    public void explicitEquivalenceRequiresSameActionKindAndCompleteParameters() throws Exception {
+        JSONObject tap = new JSONObject().put("node_id", "search-button").put("role", "button")
+                .put("enabled", true).put("actions", new JSONArray().put(new JSONObject()
+                        .put("kind", "tap").put("equivalence_group", "shared")))
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 20).put("bottom", 20));
+        JSONObject input = new JSONObject().put("node_id", "search-box").put("role", "text_field")
+                .put("enabled", true).put("actions", new JSONArray().put(new JSONObject()
+                        .put("kind", "input_text").put("equivalence_group", "shared")))
+                .put("bounds", new JSONObject().put("left", 21).put("top", 0)
+                        .put("right", 40).put("bottom", 20));
+        JevCandidateBuilder.CandidateSet differentKinds = JevCandidateBuilder.build(
+                observation(1, 100, 400, tap, input), new JSONObject().put("text", "蓝色杯子"), 300L);
+        JSONObject setText = new JSONObject().put("kind", "set_text").put("target_node_id", "search-box")
+                .put("parameters", new JSONObject().put("text", "蓝色杯子"));
+
+        assertEquals("different_action", differentKinds.compareRecommendation(
+                differentKinds.candidates.get(0).id, setText));
+
+        JSONObject first = new JSONObject().put("node_id", "first-box").put("role", "text_field")
+                .put("enabled", true).put("actions", new JSONArray().put(new JSONObject()
+                        .put("kind", "input_text").put("parameter", "first")
+                        .put("equivalence_group", "shared")));
+        JSONObject second = new JSONObject().put("node_id", "second-box").put("role", "text_field")
+                .put("enabled", true).put("actions", new JSONArray().put(new JSONObject()
+                        .put("kind", "input_text").put("parameter", "second")
+                        .put("equivalence_group", "shared")));
+        JevCandidateBuilder.CandidateSet differentParameters = JevCandidateBuilder.build(
+                observation(2, 100, 400, first, second),
+                new JSONObject().put("first", "蓝色杯子").put("second", "红色杯子"), 300L);
+        JSONObject secondText = new JSONObject().put("kind", "set_text").put("target_node_id", "second-box")
+                .put("parameters", new JSONObject().put("text", "红色杯子"));
+
+        assertEquals("different_action", differentParameters.compareRecommendation(
+                differentParameters.candidates.get(0).id, secondText));
+    }
+
+    @Test
+    public void ambiguousOverlappingCoordinatesStayAmbiguousEvenWhenJevChoosesOneTarget() throws Exception {
+        JSONObject parent = new JSONObject().put("node_id", "parent").put("role", "button")
+                .put("enabled", true).put("actions", new JSONArray().put(new JSONObject()
+                        .put("kind", "tap").put("equivalence_group", "same")))
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 100).put("bottom", 100));
+        JSONObject child = new JSONObject().put("node_id", "child").put("role", "button")
+                .put("enabled", true).put("actions", new JSONArray().put(new JSONObject()
+                        .put("kind", "tap").put("equivalence_group", "same")))
+                .put("bounds", new JSONObject().put("left", 20).put("top", 20)
+                        .put("right", 80).put("bottom", 80));
+        JevCandidateBuilder.CandidateSet result = JevCandidateBuilder.build(
+                observation(1, 100, 400, parent, child), new JSONObject(), 300L);
+        JSONObject action = new JSONObject().put("kind", "coordinate_tap")
+                .put("parameters", new JSONObject().put("x", 50).put("y", 50));
+
+        assertEquals("vlm_candidate_ambiguous",
+                result.compareRecommendation(result.candidates.get(1).id, action));
+        assertEquals(null, result.compareVlmAction(action));
+    }
+
+    @Test
+    public void missingVlmCandidateAndInvalidChoiceHaveDistinctClassifications() throws Exception {
+        JSONObject button = new JSONObject().put("node_id", "save").put("role", "button")
+                .put("enabled", true).put("actions", new JSONArray().put("tap"))
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 20).put("bottom", 20));
+        JevCandidateBuilder.CandidateSet result = JevCandidateBuilder.build(
+                observation(1, 100, 400, button), new JSONObject(), 300L);
+        JSONObject outside = new JSONObject().put("kind", "coordinate_tap")
+                .put("parameters", new JSONObject().put("x", 50).put("y", 50));
+        JSONObject inside = new JSONObject().put("kind", "coordinate_tap")
+                .put("parameters", new JSONObject().put("x", 10).put("y", 10));
+
+        assertEquals("vlm_candidate_missing", result.compareRecommendation(result.candidates.get(0).id, outside));
+        assertEquals("invalid_choice", result.compareRecommendation("not-a-candidate", inside));
+        assertEquals(null, result.compareVlmAction(outside));
     }
 
     @Test

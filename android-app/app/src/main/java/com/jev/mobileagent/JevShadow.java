@@ -27,11 +27,9 @@ public final class JevShadow {
     public static JSONObject runTaskAttempt(Context context, String taskId, int zeroBasedStep,
             String instruction, JSONObject observation, JSONObject vlmAction,
             JevApiClient.CancellationToken cancellationToken) throws JSONException {
-        JSONObject knownParameters = new JSONObject();
-        String knownText = exactQuotedText(instruction);
-        if (knownText != null) knownParameters.put("text", knownText);
+        TaskKnownParameters known = knownParametersForTask(instruction, observation, vlmAction);
         return runChoice(context, taskId, zeroBasedStep, "task_shadow", null, null,
-                instruction, observation, knownParameters, vlmAction, cancellationToken);
+                instruction, observation, known.parameters, known.source, vlmAction, cancellationToken);
     }
 
     public static JSONObject runDebugCase(Context context, String taskId, JSONObject input,
@@ -42,7 +40,7 @@ public final class JevShadow {
         JSONObject observation = input.optJSONObject("observation");
         JSONObject known = input.optJSONObject("known_parameters");
         return runChoice(context, taskId, 0, "debug_case", caseId, split,
-                instruction, observation, known, null, cancellationToken);
+                instruction, observation, known, null, null, cancellationToken);
     }
 
     static JSONObject runProtocolProbe(Context context, String taskId, ModelProfileStore.Profile profile,
@@ -73,7 +71,8 @@ public final class JevShadow {
 
     private static JSONObject runChoice(Context context, String taskId, int zeroBasedStep,
             String source, String caseId, String split, String instruction, JSONObject observation,
-            JSONObject knownParameters, JSONObject vlmAction, JevApiClient.CancellationToken cancellationToken)
+            JSONObject knownParameters, String knownParameterSource, JSONObject vlmAction,
+            JevApiClient.CancellationToken cancellationToken)
             throws JSONException {
         JevCandidateBuilder.CandidateSet candidates = JevCandidateBuilder.build(observation, knownParameters);
         JSONObject base = baseAttempt(source, caseId, split, zeroBasedStep,
@@ -85,6 +84,9 @@ public final class JevShadow {
                 .put("candidate_metadata", candidates.candidateMetadata())
                 .put("action_dispatched", false)
                 .put("comparison", comparison(candidates, null, vlmAction));
+        if (knownParameterSource != null) {
+            base.put("known_parameter_source", knownParameterSource);
+        }
         if (candidates.fallbackReason != null) {
             base.put("status", "fallback")
                     .put("fallback_reason", candidates.fallbackReason)
@@ -237,19 +239,79 @@ public final class JevShadow {
 
     private static JSONObject comparison(JevCandidateBuilder.CandidateSet candidates,
             String choiceId, JSONObject vlmAction) throws JSONException {
-        String status = "not_compared";
-        String vlmCandidateId = null;
-        if (candidates != null && vlmAction != null) {
-            vlmCandidateId = candidates.compareVlmAction(vlmAction);
-            status = choiceId == null ? "recommendation_pending"
-                    : candidates.compareRecommendation(choiceId, vlmAction);
-        }
+        String status = candidates == null ? "not_compared"
+                : candidates.compareRecommendation(choiceId, vlmAction);
+        String vlmCandidateId = candidates == null ? null
+                : candidates.compareVlmAction(vlmAction, choiceId);
         JSONObject result = new JSONObject().put("status", status);
         if (choiceId != null) result.put("jev_choice_id", choiceId);
-        if (vlmCandidateId != null && !"different_action".equals(vlmCandidateId)) {
+        if (vlmCandidateId != null) {
             result.put("vlm_equivalent_candidate_id", vlmCandidateId);
         }
         return result;
+    }
+
+    static TaskKnownParameters knownParametersForTask(String instruction, JSONObject observation,
+            JSONObject vlmAction) throws JSONException {
+        String knownText = exactQuotedText(instruction);
+        if (knownText != null) {
+            return new TaskKnownParameters(new JSONObject().put("text", knownText), "instruction_quote");
+        }
+        knownText = vlmSetText(vlmAction);
+        if (knownText == null) {
+            return new TaskKnownParameters(new JSONObject(), "none");
+        }
+        JSONObject known = new JSONObject().put("text", knownText);
+        String targetId = vlmAction.optString("target_node_id", "");
+        String parameter = inputTextParameter(observation, targetId);
+        if (parameter != null && !parameter.isEmpty() && !"text".equals(parameter)) {
+            known.put(parameter, knownText);
+        }
+        return new TaskKnownParameters(known, "vlm_set_text");
+    }
+
+    private static String vlmSetText(JSONObject action) {
+        if (action == null || !"set_text".equals(action.optString("kind", ""))) return null;
+        JSONObject parameters = action.optJSONObject("parameters");
+        if (parameters == null) return null;
+        Object rawText = parameters.opt("text");
+        if (!(rawText instanceof String)) return null;
+        String text = (String) rawText;
+        if (text.trim().isEmpty() || text.length() > JevCandidateBuilder.MAX_KNOWN_TEXT_CHARS) return null;
+        return text;
+    }
+
+    private static String inputTextParameter(JSONObject observation, String targetNodeId) {
+        if (observation == null || targetNodeId == null || targetNodeId.isEmpty()) return "text";
+        JSONArray nodes = observation.optJSONArray("nodes");
+        if (nodes == null) return "text";
+        for (int i = 0; i < nodes.length(); i++) {
+            JSONObject node = nodes.optJSONObject(i);
+            if (node == null || !targetNodeId.equals(node.optString("node_id", ""))) continue;
+            JSONArray actions = node.optJSONArray("actions");
+            if (actions != null) {
+                for (int j = 0; j < actions.length(); j++) {
+                    Object raw = actions.opt(j);
+                    if (raw instanceof String && "input_text".equals(raw)) return "text";
+                    if (raw instanceof JSONObject && "input_text".equals(
+                            ((JSONObject) raw).optString("kind", ""))) {
+                        return ((JSONObject) raw).optString("parameter", "text");
+                    }
+                }
+            }
+            return node.optString("parameter", "text");
+        }
+        return "text";
+    }
+
+    static final class TaskKnownParameters {
+        final JSONObject parameters;
+        final String source;
+
+        TaskKnownParameters(JSONObject parameters, String source) {
+            this.parameters = parameters;
+            this.source = source;
+        }
     }
 
     private static JSONObject safeError(String category, String code) throws JSONException {
