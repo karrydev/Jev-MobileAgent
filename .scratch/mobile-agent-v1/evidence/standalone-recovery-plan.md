@@ -67,3 +67,7 @@ MainActivity新增仅Debug“任务27精确恢复中断夹具”入口，Control
 AFTER_RECEIPT 首轮实际命中聚焦点击，已保留 after-receipt01，不能代表文字副作用窗口。d54ad05 只修改 Debug 注入选择：独立27夹具的两个执行后点要求 durable action.kind=set_text，前序聚焦继续；正常页面和派发前点不变。LocalTaskStoreTest 10/10，APK e3b2f049fc22f80dda3e59161930a25090982d9699decaaa0fd162884d37697d。以新编号 after-receipt02 补真实输入窗口，后续回执前窗口同用此 APK；历史失败、费用与预算均保留。
 
 断网01已完成：首次 Manager 请求中断保留 usage_unknown/network_error 与 ¥0.016896 预留；网络恢复与解锁不自动运行。首次确认因光标闪烁 369 像素变化拒绝，没有追加模型请求；明确重开目标夹具去除输入焦点、重新核对并确认后 SUCCEEDED。此为安全误拒的现存可用性限制，不能写为光标问题已修复。
+
+## 用户指定模型切换（076008a）
+
+2026-09-25 用户要求改用 gui-plus。日期版在 after-sideeffect01 请求阶段已403，故障未触发；独立诊断明确 AllocationQuota.FreeTierOnly。gui-plus 单次真实探针200（usage1302/16，估算¥0.002025），不算手机验收。076008a 只新增已核实同费率的精确模型放行，不改预算和历史，隔离构建不包含进行中的scene修复。下一真实窗口以 after-sideeffect02 新编号、同真实set_text故障、gui-plus运行；全部旧尝试和诊断预留保留。两款模型不是自动视为同一版本，不把跨模型差异归因于恢复或规划策略。
