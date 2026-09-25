@@ -1186,6 +1186,12 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
     }
 
+    private static final class StaleAccessibilitySnapshotException extends RuntimeException {
+        StaleAccessibilitySnapshotException(String message) {
+            super(message);
+        }
+    }
+
     private boolean refreshAndMatchCoordinateContext(JSONObject action) {
         long expectedVersion = action.optLong("observation_version", -1L);
         String expectedFingerprint = coordinateFingerprint;
@@ -1693,6 +1699,36 @@ public class ObservationAccessibilityService extends AccessibilityService {
     }
 
     private JSONObject captureOnServiceThread(BridgeConfig config, boolean bindForActions) throws JSONException {
+        int apiLevel = Build.VERSION.SDK_INT;
+        boolean serviceCacheCleared = false;
+        if (AccessibilityFreshnessPolicy.shouldClearServiceCache(apiLevel)) {
+            try {
+                serviceCacheCleared = clearCache();
+            } catch (RuntimeException exception) {
+                Log.w(TAG, "Accessibility cache clear failed; refreshing each node instead", exception);
+            }
+            if (!serviceCacheCleared) {
+                Log.w(TAG, "Accessibility cache unavailable; refreshing each node instead");
+            }
+        }
+        boolean refreshEachNode = AccessibilityFreshnessPolicy.requiresPerNodeRefresh(
+                apiLevel, serviceCacheCleared);
+        try {
+            return captureOnServiceThread(config, bindForActions, refreshEachNode);
+        } catch (StaleAccessibilitySnapshotException exception) {
+            clearNodeBindings();
+            coordinateFingerprint = "";
+            JSONObject unavailable = ObservationPayload.unavailable(this, config,
+                    "UNAVAILABLE", exception.getMessage(), true, false);
+            lastCapturedVersion = unavailable.optLong("observation_version", -1L);
+            coordinateFingerprintVersion = lastCapturedVersion;
+            return unavailable;
+        }
+    }
+
+    private JSONObject captureOnServiceThread(
+            BridgeConfig config, boolean bindForActions, boolean refreshEachNode)
+            throws JSONException {
         if (bindForActions) clearNodeBindings();
         long version = BridgeConfig.nextObservationVersion(this);
         if (bindForActions) lastCapturedVersion = version;
@@ -1732,7 +1768,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
                     String rootId = null;
                     if (root != null && nodesJson.length() < MAX_NODES) {
                         rootId = appendNode(root, nodePrefix + "-node-0", null, nodesJson, windowId,
-                                bindForActions);
+                                bindForActions, refreshEachNode);
                         if (rootId != null) {
                             rootIds.put(rootId);
                         }
@@ -1755,7 +1791,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
             try {
                 if (root != null && nodesJson.length() < MAX_NODES) {
                     String rootId = appendNode(root, "window-0-node-0", null, nodesJson, 0,
-                            bindForActions);
+                            bindForActions, refreshEachNode);
                     if (rootId != null) {
                         rootIds.put(rootId);
                     }
@@ -1870,9 +1906,23 @@ public class ObservationAccessibilityService extends AccessibilityService {
             String parentId,
             JSONArray nodes,
             int windowId,
-            boolean bindForActions) throws JSONException {
+            boolean bindForActions,
+            boolean refreshEachNode) throws JSONException {
         if (node == null || nodes.length() >= MAX_NODES) {
             return null;
+        }
+        if (refreshEachNode) {
+            boolean refreshed;
+            try {
+                refreshed = node.refresh();
+            } catch (RuntimeException exception) {
+                throw new StaleAccessibilitySnapshotException(
+                        "accessibility_node_refresh_failed:" + nodeId);
+            }
+            if (!AccessibilityFreshnessPolicy.maySerializeNode(true, refreshed)) {
+                throw new StaleAccessibilitySnapshotException(
+                        "accessibility_node_refresh_failed:" + nodeId);
+            }
         }
         Rect bounds = new Rect();
         node.getBoundsInScreen(bounds);
@@ -1918,7 +1968,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
             }
             try {
                 String childId = appendNode(child, nodeId + "-" + index, nodeId, nodes, windowId,
-                        bindForActions);
+                        bindForActions, refreshEachNode);
                 if (childId != null) {
                     childIds.put(childId);
                 }

@@ -45,3 +45,5 @@ Gate: 按需规划完成任务并处理计划失效
 2026-09-25：352835e升级已保留计数并启用用户授权150总上限，27项定向测试/构建/聚焦Sol审查通过。四项同APK复测中文OFF自动成功，中文ON首次输入成功但重复输入后暂停，两蓝框未完成；51/150调用，费用上限未变。全部原始失败和人工结束分别保留，见[最新实测](../evidence/scene-scope-repair-validation.md)。未关闭本票，手机已锁屏、规划OFF。
 
 2026-09-25：b84d1b8补齐Jev不同动作经SUCCESS后的计划失效交接，13项定向测试/构建/Sol审查通过。新版四配对中文均需fresh人工确认，蓝框OFF自动成功、ON未命中；仍不放行。Jev60/150，累计估算与未知预留¥3.7455340、规划阶段¥0.7912585；全部费用限额不变。见[规划交接及最新实测](../evidence/planning-selected-action-validation.md)。
+
+2026-09-25继续排障：09e65b0补齐Jev所选节点的真实可视位置并纠正动作描述/后置状态混用，14项定向单测与Sol审查通过。保留旧prompt和首版prompt两次错误SUCCESS；最终相同截图负例UNKNOWN、真实命中正例SUCCESS，4次host-only探针共¥0.0198735，未新增Jev。见[定位与效果归因](../evidence/visual-reflector-grounding-validation.md)。这不是手机任务验收；无障碍输入节点陈旧仍在正式路径取证，状态不变，无需新增额度或配置授权。

@@ -1703,9 +1703,25 @@
           "text_tokens": 84
         }
       }
+    },
+    {
+      "id": "planning25-off-input08-diagnostic",
+      "source_commit": "09e65b0e38f80fa4ca9e6f8de9ace020c58e154b",
+      "result": "COMPLETED_ON_REVIEW: user_confirmed_goal_visible_in_two_fresh_observations",
+      "budget_reservation_cny": 0.010000000000000002,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0071400000000000005,
+      "actual_billed_cny": null,
+      "requests": 2,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.017140000000000002,
+      "diagnostic_only": true,
+      "source_base_commit": "09e65b0e38f80fa4ca9e6f8de9ace020c58e154b",
+      "source_patch_sha256": "9f133d01cd80a220d8aa2f1b2e40c856551d8f44e327dab396cb9f8a8798071c"
     }
   ],
-  "estimated_list_price_total_cny": 2.0478989999999997,
+  "estimated_list_price_total_cny": 2.0749125,
   "unknown_usage_request_count": 4,
   "authorization_changes": [
     {
