@@ -6,9 +6,9 @@ Blocked by: 24
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-on-demand-planning
+Branch: codex/v1-on-demand-planning
 Evidence: 真实模型与物理手机
 Gate: 按需规划完成任务并处理计划失效
 
@@ -35,3 +35,5 @@ Gate: 按需规划完成任务并处理计划失效
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-25：按 ADR-0003 改为手机内策略实现与独立 App 对照；旧 Python 实现可作参考，不作为本票产品运行通道。
+
+2026-09-25：24验收记录已在bf278d1主线完成，领取本票。25为Android运行/持久化的唯一源码实现者；27已固定d48e0d8 APK，由主协调继续真机验收，不并发修改共享源码。按需规划默认关闭，保持24选择与核验设置；实现者不接触真机、凭据/API、总账或Git。
