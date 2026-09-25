@@ -6,9 +6,9 @@ Blocked by: 22
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-jev-controlled
+Branch: codex/v1-jev-controlled
 Evidence: 真实模型与物理手机
 Gate: Jev 选择参与真实任务执行
 
@@ -37,3 +37,5 @@ Gate: Jev 选择参与真实任务执行
 2026-09-25：按 ADR-0003 改为手机内策略实现与独立 App 对照；旧 Python 实现可作参考，不作为本票产品运行通道。
 
 2026-09-25：22 的影子真机样例发现：自绘蓝框没有对应节点候选，但 Jev 对“视觉手势目标”预设按钮仍给出高置信建议；这是候选缺失，不能凭合法 ID/高置信直接执行。本票放行规则必须覆盖该具体反例，候选不足保持原视觉路径。证据见 `../evidence/jev22-shadow-visual01.json`；没有新增产品范围。
+
+2026-09-25：新协调会话从 f2037ca 接手并领取本票，独占 Android 选择策略及现有任务运行入口；27 串行等待。保持规划及核验频率，默认关闭执行策略，覆盖自绘蓝框候选缺失反例。主 Agent 负责真实 API、手机、预算、证据与 Git。
