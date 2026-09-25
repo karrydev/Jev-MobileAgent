@@ -6,7 +6,7 @@ Blocked by: 22
 
 Status: ready-for-agent
 
-Execution: in-progress
+Execution: done
 Owner: luna-jev-controlled
 Branch: codex/v1-jev-controlled
 Evidence: 真实模型与物理手机
@@ -41,3 +41,5 @@ Gate: Jev 选择参与真实任务执行
 2026-09-25：新协调会话从 f2037ca 接手并领取本票，独占 Android 选择策略及现有任务运行入口；27 串行等待。保持规划及核验频率，默认关闭执行策略，覆盖自绘蓝框候选缺失反例。主 Agent 负责真实 API、手机、预算、证据与 Git。
 
 2026-09-25：实现 0d01ec5 已通过20项定向测试、APK构建、Sol-max审查和四项真实配对；中文实际派发Jev输入，蓝框候选缺失零Jev请求并视觉回退。完整证据见 [受控选择报告](../evidence/jev-controlled-validation.md)。待协调者合入后关闭执行状态；24/25/27/28未验收。
+
+2026-09-25：已合入 59e328b013bdf86efb4419b28265ec9991300e10；合入无冲突且 Android 内容与已验证0d01ec5一致，沿用有效构建/审查/手机证据，不重复付费测试。Execution: done。
