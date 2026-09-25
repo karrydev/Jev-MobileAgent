@@ -11,6 +11,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -58,14 +60,13 @@ public final class LocalVlmTaskService extends Service {
         return thread;
     });
     private final ActionExecutionGate actionGate = new ActionExecutionGate();
+    private final LocalRecoveryControlGate recoveryControl = new LocalRecoveryControlGate();
     private volatile String taskId = "";
-    private volatile String controlCommand = "";
     private volatile AtomicBoolean activeRequestCancellation;
     private volatile boolean loopRunning;
     private volatile boolean reviewRunning;
     private volatile boolean deviceActionUnresolved;
     private volatile boolean deviceActionNeedsVerification;
-    private volatile String controlReason = "";
     private BroadcastReceiver screenOffReceiver;
     private boolean foregroundStarted;
 
@@ -208,34 +209,49 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private void beginTaskLoop(boolean explicitResume) {
-        if (loopRunning || reviewRunning) {
-            return;
-        }
-        JSONObject task = LocalTaskStore.task(this, taskId);
-        if (task == null) {
-            setStatus("本地任务记录不存在");
-            refreshNotification();
-            return;
-        }
-        String state = task.optString("state", "");
-        if (!("ARMED".equals(state) || (explicitResume && "RUNNING".equals(state)))) {
-            if ("RUNNING".equals(state) && taskLoopActive) {
-                return;
+        beginTaskLoop(explicitResume, -1L);
+    }
+
+    private void beginTaskLoop(boolean explicitResume, long expectedRecoveryGeneration) {
+        final String[] launchTaskId = new String[1];
+        LocalRecoveryControlGate.Operation start = () -> {
+            if (loopRunning || reviewRunning) return false;
+            JSONObject task = LocalTaskStore.task(this, taskId);
+            if (task == null) {
+                setStatus("本地任务记录不存在");
+                refreshNotification();
+                return false;
             }
-            setStatus("任务当前状态为 " + state + "，需要先检查或取消后再启动");
-            refreshNotification();
-            return;
+            String state = task.optString("state", "");
+            if (!("ARMED".equals(state) || (explicitResume && "RUNNING".equals(state)))) {
+                if (!("RUNNING".equals(state) && taskLoopActive)) {
+                    setStatus("任务当前状态为 " + state + "，需要先检查或取消后再启动");
+                    refreshNotification();
+                }
+                return false;
+            }
+            if (!explicitResume && !LocalTaskStore.updateState(this, taskId, "RUNNING", "")) {
+                setStatus("无法保存本地任务状态，未发送模型请求");
+                return false;
+            }
+            if (!explicitResume) recoveryControl.beginOperation();
+            loopRunning = true;
+            taskLoopActive = true;
+            actionGate.begin();
+            launchTaskId[0] = taskId;
+            return true;
+        };
+        boolean started;
+        try {
+            started = expectedRecoveryGeneration >= 0
+                    ? recoveryControl.runIfCurrent(expectedRecoveryGeneration, start)
+                    : recoveryControl.runIfUncontrolled(start);
+        } catch (IOException impossible) {
+            started = false;
         }
-        if (!explicitResume && !LocalTaskStore.updateState(this, taskId, "RUNNING", "")) {
-            setStatus("无法保存本地任务状态，未发送模型请求");
-            return;
-        }
-        controlCommand = "";
-        loopRunning = true;
-        taskLoopActive = true;
-        actionGate.begin();
+        if (!started) return;
         setStatus("正在读取当前应用的本地无障碍观察");
-        taskExecutor.execute(() -> runTaskLoop(taskId));
+        taskExecutor.execute(() -> runTaskLoop(launchTaskId[0]));
     }
 
     private void requestControl(String command) {
@@ -258,9 +274,8 @@ public final class LocalVlmTaskService extends Service {
             stopAfterTerminal();
             return;
         }
+        recoveryControl.requestControl(command, reason);
         if (!loopRunning && reviewRunning) {
-            controlCommand = command;
-            controlReason = reason == null ? "" : reason;
             actionGate.invalidate();
             AtomicBoolean reviewCancellation = activeRequestCancellation;
             if (reviewCancellation != null) reviewCancellation.set(true);
@@ -302,8 +317,6 @@ public final class LocalVlmTaskService extends Service {
             }
             return;
         }
-        controlCommand = command;
-        controlReason = reason == null ? "" : reason;
         actionGate.invalidate();
         AtomicBoolean cancellation = activeRequestCancellation;
         if (cancellation != null) {
@@ -329,23 +342,34 @@ public final class LocalVlmTaskService extends Service {
             setStatus("手机仍处于锁屏或休眠状态；任务继续暂停，解锁后需手动重新观察");
             return;
         }
-        controlCommand = "";
-        controlReason = "";
-        reviewRunning = true;
+        long generation = recoveryControl.beginOperation();
+        try {
+            if (!recoveryControl.runIfCurrent(generation, () -> {
+                reviewRunning = true;
+                return true;
+            })) return;
+        } catch (IOException impossible) {
+            return;
+        }
         setStatus("正在本地重新观察；不会发送模型请求或设备动作");
-        taskExecutor.execute(() -> runRecoveryReview(taskId));
+        taskExecutor.execute(() -> runRecoveryReview(taskId, generation));
     }
 
-    private void runRecoveryReview(String reviewTaskId) {
+    private void runRecoveryReview(String reviewTaskId, long generation) {
         try {
             JSONObject task = LocalTaskStore.task(this, reviewTaskId);
             if (task == null) return;
-            JSONObject observation = observe(reviewTaskId, true);
+            String targetPackage = LocalTaskStore.recoveryTargetPackage(this, reviewTaskId);
+            if (targetPackage.isEmpty()) {
+                throw new TaskFailure("recovery_target_unknown", "无法从此前记录确认原目标应用；任务继续暂停");
+            }
+            JSONObject observation = observeForRecovery(reviewTaskId, targetPackage);
             JSONObject screenshot = captureScreenshot(reviewTaskId, observation, "RECOVERY");
-            String imageFingerprint = screenshotFingerprint(screenshot);
+            String imageFingerprint = screenshotFingerprint(screenshot, observation);
             String goalOutcome = StandaloneGoalVerifier.verify(task.optString("goal", ""), observation).name();
-            if (!LocalTaskStore.recordRecoveryObservation(this, reviewTaskId,
-                    observation, imageFingerprint, goalOutcome)) {
+            if (!recoveryControl.runIfCurrent(generation, () -> LocalTaskStore.recordRecoveryObservation(this,
+                    reviewTaskId, observation, imageFingerprint, goalOutcome))) {
+                if (!recoveryControl.isCurrent(generation)) throw new TaskStopped();
                 setStatus("重新观察没有保存；任务仍保持暂停");
                 return;
             }
@@ -372,7 +396,7 @@ public final class LocalVlmTaskService extends Service {
             setStatus("核对失败；任务继续暂停，请重新观察");
         } finally {
             ObservationAccessibilityService.endLocalTaskCapture();
-            reviewRunning = false;
+            recoveryControl.runExclusive(() -> reviewRunning = false);
             refreshNotification();
         }
     }
@@ -408,34 +432,54 @@ public final class LocalVlmTaskService extends Service {
             setStatus("最新核对尚未证明整体目标完成；不能采用完成路径");
             return;
         }
-        controlCommand = "";
-        controlReason = "";
-        reviewRunning = true;
+        long generation = recoveryControl.beginOperation();
+        try {
+            if (!recoveryControl.runIfCurrent(generation, () -> {
+                reviewRunning = true;
+                return true;
+            })) return;
+        } catch (IOException impossible) {
+            return;
+        }
         setStatus("正在重新采集现场以验证你的确认；画面变化会使确认失效");
-        taskExecutor.execute(() -> runRecoveryDecision(decision, reviewObservationId));
+        taskExecutor.execute(() -> runRecoveryDecision(decision, reviewObservationId, generation));
     }
 
-    private void runRecoveryDecision(String decision, String reviewObservationId) {
+    private void runRecoveryDecision(String decision, String reviewObservationId, long generation) {
         String currentTaskId = taskId;
         boolean resumed = false;
         boolean ended = false;
         try {
             JSONObject task = LocalTaskStore.task(this, currentTaskId);
             if (task == null) return;
-            JSONObject confirmation = observe(currentTaskId, true);
+            JSONObject review = task.optJSONObject("recovery_review");
+            String targetPackage = review == null ? ""
+                    : review.optString("target_application_package", "");
+            if (targetPackage.isEmpty()) {
+                throw new TaskFailure("recovery_target_unknown", "原目标应用记录缺失；任务继续暂停");
+            }
+            JSONObject confirmation = observeForRecovery(currentTaskId, targetPackage);
             JSONObject screenshot = captureScreenshot(currentTaskId, confirmation, "RECOVERY");
-            String imageFingerprint = screenshotFingerprint(screenshot);
+            String imageFingerprint = screenshotFingerprint(screenshot, confirmation);
             String confirmationGoalOutcome = StandaloneGoalVerifier.verify(
                     task.optString("goal", ""), confirmation).name();
-            persistObservation(currentTaskId, confirmation);
+            if (!recoveryControl.runIfCurrent(generation, () -> {
+                LocalTaskStore.saveObservation(this, currentTaskId, confirmation);
+                return true;
+            })) throw new TaskStopped();
             if (!LocalTaskControlPolicy.sameReviewedScene(task, confirmation, imageFingerprint)) {
-                LocalTaskStore.invalidateRecoveryReview(this, currentTaskId,
-                        reviewObservationId, "scene_or_goal_changed_before_confirmation");
+                if (!recoveryControl.runIfCurrent(generation, () -> LocalTaskStore.invalidateRecoveryReview(
+                        this, currentTaskId, reviewObservationId, "scene_or_goal_changed_before_confirmation"))) {
+                    throw new TaskStopped();
+                }
                 setStatus("目标页面或截图与核对时不同；本次确认已失效，请检查现场后重新观察");
                 return;
             }
-            if (!LocalTaskStore.applyRecoveryDecision(this, currentTaskId, decision,
-                    reviewObservationId, confirmation, imageFingerprint, confirmationGoalOutcome)) {
+            boolean applied = recoveryControl.runIfCurrent(generation, () ->
+                    LocalTaskStore.applyRecoveryDecision(this, currentTaskId, decision,
+                            reviewObservationId, confirmation, imageFingerprint, confirmationGoalOutcome));
+            if (!applied) {
+                if (!recoveryControl.isCurrent(generation)) throw new TaskStopped();
                 setStatus("确认未能应用；执行事实或任务状态已变化，任务仍保持暂停");
                 return;
             }
@@ -448,6 +492,8 @@ public final class LocalVlmTaskService extends Service {
             setStatus("确认期间设备进入停止状态；任务继续暂停，解锁后重新核对");
         } catch (TaskFailure failure) {
             setStatus(failure.safeMessage + "；任务继续暂停");
+        } catch (IOException exception) {
+            setStatus("确认现场记录失败；任务继续暂停");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             setStatus("确认线程中断；任务继续暂停");
@@ -455,10 +501,25 @@ public final class LocalVlmTaskService extends Service {
             setStatus("确认失败；任务继续暂停，请重新观察");
         } finally {
             ObservationAccessibilityService.endLocalTaskCapture();
-            reviewRunning = false;
-            JSONObject latest = LocalTaskStore.task(this, taskId);
-            if (resumed && latest != null && "RUNNING".equals(latest.optString("state", ""))) {
-                beginTaskLoop(true);
+            boolean[] shouldResume = {false};
+            final boolean decisionResumed = resumed;
+            recoveryControl.runExclusive(() -> {
+                reviewRunning = false;
+                JSONObject latest = LocalTaskStore.task(this, currentTaskId);
+                if (decisionResumed && latest != null && "RUNNING".equals(latest.optString("state", ""))) {
+                    if (recoveryControl.isCurrent(generation)) {
+                        shouldResume[0] = true;
+                    } else {
+                        boolean unresolved = LocalTaskControlPolicy.hasUnresolvedDeviceAction(latest);
+                        LocalTaskStore.updateState(this, currentTaskId,
+                                unresolved ? "NEEDS_REVIEW" : "PAUSED",
+                                unresolved ? "control_during_recovery_confirmation_with_unresolved_action"
+                                        : "control_during_recovery_confirmation_before_loop_start");
+                    }
+                }
+            });
+            if (shouldResume[0]) {
+                beginTaskLoop(true, generation);
             } else if (ended) {
                 stopAfterTerminal();
             } else {
@@ -487,13 +548,52 @@ public final class LocalVlmTaskService extends Service {
         return faultSummary + summary;
     }
 
-    private static String screenshotFingerprint(JSONObject screenshot) throws TaskFailure {
+    private static String screenshotFingerprint(JSONObject screenshot, JSONObject observation) throws TaskFailure {
         String encoded = screenshot == null ? "" : screenshot.optString("png_base64", "");
         if (encoded.isEmpty()) throw new TaskFailure("recovery_screenshot_missing", "恢复核对缺少真实屏幕截图");
         byte[] png = null;
+        Bitmap bitmap = null;
         try {
             png = Base64.decode(encoded, Base64.DEFAULT);
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(png);
+            bitmap = BitmapFactory.decodeByteArray(png, 0, png.length);
+            JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
+            JSONObject bounds = screen == null ? null : screen.optJSONObject("active_window_bounds");
+            if (bitmap == null || bounds == null) {
+                throw new IllegalArgumentException("target application image bounds are missing");
+            }
+            int screenWidth = screen.optInt("width_px", 0);
+            int screenHeight = screen.optInt("height_px", 0);
+            if (screenWidth <= 0 || screenHeight <= 0) {
+                throw new IllegalArgumentException("display dimensions are missing");
+            }
+            double scaleX = (double) bitmap.getWidth() / screenWidth;
+            double scaleY = (double) bitmap.getHeight() / screenHeight;
+            int left = Math.max(0, (int) Math.floor(bounds.optInt("left", 0) * scaleX));
+            int top = Math.max(0, (int) Math.floor(bounds.optInt("top", 0) * scaleY));
+            int right = Math.min(bitmap.getWidth(), (int) Math.ceil(bounds.optInt("right", 0) * scaleX));
+            int bottom = Math.min(bitmap.getHeight(), (int) Math.ceil(bounds.optInt("bottom", 0) * scaleY));
+            int width = right - left;
+            int height = bottom - top;
+            if (width < 1 || height < 1) {
+                throw new IllegalArgumentException("target application image bounds are invalid");
+            }
+            MessageDigest hasher = MessageDigest.getInstance("SHA-256");
+            hasher.update((width + "x" + height + ":").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            int[] pixels = new int[width];
+            byte[] rowBytes = new byte[width * 4];
+            for (int y = 0; y < height; y++) {
+                bitmap.getPixels(pixels, 0, width, left, top + y, width, 1);
+                for (int x = 0; x < width; x++) {
+                    int color = pixels[x];
+                    int offset = x * 4;
+                    rowBytes[offset] = (byte) (color >>> 24);
+                    rowBytes[offset + 1] = (byte) (color >>> 16);
+                    rowBytes[offset + 2] = (byte) (color >>> 8);
+                    rowBytes[offset + 3] = (byte) color;
+                }
+                hasher.update(rowBytes);
+            }
+            byte[] digest = hasher.digest();
             StringBuilder hex = new StringBuilder(digest.length * 2);
             for (byte value : digest) hex.append(String.format(java.util.Locale.ROOT, "%02x", value & 0xff));
             return hex.toString();
@@ -501,6 +601,7 @@ public final class LocalVlmTaskService extends Service {
             throw new TaskFailure("recovery_screenshot_invalid", "恢复核对截图无法校验");
         } finally {
             if (png != null) java.util.Arrays.fill(png, (byte) 0);
+            if (bitmap != null) bitmap.recycle();
         }
     }
 
@@ -789,7 +890,7 @@ public final class LocalVlmTaskService extends Service {
                 finalReason = "max_steps_reached";
             }
         } catch (TaskStopped stopped) {
-            String requested = controlCommand;
+            String requested = recoveryControl.command();
             if (deviceActionUnresolved || deviceActionNeedsVerification
                     || LocalTaskStore.hasUnresolvedDeviceAction(this, runTaskId)) {
                 finalState = "NEEDS_REVIEW";
@@ -797,7 +898,7 @@ public final class LocalVlmTaskService extends Service {
             } else {
                 finalState = "cancel".equals(requested) ? "CANCELLED" : "PAUSED";
                 finalReason = "cancel".equals(requested) ? "cancelled_by_user"
-                        : (controlReason.isEmpty() ? "paused_by_user" : controlReason);
+                        : (recoveryControl.reason().isEmpty() ? "paused_by_user" : recoveryControl.reason());
             }
         } catch (TaskFailure failure) {
             finalState = deviceActionUnresolved || deviceActionNeedsVerification
@@ -895,6 +996,44 @@ public final class LocalVlmTaskService extends Service {
         } catch (TaskFailure failure) {
             throw failure;
         }
+    }
+
+    private JSONObject observeForRecovery(String runTaskId, String targetPackage)
+            throws TaskFailure, TaskStopped, InterruptedException {
+        if (hasControlRequest()) throw new TaskStopped();
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        activeRequestCancellation = cancelled;
+        JSONObject first;
+        try {
+            first = await(callback -> ObservationAccessibilityService.requestRecoveryObservation(
+                    runTaskId, targetPackage, cancelled,
+                    new ObservationAccessibilityService.LocalObservationCallback() {
+                        @Override
+                        public void onSuccess(JSONObject value) {
+                            callback.success(value);
+                        }
+
+                        @Override
+                        public void onError(String code, String message) {
+                            callback.failure(code, message);
+                        }
+                    }), "无法返回原目标应用并重新观察");
+        } finally {
+            if (activeRequestCancellation == cancelled) activeRequestCancellation = null;
+        }
+        if (!"AVAILABLE".equals(first.optString("availability", ""))
+                || !LocalTaskControlPolicy.isTargetApplicationForeground(first, targetPackage)) {
+            throw new TaskFailure("recovery_target_unavailable", "原目标应用未稳定回到前台；任务继续暂停");
+        }
+        String firstScene = LocalTaskControlPolicy.sceneFingerprint(first, "");
+        Thread.sleep(350L);
+        if (hasControlRequest()) throw new TaskStopped();
+        JSONObject fresh = observe(runTaskId, false);
+        if (!LocalTaskControlPolicy.isTargetApplicationForeground(fresh, targetPackage)
+                || !firstScene.equals(LocalTaskControlPolicy.sceneFingerprint(fresh, ""))) {
+            throw new TaskFailure("recovery_target_unstable", "原目标页面在确认前仍有变化；任务继续暂停");
+        }
+        return fresh;
     }
 
     private JSONObject captureScreenshot(String runTaskId, JSONObject observation, String type)
@@ -1487,6 +1626,8 @@ public final class LocalVlmTaskService extends Service {
                 throw new TaskFailure("local_callback_timeout", timeoutMessage + "；任务已暂停");
             }
         }
+        // A successful callback can race with pause/lock arriving just before its latch release.
+        if (hasControlRequest()) throw new TaskStopped();
         if (errorCode.get() != null) {
             throw new TaskFailure(errorCode.get(), timeoutMessage + "：" + safeLocalError(errorCode.get()));
         }
@@ -1533,11 +1674,11 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private boolean hasControlRequest() {
-        if (controlCommand.isEmpty() && (loopRunning || reviewRunning)) {
+        if (!recoveryControl.hasRequest() && (loopRunning || reviewRunning)) {
             String reason = deviceStopReason();
             if (!reason.isEmpty()) requestControl("pause", reason);
         }
-        return !controlCommand.isEmpty();
+        return recoveryControl.hasRequest();
     }
 
     private String deviceStopReason() {
@@ -1674,6 +1815,15 @@ public final class LocalVlmTaskService extends Service {
     private static String safeLocalError(String code) {
         if ("permission_unavailable".equals(code)) {
             return "无障碍权限不可用";
+        }
+        if ("screen_locked".equals(code)) {
+            return "手机仍处于锁定状态";
+        }
+        if (code != null && (code.startsWith("target_window_") || code.startsWith("recovery_target_"))) {
+            return "原目标应用未稳定回到前台，请手动返回后重新核对";
+        }
+        if ("notification_shade_unavailable".equals(code)) {
+            return "无法安全关闭通知栏，请手动返回原目标页面";
         }
         if ("screenshot_api_unavailable".equals(code)) {
             return "Android 版本不支持本地截图";

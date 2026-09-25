@@ -104,6 +104,49 @@ public final class LocalTaskControlPolicyTest {
         assertFalse(LocalTaskControlPolicy.sameReviewedScene(task, sceneObservation(), "png-a"));
     }
 
+    @Test
+    public void notificationShadeIsRecognizedButOtherSystemUiAndChangedTargetAreRejected() throws Exception {
+        JSONObject target = sceneObservation();
+        assertTrue(LocalTaskControlPolicy.isTargetApplicationForeground(target, "com.jev.mobileagent"));
+
+        JSONObject shade = sceneObservation();
+        shade.getJSONArray("windows").put(new JSONObject().put("window_id", 2)
+                .put("window_type", 3).put("title", "Notifications")
+                .put("class_name", "com.android.systemui.statusbar.phone.NotificationShadeWindowView")
+                .put("package_name", "com.android.systemui").put("active", true).put("focused", true)
+                .put("layer", 10).put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 1080).put("bottom", 2200)));
+        shade.getJSONObject("screen").put("active_window_id", 2);
+        assertTrue(LocalTaskControlPolicy.isNotificationShade(shade, "com.jev.mobileagent"));
+        assertFalse(LocalTaskControlPolicy.isTargetApplicationForeground(shade, "com.jev.mobileagent"));
+
+        JSONObject permissionDialog = new JSONObject(shade.toString());
+        permissionDialog.getJSONArray("windows").getJSONObject(1)
+                .put("class_name", "com.android.systemui.PermissionDialog");
+        assertFalse(LocalTaskControlPolicy.isNotificationShade(permissionDialog, "com.jev.mobileagent"));
+
+        JSONObject changedTarget = new JSONObject(target.toString());
+        changedTarget.getJSONArray("nodes").getJSONObject(0).put("text", "Different page");
+        JSONObject reviewed = new JSONObject().put("goal", "goal").put("recovery_review",
+                new JSONObject().put("valid", true).put("goal", "goal")
+                        .put("scene_fingerprint", LocalTaskControlPolicy.sceneFingerprint(target, "same-image")));
+        assertFalse(LocalTaskControlPolicy.sameReviewedScene(reviewed, changedTarget, "same-image"));
+    }
+
+    @Test
+    public void applicationSceneIgnoresSystemStatusNoiseButKeepsTargetPixelsAndSemantics() throws Exception {
+        JSONObject observation = sceneObservation();
+        String before = LocalTaskControlPolicy.sceneFingerprint(observation, "target-image");
+        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 8)
+                .put("window_type", 3).put("title", "Status bar").put("package_name", "com.android.systemui")
+                .put("active", false).put("focused", false).put("bounds", new JSONObject()));
+        observation.getJSONArray("nodes").put(new JSONObject().put("package_name", "com.android.systemui")
+                .put("text", "09:59"));
+        assertEquals(before, LocalTaskControlPolicy.sceneFingerprint(observation, "target-image"));
+        observation.getJSONArray("nodes").getJSONObject(0).put("text", "Changed target");
+        assertFalse(before.equals(LocalTaskControlPolicy.sceneFingerprint(observation, "target-image")));
+    }
+
     private static JSONObject sceneObservation() throws Exception {
         return new JSONObject()
                 .put("availability", "AVAILABLE")
@@ -111,12 +154,15 @@ public final class LocalTaskControlPolicyTest {
                 .put("observation_version", 1)
                 .put("captured_at", "first-time")
                 .put("screen", new JSONObject().put("width_px", 1080).put("height_px", 2400)
+                        .put("active_window_id", 1).put("active_window_bounds", new JSONObject()
+                                .put("left", 0).put("top", 20).put("right", 1080).put("bottom", 2300))
                         .put("rotation", 0).put("system_bar_insets", new JSONObject()
                                 .put("top", 0).put("bottom", 0)))
                 .put("windows", new JSONArray().put(new JSONObject().put("window_id", 1)
-                        .put("window_type", "application").put("title", "Controlled page")
+                        .put("window_type", 1).put("title", "Controlled page")
                         .put("package_name", "com.jev.mobileagent").put("active", true)
-                        .put("focused", true).put("bounds", "0,0,1080,2400")))
+                        .put("focused", true).put("layer", 1).put("bounds", new JSONObject()
+                                .put("left", 0).put("top", 20).put("right", 1080).put("bottom", 2300))))
                 .put("nodes", new JSONArray().put(new JSONObject().put("node_id", "first-node")
                         .put("package_name", "com.jev.mobileagent").put("class_name", "android.widget.Button")
                         .put("text", "Confirm target").put("content_description", "target")

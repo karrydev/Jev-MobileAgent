@@ -1,0 +1,37 @@
+{
+  "case_id": "recovery27-existing-unknown-review01",
+  "source_sha": "f9109eac826a40e73bd22b28c2c4efd6ab89e6bd",
+  "apk_sha256": "a391d78ebe6dda761cd51d8084caa48ee67ad2614bea71ff0c5adb70d29afa6a",
+  "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+  "result": "blocked_product_defect",
+  "state": "NEEDS_REVIEW",
+  "runtime_status": "本地截图失败：本地操作失败；任务继续暂停，恢复权限或网络后需重新观察",
+  "latest_capture": {
+    "status": "unavailable",
+    "capture_type": "RECOVERY",
+    "observation_id": "standalone-device-obs-3234-609bb6eb11024468abb0a928f6910d11",
+    "observation_version": 3234,
+    "screenshot_id": null,
+    "error_code": "observation_mismatch",
+    "captured_at": "2026-09-25T08:57:01.950290Z",
+    "attempt": 3
+  },
+  "recovery_review_created": false,
+  "model_request_count_before_after": [
+    3,
+    3
+  ],
+  "jev_calls_before_after": [
+    2,
+    2
+  ],
+  "accounted_cost_before_after": [
+    0.038927,
+    0.038927
+  ],
+  "global_accounted_before_after": [
+    1.1577865000000005,
+    1.1577865000000005
+  ],
+  "observation": "Notification action left shade open. RECOVERY capture type is rejected by existing BEFORE/AFTER-only screenshot guard. No model call or action replay. Phone locked after evidence."
+}

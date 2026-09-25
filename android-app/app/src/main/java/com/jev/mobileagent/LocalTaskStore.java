@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -128,6 +129,46 @@ public final class LocalTaskStore {
         }
     }
 
+    /** Resolve the task's original foreground app from its durable observation history. */
+    static String recoveryTargetPackage(Context context, String taskId) {
+        synchronized (LOCK) {
+            JSONObject task = task(context, taskId);
+            if (task == null) return "";
+            String stored = task.optString("target_application_package", "");
+            if (!stored.isEmpty()) return stored;
+            JSONArray observations = task.optJSONArray("observations");
+            if (observations == null) return "";
+            File directory;
+            try {
+                directory = taskDirectory(context, taskId);
+            } catch (IOException exception) {
+                return "";
+            }
+            for (int i = observations.length() - 1; i >= 0; i--) {
+                JSONObject entry = observations.optJSONObject(i);
+                if (entry == null) continue;
+                String packageName = entry.optString("active_application_package", "");
+                if (!packageName.isEmpty()) return packageName;
+                String name = entry.optString("private_file", "");
+                if (!name.matches("observation-[0-9]+\\.json")) continue;
+                File file = new File(directory, name);
+                if (!file.isFile() || file.length() <= 0 || file.length() > 8 * 1024 * 1024) continue;
+                byte[] bytes = null;
+                try {
+                    bytes = Files.readAllBytes(file.toPath());
+                    JSONObject observation = new JSONObject(new String(bytes, StandardCharsets.UTF_8));
+                    packageName = LocalTaskControlPolicy.activeApplicationPackage(observation);
+                    if (!packageName.isEmpty()) return packageName;
+                } catch (IOException | JSONException ignored) {
+                    // Try the preceding durable observation; absence remains fail-closed.
+                } finally {
+                    if (bytes != null) java.util.Arrays.fill(bytes, (byte) 0);
+                }
+            }
+            return "";
+        }
+    }
+
     public static boolean updateState(Context context, String taskId, String state, String reason) {
         synchronized (LOCK) {
             JSONObject task = task(context, taskId);
@@ -218,7 +259,9 @@ public final class LocalTaskStore {
     /** Save a fresh review tree and a stable scene identity without making a model request. */
     public static boolean recordRecoveryObservation(Context context, String taskId,
             JSONObject observation, String screenshotFingerprint, String goalOutcome) throws IOException {
-        if (observation == null || screenshotFingerprint == null || screenshotFingerprint.isEmpty()) {
+        String activePackage = LocalTaskControlPolicy.activeApplicationPackage(observation);
+        if (observation == null || activePackage.isEmpty()
+                || screenshotFingerprint == null || screenshotFingerprint.isEmpty()) {
             throw new IOException("recovery observation or local screenshot fingerprint missing");
         }
         saveObservation(context, taskId, observation);
@@ -232,6 +275,7 @@ public final class LocalTaskStore {
                         .put("captured_at", observation.optString("captured_at", ""))
                         .put("scene_fingerprint", LocalTaskControlPolicy.sceneFingerprint(
                                 observation, screenshotFingerprint))
+                        .put("target_application_package", activePackage)
                         .put("goal", task.optString("goal", ""))
                         .put("goal_outcome", goalOutcome == null ? "UNKNOWN" : goalOutcome)
                         .put("valid", true);
@@ -1102,13 +1146,18 @@ public final class LocalTaskStore {
                 observations = new JSONArray();
             }
             try {
+                String activePackage = LocalTaskControlPolicy.activeApplicationPackage(observation);
                 observations.put(new JSONObject()
                         .put("observation_id", observation.optString("observation_id", ""))
                         .put("observation_version", version)
+                        .put("active_application_package", activePackage)
                         .put("page_state", observation.optString("page_state", ""))
                         .put("private_file", file.getName())
                         .put("captured_at", observation.optString("captured_at", "")));
                 task.put("observations", observations);
+                if (task.optString("target_application_package", "").isEmpty() && !activePackage.isEmpty()) {
+                    task.put("target_application_package", activePackage);
+                }
                 touch(task);
                 if (!preferences(context).edit().putString(taskKey(taskId), task.toString()).commit()) {
                     throw new IOException("could not save observation metadata");

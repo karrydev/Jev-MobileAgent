@@ -37,3 +37,15 @@
 允许独立的“确认当前目标已完成”路径：复核与确认两次fresh observation均被现有StandaloneGoalVerifier判为VERIFIED，用户明确决定后可结束当前目标且不重放。用COMPLETED_ON_REVIEW等独立终态，decision_actor=user、completion_attribution=observed_only；不能用COMPLETED_EXTERNALLY暗示人完成，也不能改变历史UNKNOWN执行事实。任一次核验非VERIFIED均拒绝。这与没有新证据就确认放弃未知的路径不同。
 
 准备期只读取证：旧24APK在同一无效果页面、无动作/模型调用条件下，六次间隔0.35s的ADB截图出现四个PNG SHA-256；可见输入框光标闪烁。该结果不是恢复验收，但说明全图严格hash有误拒风险。首轮实际确认需检查可用性，不能把每次要求重新核对当通过；视觉变化也不能被整体忽略。原始图保留主协调私有/tmp/tree24-evidence。
+
+## 已实现故障入口与首轮停止（f9109ea）
+
+Debug 受控夹具中选择一次性中断点，再启动任务；不对正在运行任务临时改点。BEFORE_DISPATCH 位于 recordActionIntent durable 成功之后、performAction之前；AFTER_SIDE_EFFECT 位于真实performAction成功回调之后、recordActionResult之前；AFTER_RECEIPT 位于recordActionResult durable成功之后、after观察/核验之前。触发前持久化fired标记，之后终止进程；重启不能重复注入或自动运行。
+
+2026-09-25 16:57 首轮仅核对旧24任务，未启动27付费任务。通知重新观察收到 screenshot observation_mismatch；根因为本地截图守卫仍只允许 BEFORE/AFTER，新恢复传RECOVERY。通知栏也未收起。记录 recovery27-existing-unknown-review01.json，费用/请求不变，任务保留，手机锁屏。修复并复核后再冻结实际付费顺序；本失败不得记为恢复通过。
+
+## 修复后先行零费用门禁
+
+保持旧24 task和全部历史。修复后的首轮仍不调用模型：通过实际通知入口复核，核对目标application窗口和真实RECOVERY截图；确认前改变目标页现场应拒绝旧确认，再重新核对并显式结束可靠已执行但效果UNKNOWN的记录。结束应保留unknown核验/动作回执，释放占用且费用/请求/步数均不增加。另在确认采集中实际暂停或锁屏，应拒绝旧回调继续运行。不能用shell收通知栏或启动MainActivity帮助入口过关。
+
+27故障演练的可完成目标须与24专用LengthFilter(7)负例隔离；在有准确可完成目标和真实副作用证据方案前，不为精确crash窗口启动付费调用。
