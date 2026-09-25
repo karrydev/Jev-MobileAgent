@@ -6,6 +6,10 @@ android {
     namespace "com.jev.mobileagent"
     compileSdk 35
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.jev.mobileagent"
         minSdk 26

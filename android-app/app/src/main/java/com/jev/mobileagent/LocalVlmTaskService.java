@@ -284,6 +284,7 @@ public final class LocalVlmTaskService extends Service {
                     command = roles.action(selected[1], before, runTaskId, step + 1,
                             beforeShot.optString("screenshot_id", ""));
                 } catch (JSONException exception) {
+                    runJevShadowForDecision(task, runTaskId, step, before, null);
                     roles.recordInvalid(selected[2], "invalid action format; no device action was sent");
                     finishStep(runTaskId, roles, ++step);
                     continue;
@@ -308,6 +309,8 @@ public final class LocalVlmTaskService extends Service {
                     LocalTaskStore.saveHistory(this, runTaskId, roles.toJson());
                     break;
                 }
+
+                runJevShadowForDecision(task, runTaskId, step, before, command.contractAction);
 
                 JSONObject action = command.contractAction;
                 if (!LocalTaskStore.recordActionIntent(this, runTaskId, action)) {
@@ -622,6 +625,38 @@ public final class LocalVlmTaskService extends Service {
             throw new TaskStopped();
         }
         return response.content;
+    }
+
+    /** Jev can only append a report; this path has no reference to the action dispatcher. */
+    private void runJevShadowForDecision(JSONObject task, String runTaskId, int step,
+            JSONObject observation, JSONObject vlmAction) throws TaskFailure, TaskStopped {
+        if (task == null || !task.optBoolean("jev_shadow_enabled", false)) {
+            return;
+        }
+        if (hasControlRequest()) {
+            throw new TaskStopped();
+        }
+        setStatus("正在记录 Jev 影子建议；设备动作仍由 VLM 控制");
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        activeRequestCancellation = cancelled;
+        JSONObject attempt;
+        try {
+            attempt = JevShadow.runTaskAttempt(this, runTaskId, step,
+                    task.optString("goal", ""), observation, vlmAction, cancelled::get);
+        } catch (JSONException exception) {
+            throw new TaskFailure("jev_shadow_report_failed", "Jev 影子报告无法保存在本机；任务已暂停");
+        } finally {
+            activeRequestCancellation = null;
+        }
+        if (hasControlRequest()) {
+            throw new TaskStopped();
+        }
+        if ("budget_denied".equals(attempt.optString("status", ""))) {
+            JSONObject error = attempt.optJSONObject("error");
+            String reason = error == null ? "budget_gate" : error.optString("code", "budget_gate");
+            throw new TaskFailure("jev_shadow_" + reason,
+                    "Jev 影子预算预留失败；停止本步后续模型与设备请求");
+        }
     }
 
     private ActionResult performAction(JSONObject action, ActionExecutionGate.Token token)
