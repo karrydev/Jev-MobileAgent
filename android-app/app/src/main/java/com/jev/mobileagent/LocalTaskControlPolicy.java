@@ -76,6 +76,7 @@ final class LocalTaskControlPolicy {
         append(stable, observation, "availability", "page_state");
         JSONObject screen = observation.optJSONObject("screen");
         append(stable, screen, "width_px", "height_px", "rotation", "system_bar_insets",
+                "recovery_system_bar_insets",
                 "window_offset", "content_width_px", "content_height_px", "active_window_bounds");
         String activePackage = activeApplicationPackage(observation);
         stable.append("active_application=").append(activePackage).append('|');
@@ -144,10 +145,10 @@ final class LocalTaskControlPolicy {
             if (window == null || window.optInt("window_id", -2)
                     == targetWindow.optInt("window_id", -1)
                     || window.optInt("layer", Integer.MIN_VALUE) <= targetLayer
-                    || targetPackage.equals(window.optString("package_name", ""))
-                    || isSystemBarWindow(window)) {
+                    || targetPackage.equals(window.optString("package_name", ""))) {
                 continue;
             }
+            if (isRecoverySystemBarWindow(observation, window)) continue;
             if (overlaps(window.optJSONObject("bounds"), targetBounds)) {
                 return "target_window_covered";
             }
@@ -237,7 +238,7 @@ final class LocalTaskControlPolicy {
                 && bounds.optInt("bottom", Integer.MIN_VALUE) >= height;
     }
 
-    /** Display-coordinate crop for recovery images, excluding only identified system bars. */
+    /** Display-coordinate crop for recovery images, using platform insets or a named edge-bar fallback. */
     static int[] targetScreenshotBounds(JSONObject observation) {
         JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
         JSONObject activeBounds = screen == null ? null : screen.optJSONObject("active_window_bounds");
@@ -250,50 +251,117 @@ final class LocalTaskControlPolicy {
         int bottom = activeBounds.optInt("bottom", 0);
         if (screenWidth <= 0 || screenHeight <= 0 || right <= left || bottom <= top) return null;
 
-        JSONArray windows = observation.optJSONArray("windows");
-        if (windows != null) {
-            for (int i = 0; i < windows.length(); i++) {
-                JSONObject window = windows.optJSONObject(i);
-                if (window == null || window.optInt("window_type", -1) != 3
-                        || !isSystemBarWindow(window)) continue;
-                JSONObject bar = window.optJSONObject("bounds");
-                if (bar == null) continue;
-                int barLeft = bar.optInt("left", Integer.MAX_VALUE);
-                int barTop = bar.optInt("top", Integer.MAX_VALUE);
-                int barRight = bar.optInt("right", Integer.MIN_VALUE);
-                int barBottom = bar.optInt("bottom", Integer.MIN_VALUE);
-                if (barLeft <= 0 && barRight >= screenWidth && barTop <= 0
-                        && barBottom > 0 && barBottom < screenHeight
-                        && left <= 0 && right >= screenWidth && top <= barTop) {
-                    top = Math.max(top, barBottom);
-                }
-                if (barLeft <= 0 && barRight >= screenWidth && barBottom >= screenHeight
-                        && barTop > 0 && barTop < screenHeight
-                        && left <= 0 && right >= screenWidth && bottom >= barBottom) {
-                    bottom = Math.min(bottom, barTop);
-                }
-                if (barTop <= 0 && barBottom >= screenHeight && barLeft <= 0
-                        && barRight > 0 && barRight < screenWidth
-                        && top <= 0 && bottom >= screenHeight && left <= barLeft) {
-                    left = Math.max(left, barRight);
-                }
-                if (barTop <= 0 && barBottom >= screenHeight && barRight >= screenWidth
-                        && barLeft > 0 && barLeft < screenWidth
-                        && top <= 0 && bottom >= screenHeight && right >= barRight) {
-                    right = Math.min(right, barLeft);
+        JSONObject insets = trustedRecoverySystemBarInsets(observation);
+        if (insets != null) {
+            left = Math.max(left, insets.optInt("left", 0));
+            top = Math.max(top, insets.optInt("top", 0));
+            right = Math.min(right, screenWidth - insets.optInt("right", 0));
+            bottom = Math.min(bottom, screenHeight - insets.optInt("bottom", 0));
+        } else {
+            boolean identifiedBar = false;
+            JSONArray windows = observation.optJSONArray("windows");
+            if (windows != null) {
+                for (int i = 0; i < windows.length(); i++) {
+                    JSONObject window = windows.optJSONObject(i);
+                    if (window == null || window.optInt("window_type", -1) != 3
+                            || window.optBoolean("active", false) || window.optBoolean("focused", false)) {
+                        continue;
+                    }
+                    int side = identifiedSystemBarSide(window, screen);
+                    JSONObject bar = window.optJSONObject("bounds");
+                    if (side == 0 || bar == null) continue;
+                    identifiedBar = true;
+                    if (side == 1 && left <= 0 && right >= screenWidth && top <= 0) {
+                        top = Math.max(top, bar.optInt("bottom", top));
+                    } else if (side == 2 && left <= 0 && right >= screenWidth && bottom >= screenHeight) {
+                        bottom = Math.min(bottom, bar.optInt("top", bottom));
+                    } else if (side == 3 && top <= 0 && bottom >= screenHeight && left <= 0) {
+                        left = Math.max(left, bar.optInt("right", left));
+                    } else if (side == 4 && top <= 0 && bottom >= screenHeight && right >= screenWidth) {
+                        right = Math.min(right, bar.optInt("left", right));
+                    }
                 }
             }
+            // With no platform insets and no clearly named bar, the screenshot cannot be safely cropped.
+            if (!identifiedBar) return null;
         }
         return right > left && bottom > top ? new int[] {left, top, right, bottom} : null;
     }
 
-    private static boolean isSystemBarWindow(JSONObject window) {
+    private static JSONObject trustedRecoverySystemBarInsets(JSONObject observation) {
+        JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
+        JSONObject insets = screen == null ? null : screen.optJSONObject("recovery_system_bar_insets");
+        if (insets == null || !insets.optBoolean("available", false)
+                || !"window_metrics_system_bars".equals(insets.optString("source", ""))) return null;
+        JSONObject metricsBounds = insets.optJSONObject("metrics_bounds_px");
+        int width = screen.optInt("width_px", 0);
+        int height = screen.optInt("height_px", 0);
+        if (metricsBounds == null || width <= 0 || height <= 0
+                || metricsBounds.optInt("left", Integer.MIN_VALUE) != 0
+                || metricsBounds.optInt("top", Integer.MIN_VALUE) != 0
+                || metricsBounds.optInt("right", Integer.MIN_VALUE) != width
+                || metricsBounds.optInt("bottom", Integer.MIN_VALUE) != height) return null;
+        int left = insets.optInt("left", -1);
+        int top = insets.optInt("top", -1);
+        int right = insets.optInt("right", -1);
+        int bottom = insets.optInt("bottom", -1);
+        if (left < 0 || top < 0 || right < 0 || bottom < 0
+                || left >= width || right >= width || top >= height || bottom >= height) return null;
+        return insets;
+    }
+
+    private static boolean isRecoverySystemBarWindow(JSONObject observation, JSONObject window) {
+        if (window.optInt("window_type", -1) != 3
+                || window.optBoolean("active", false) || window.optBoolean("focused", false)) return false;
+        JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
+        if (screen == null) return false;
+        JSONObject insets = trustedRecoverySystemBarInsets(observation);
+        if (insets == null) return identifiedSystemBarSide(window, screen) != 0;
+        JSONObject bounds = window.optJSONObject("bounds");
+        if (bounds == null) return false;
+        int width = screen.optInt("width_px", 0);
+        int height = screen.optInt("height_px", 0);
+        int left = bounds.optInt("left", Integer.MAX_VALUE);
+        int top = bounds.optInt("top", Integer.MAX_VALUE);
+        int right = bounds.optInt("right", Integer.MIN_VALUE);
+        int bottom = bounds.optInt("bottom", Integer.MIN_VALUE);
+        return (insets.optInt("top", 0) > 0 && left <= 0 && right >= width
+                        && top <= 0 && bottom > 0 && bottom <= insets.optInt("top", 0))
+                || (insets.optInt("bottom", 0) > 0 && left <= 0 && right >= width
+                        && bottom >= height && top >= height - insets.optInt("bottom", 0))
+                || (insets.optInt("left", 0) > 0 && top <= 0 && bottom >= height
+                        && left <= 0 && right > 0 && right <= insets.optInt("left", 0))
+                || (insets.optInt("right", 0) > 0 && top <= 0 && bottom >= height
+                        && right >= width && left >= width - insets.optInt("right", 0));
+    }
+
+    /** Returns 1=top, 2=bottom, 3=left, 4=right for an explicitly named bar at that display edge. */
+    private static int identifiedSystemBarSide(JSONObject window, JSONObject screen) {
         String identity = (window.optString("class_name", "") + " "
                 + window.optString("title", "")).toLowerCase(Locale.ROOT);
-        return identity.contains("statusbar") || identity.contains("status_bar")
-                || identity.contains("status bar") || identity.contains("状态栏")
-                || identity.contains("navigationbar") || identity.contains("navigation_bar")
+        boolean statusBar = identity.contains("statusbar") || identity.contains("status_bar")
+                || identity.contains("status bar") || identity.contains("状态栏");
+        boolean navigationBar = identity.contains("navigationbar") || identity.contains("navigation_bar")
                 || identity.contains("navigation bar") || identity.contains("导航栏");
+        if (!statusBar && !navigationBar) return 0;
+        JSONObject bounds = window.optJSONObject("bounds");
+        if (bounds == null) return 0;
+        int width = screen.optInt("width_px", 0);
+        int height = screen.optInt("height_px", 0);
+        int left = bounds.optInt("left", Integer.MAX_VALUE);
+        int top = bounds.optInt("top", Integer.MAX_VALUE);
+        int right = bounds.optInt("right", Integer.MIN_VALUE);
+        int bottom = bounds.optInt("bottom", Integer.MIN_VALUE);
+        if (width <= 0 || height <= 0) return 0;
+        if (statusBar && left <= 0 && right >= width && top <= 0
+                && bottom > 0 && bottom < height) return 1;
+        if (navigationBar && left <= 0 && right >= width && bottom >= height
+                && top > 0 && top < height) return 2;
+        if (navigationBar && top <= 0 && bottom >= height && left <= 0
+                && right > 0 && right < width) return 3;
+        if (navigationBar && top <= 0 && bottom >= height && right >= width
+                && left > 0 && left < width) return 4;
+        return 0;
     }
 
     private static boolean overlaps(JSONObject left, JSONObject right) {

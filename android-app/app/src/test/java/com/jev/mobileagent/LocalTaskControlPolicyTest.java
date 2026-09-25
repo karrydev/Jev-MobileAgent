@@ -185,6 +185,29 @@ public final class LocalTaskControlPolicyTest {
                         .put("right", 800).put("bottom", 900)));
         assertEquals("target_window_covered", LocalTaskControlPolicy.recoveryTargetReadinessError(
                 covered, "com.jev.mobileagent"));
+
+        JSONObject realAnonymousStatusBar = recoveryObservationWithAnonymousStatusBar();
+        assertEquals("", LocalTaskControlPolicy.recoveryTargetReadinessError(
+                realAnonymousStatusBar, "com.jev.mobileagent"));
+
+        JSONObject permissionWindow = new JSONObject(realAnonymousStatusBar.toString());
+        permissionWindow.getJSONArray("windows").put(new JSONObject().put("window_id", 1402)
+                .put("window_type", 3).put("package_name", "com.android.permissioncontroller")
+                .put("class_name", "").put("title", "").put("active", false).put("focused", false)
+                .put("layer", 3).put("bounds", new JSONObject().put("left", 100).put("top", 300)
+                        .put("right", 980).put("bottom", 900)));
+        assertEquals("target_window_covered", LocalTaskControlPolicy.recoveryTargetReadinessError(
+                permissionWindow, "com.jev.mobileagent"));
+
+        JSONObject unrelatedEdgeOverlay = new JSONObject(realAnonymousStatusBar.toString());
+        unrelatedEdgeOverlay.getJSONArray("windows").put(new JSONObject().put("window_id", 1403)
+                .put("window_type", 3).put("package_name", "com.oem.edgepanel")
+                .put("class_name", "com.oem.EdgePanel").put("title", "")
+                .put("active", false).put("focused", false).put("layer", 3)
+                .put("bounds", new JSONObject().put("left", 240).put("top", 12)
+                        .put("right", 840).put("bottom", 90)));
+        assertEquals("target_window_covered", LocalTaskControlPolicy.recoveryTargetReadinessError(
+                unrelatedEdgeOverlay, "com.jev.mobileagent"));
     }
 
     @Test
@@ -196,30 +219,51 @@ public final class LocalTaskControlPolicyTest {
     }
 
     @Test
-    public void recoveryScreenshotCropUsesObservedSystemBarBoundsOnly() throws Exception {
-        JSONObject observation = sceneObservation();
-        observation.getJSONObject("screen").put("active_window_bounds", new JSONObject()
-                .put("left", 0).put("top", 0).put("right", 1080).put("bottom", 2400));
-        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 8)
-                .put("window_type", 3).put("title", "状态栏").put("active", false)
-                .put("focused", false).put("bounds", new JSONObject().put("left", 0).put("top", 0)
-                        .put("right", 1080).put("bottom", 103)));
-        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 9)
-                .put("window_type", 3).put("title", "导航栏").put("active", false)
-                .put("focused", false).put("bounds", new JSONObject().put("left", 0).put("top", 2300)
+    public void recoveryCropExcludesAnonymousBarsAndRetainsTargetChangeRegion() throws Exception {
+        JSONObject observation = recoveryObservationWithAnonymousStatusBar();
+        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 1404)
+                .put("window_type", 3).put("title", "").put("class_name", "")
+                .put("package_name", "com.android.systemui").put("active", false)
+                .put("focused", false).put("layer", 1)
+                .put("bounds", new JSONObject().put("left", 0).put("top", 2300)
                         .put("right", 1080).put("bottom", 2400)));
+        observation.getJSONObject("screen").getJSONObject("recovery_system_bar_insets")
+                .put("bottom", 100);
         assertBounds(new int[] {0, 103, 1080, 2300},
                 LocalTaskControlPolicy.targetScreenshotBounds(observation));
 
+        // A target-page change below the status bar remains inside the pixels used for recovery review.
+        int[] crop = LocalTaskControlPolicy.targetScreenshotBounds(observation);
+        assertTrue(crop[0] <= 540 && 540 < crop[2]);
+        assertTrue(crop[1] <= 1200 && 1200 < crop[3]);
+        JSONObject changedTarget = new JSONObject(observation.toString());
+        changedTarget.getJSONArray("nodes").getJSONObject(0).put("text", "Changed target page");
+        assertFalse(LocalTaskControlPolicy.sceneFingerprint(observation, "target-pixels-before")
+                .equals(LocalTaskControlPolicy.sceneFingerprint(changedTarget, "target-pixels-before")));
+
         JSONObject unrelatedSystemWindow = new JSONObject(observation.toString());
         unrelatedSystemWindow.getJSONArray("windows").getJSONObject(1)
-                .put("title", "OEM overlay").put("class_name", "com.oem.EdgePanel")
-                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
-                        .put("right", 1080).put("bottom", 103));
+                .put("bounds", new JSONObject().put("left", 0).put("top", 140)
+                        .put("right", 1080).put("bottom", 320));
         unrelatedSystemWindow.getJSONArray("windows").getJSONObject(2)
                 .put("title", "OEM overlay").put("class_name", "com.oem.EdgePanel");
-        assertBounds(new int[] {0, 0, 1080, 2400},
-                LocalTaskControlPolicy.targetScreenshotBounds(unrelatedSystemWindow));
+        assertEquals("target_window_covered", LocalTaskControlPolicy.recoveryTargetReadinessError(
+                unrelatedSystemWindow, "com.jev.mobileagent"));
+
+        JSONObject namedFallback = new JSONObject(observation.toString());
+        namedFallback.getJSONObject("screen").getJSONObject("recovery_system_bar_insets")
+                .put("available", false).put("reason", "metrics_bounds_mismatch");
+        namedFallback.getJSONArray("windows").getJSONObject(1)
+                .put("title", "状态栏").put("class_name", "");
+        namedFallback.getJSONArray("windows").getJSONObject(2)
+                .put("title", "导航栏").put("class_name", "");
+        assertBounds(new int[] {0, 103, 1080, 2300},
+                LocalTaskControlPolicy.targetScreenshotBounds(namedFallback));
+
+        JSONObject unavailableAndAnonymous = new JSONObject(observation.toString());
+        unavailableAndAnonymous.getJSONObject("screen").getJSONObject("recovery_system_bar_insets")
+                .put("available", false).put("reason", "metrics_bounds_mismatch");
+        assertTrue(LocalTaskControlPolicy.targetScreenshotBounds(unavailableAndAnonymous) == null);
     }
 
     @Test
@@ -272,6 +316,30 @@ public final class LocalTaskControlPolicyTest {
                         .put("bounds", new JSONObject().put("left", 0).put("top", 0)
                                 .put("right", 1080).put("bottom", 2400))))
                 .put("nodes", new JSONArray());
+    }
+
+    private static JSONObject recoveryObservationWithAnonymousStatusBar() throws Exception {
+        JSONObject observation = sceneObservation();
+        observation.getJSONObject("screen")
+                .put("active_window_bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 1080).put("bottom", 2400))
+                .put("recovery_system_bar_insets", new JSONObject()
+                        .put("available", true).put("source", "window_metrics_system_bars")
+                        .put("reason", "").put("status_bars_visible", true)
+                        .put("navigation_bars_visible", true)
+                        .put("metrics_bounds_px", new JSONObject().put("left", 0).put("top", 0)
+                                .put("right", 1080).put("bottom", 2400))
+                        .put("left", 0).put("top", 103).put("right", 0).put("bottom", 0));
+        observation.getJSONArray("windows").getJSONObject(0)
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 1080).put("bottom", 2400)).put("layer", 0);
+        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 1401)
+                .put("window_type", 3).put("title", "").put("class_name", "")
+                .put("package_name", "com.android.systemui").put("active", false)
+                .put("focused", false).put("layer", 1)
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 1080).put("bottom", 103)));
+        return observation;
     }
 
     private static void assertBounds(int[] expected, int[] actual) {

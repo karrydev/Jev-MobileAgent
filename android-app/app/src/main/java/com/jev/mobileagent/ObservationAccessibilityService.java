@@ -6,6 +6,7 @@ import android.app.KeyguardManager;
 import android.accessibilityservice.GestureDescription;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Insets;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -20,6 +21,9 @@ import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Display;
+import android.view.WindowInsets;
+import android.view.WindowManager;
+import android.view.WindowMetrics;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
@@ -375,7 +379,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
         try {
             BridgeConfig identity = new BridgeConfig("", "", "standalone-device", attempt.taskId,
                     "", "", "", "", "");
-            observation = captureOnServiceThread(identity);
+            observation = captureRecoveryFrame(identity);
         } catch (SecurityException exception) {
             finishRecoveryObservation(attempt, "permission_unavailable", "window_capture", null, "");
             return;
@@ -542,7 +546,7 @@ public class ObservationAccessibilityService extends AccessibilityService {
             String targetPackage = LocalTaskControlPolicy.activeApplicationPackage(observation);
             JSONObject current = null;
             try {
-                current = captureOnServiceThread(new BridgeConfig("", "", "standalone-device",
+                current = captureRecoveryFrame(new BridgeConfig("", "", "standalone-device",
                         observation.optString("task_id", ""), "", "", "", "", ""));
                 String readinessError = LocalTaskControlPolicy.recoveryTargetReadinessError(
                         current, targetPackage);
@@ -1720,6 +1724,51 @@ public class ObservationAccessibilityService extends AccessibilityService {
         }
         coordinateFingerprint = CoordinateObservationFingerprint.create(observation);
         coordinateFingerprintVersion = version;
+        return observation;
+    }
+
+    /** Add platform bar geometry only to recovery frames, leaving the ordinary observation contract intact. */
+    private JSONObject captureRecoveryFrame(BridgeConfig config) throws JSONException {
+        JSONObject observation = captureOnServiceThread(config);
+        JSONObject screen = observation.optJSONObject("screen");
+        if (screen == null) return observation;
+
+        JSONObject metadata = new JSONObject()
+                .put("available", false)
+                .put("source", "window_metrics_system_bars")
+                .put("reason", "api_unavailable");
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+                WindowMetrics metrics = windowManager == null ? null : windowManager.getCurrentWindowMetrics();
+                if (metrics != null && metrics.getWindowInsets() != null) {
+                    Rect metricsBounds = metrics.getBounds();
+                    WindowInsets windowInsets = metrics.getWindowInsets();
+                    int systemBars = WindowInsets.Type.systemBars();
+                    Insets bars = windowInsets.getInsets(systemBars);
+                    int screenWidth = screen.optInt("width_px", 0);
+                    int screenHeight = screen.optInt("height_px", 0);
+                    metadata.put("reason", "metrics_bounds_mismatch")
+                            .put("metrics_bounds_px", ObservationPayload.bounds(metricsBounds))
+                            .put("status_bars_visible", windowInsets.isVisible(WindowInsets.Type.statusBars()))
+                            .put("navigation_bars_visible", windowInsets.isVisible(WindowInsets.Type.navigationBars()))
+                            .put("left", Math.max(0, bars.left))
+                            .put("top", Math.max(0, bars.top))
+                            .put("right", Math.max(0, bars.right))
+                            .put("bottom", Math.max(0, bars.bottom));
+                    if (metricsBounds.left == 0 && metricsBounds.top == 0
+                            && metricsBounds.width() == screenWidth
+                            && metricsBounds.height() == screenHeight) {
+                        metadata.put("available", true).put("reason", "");
+                    }
+                } else {
+                    metadata.put("reason", "window_metrics_unavailable");
+                }
+            }
+        } catch (RuntimeException exception) {
+            metadata.put("reason", "window_metrics_read_failed");
+        }
+        screen.put("recovery_system_bar_insets", metadata);
         return observation;
     }
 

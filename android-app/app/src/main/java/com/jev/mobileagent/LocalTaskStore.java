@@ -161,6 +161,22 @@ public final class LocalTaskStore {
                                 .put("activeWindowId", sourceScreen.optInt("active_window_id", -1));
                         JSONObject bounds = debugBounds(sourceScreen.optJSONObject("active_window_bounds"));
                         if (bounds != null) screen.put("activeWindowBounds", bounds);
+                        JSONObject sourceInsets = sourceScreen.optJSONObject("recovery_system_bar_insets");
+                        if (sourceInsets != null) {
+                            JSONObject safeInsets = new JSONObject()
+                                    .put("available", sourceInsets.optBoolean("available", false))
+                                    .put("source", sourceInsets.optString("source", ""))
+                                    .put("reason", sourceInsets.optString("reason", ""))
+                                    .put("statusBarsVisible", sourceInsets.optBoolean("status_bars_visible", false))
+                                    .put("navigationBarsVisible", sourceInsets.optBoolean("navigation_bars_visible", false))
+                                    .put("left", Math.max(0, sourceInsets.optInt("left", 0)))
+                                    .put("top", Math.max(0, sourceInsets.optInt("top", 0)))
+                                    .put("right", Math.max(0, sourceInsets.optInt("right", 0)))
+                                    .put("bottom", Math.max(0, sourceInsets.optInt("bottom", 0)));
+                            JSONObject metricsBounds = debugBounds(sourceInsets.optJSONObject("metrics_bounds_px"));
+                            if (metricsBounds != null) safeInsets.put("metricsBoundsPx", metricsBounds);
+                            screen.put("recoverySystemBarInsets", safeInsets);
+                        }
                         diagnostic.put("screen", screen);
                     }
                     JSONArray sourceWindows = observation.optJSONArray("windows");
@@ -173,6 +189,7 @@ public final class LocalTaskStore {
                                     .put("id", window.optInt("window_id", -1))
                                     .put("type", window.optInt("window_type", -1))
                                     .put("packageName", window.optString("package_name", ""))
+                                    .put("className", window.optString("class_name", ""))
                                     .put("active", window.optBoolean("active", false))
                                     .put("focused", window.optBoolean("focused", false))
                                     .put("layer", window.optInt("layer", -1));
