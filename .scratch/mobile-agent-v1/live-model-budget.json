@@ -850,22 +850,20 @@
     {
       "id": "standalone-usb-input01",
       "source_commit": "373da447425df954f14f4364127f6672f3894f9f",
-      "result": "Reserved for user-started physical USB-disconnected acceptance; not yet executed",
-      "requests": null,
-      "estimated_list_price_cny": null,
-      "actual_billed_cny": null,
-      "budget_reservation_cny": 1.0
+      "result": "User-started physical USB-disconnected Chinese task verified from phone journal and final page",
+      "requests": 9,
+      "estimated_list_price_cny": 0.056130000000000006,
+      "actual_billed_cny": null
     },
     {
       "id": "standalone-usb-visual01",
       "source_commit": "373da447425df954f14f4364127f6672f3894f9f",
-      "result": "Reserved for user-started physical USB-disconnected acceptance; not yet executed",
-      "requests": null,
-      "estimated_list_price_cny": null,
-      "actual_billed_cny": null,
-      "budget_reservation_cny": 1.0
+      "result": "User-started physical USB-disconnected visual task verified from phone journal and final page",
+      "requests": 5,
+      "estimated_list_price_cny": 0.030766499999999995,
+      "actual_billed_cny": null
     }
   ],
-  "estimated_list_price_total_cny": 0.8226915,
+  "estimated_list_price_total_cny": 0.909588,
   "unknown_usage_request_count": 3
 }
