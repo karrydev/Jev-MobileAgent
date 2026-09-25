@@ -1,0 +1,193 @@
+{
+  "attempt": "recovery27-scene01",
+  "source_commit": "2bba3d0a398b1386f728d92031599aaa91ff5f4e",
+  "apk_sha256": "6b01ba47afeab7f75acf00a18cd49c5aae5ae0f592640f46749f5311819f4cce",
+  "events": [
+    {
+      "at": 1790336626.3264709,
+      "event": "reserved_before_external_application_switch",
+      "task_id": "0e4364a7-aa20-426f-aacb-e9243194c10f",
+      "state": "RUNNING",
+      "state_reason": "",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "reserved",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": null,
+          "error_code": null,
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-e612bd35c50c41f59426b737b6b09036"
+          ]
+        }
+      ],
+      "actions": []
+    },
+    {
+      "at": 1790336626.435112,
+      "event": "external_android_settings_opened"
+    },
+    {
+      "at": 1790336634.5633202,
+      "event": "after_real_application_switch",
+      "task_id": "0e4364a7-aa20-426f-aacb-e9243194c10f",
+      "state": "PAUSED",
+      "state_reason": "decision_scene_changed_before_dispatch",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_known",
+          "usage": {
+            "input_tokens": 1567,
+            "output_tokens": 128,
+            "total_tokens": 1695
+          },
+          "usage_present": true,
+          "estimated_cost_cny": 0.0029265,
+          "reserved_cost_cny": 0,
+          "http_status": 200,
+          "error_code": null,
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-e612bd35c50c41f59426b737b6b09036"
+          ]
+        }
+      ],
+      "actions": []
+    },
+    {
+      "at": 1790336638.681397,
+      "event": "settled",
+      "task_id": "0e4364a7-aa20-426f-aacb-e9243194c10f",
+      "state": "PAUSED",
+      "state_reason": "decision_scene_changed_before_dispatch",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_known",
+          "usage": {
+            "input_tokens": 1567,
+            "output_tokens": 128,
+            "total_tokens": 1695
+          },
+          "usage_present": true,
+          "estimated_cost_cny": 0.0029265,
+          "reserved_cost_cny": 0,
+          "http_status": 200,
+          "error_code": null,
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-e612bd35c50c41f59426b737b6b09036"
+          ]
+        }
+      ],
+      "actions": []
+    }
+  ],
+  "current_state": "PAUSED",
+  "current_reason": "decision_scene_changed_before_dispatch",
+  "last_running_target_application_package": "com.jev.mobileagent",
+  "recovery_review": {
+    "observation_id": "standalone-device-obs-3495-69628d42a08b4a74acfdd748478ff658",
+    "observation_version": 3495,
+    "captured_at": "2026-09-25T11:45:44.306695Z",
+    "scene_fingerprint": "a6b81b0f9e78011203adf7584d8c3bbfda7c562ac9e043c69d423fefe27c6fab",
+    "semantic_fingerprint": "c2b2b69b3a67333b97882bae8cc392a5911a3dfc6b7b3d8ad419cd2ed0491e6b",
+    "target_application_package": "com.jev.mobileagent",
+    "goal": "在中文输入框中输入“独立手机测试成功”",
+    "goal_outcome": "NOT_VERIFIED",
+    "valid": false,
+    "action_facts": [],
+    "invalidated_reason": "visual_scene_never_matched_after_bounded_resampling"
+  },
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3477-de765101ba174b2bb5f243f3e4e7eed3",
+      "observation_version": 3477,
+      "screenshot_id": "local-shot-e612bd35c50c41f59426b737b6b09036",
+      "error_code": null,
+      "captured_at": "2026-09-25T11:43:46.644605Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3495-69628d42a08b4a74acfdd748478ff658",
+      "observation_version": 3495,
+      "screenshot_id": "local-shot-676529407dd844ca9eef7bec4fb87865",
+      "error_code": null,
+      "captured_at": "2026-09-25T11:45:44.739680Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3502-74fa10f9a0dd46a5b53df415956de4c6",
+      "observation_version": 3502,
+      "screenshot_id": "local-shot-3eeabc39e825451f9a0cf04edf61740c",
+      "error_code": null,
+      "captured_at": "2026-09-25T11:46:12.059726Z",
+      "attempt": 3
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3505-2aa166749a354a56be17b3bd989c89de",
+      "observation_version": 3505,
+      "screenshot_id": "local-shot-ece988ac22d14596b553050f677ffc58",
+      "error_code": null,
+      "captured_at": "2026-09-25T11:46:13.041608Z",
+      "attempt": 4
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3508-1803c9beb41046c78a7edb59b088d645",
+      "observation_version": 3508,
+      "screenshot_id": "local-shot-4c5ad003e5614c1e889cf27e6faa84d4",
+      "error_code": null,
+      "captured_at": "2026-09-25T11:46:14.034993Z",
+      "attempt": 5
+    }
+  ],
+  "confirmation_pixel_comparison": {
+    "cropped_system_bars_px": {
+      "top": 103,
+      "bottom": 48
+    },
+    "reference_observation_version": 3495,
+    "comparison_observation_versions": [
+      3502,
+      3505,
+      3508
+    ],
+    "each_diff_pixel_count": 369,
+    "each_diff_bbox": [
+      60,
+      503,
+      66,
+      576
+    ],
+    "independent_classification": "input caret only",
+    "sampling_intervals_seconds": [
+      0.981882,
+      0.993385
+    ]
+  },
+  "scope": "Actual external Settings switch paused prior to Executor/action; trusted target remained original app. Wrong-app review refused; returning app did not auto-resume. Focused-field confirmation falsely rejected because bounded samples repeatedly captured opposite caret phase. Task remains PAUSED pending cadence fix; no new model call after initial 1. Not a completed recovery acceptance."
+}

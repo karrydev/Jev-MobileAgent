@@ -1,0 +1,35 @@
+{
+  "source_commit": "26732adfdf0ae7aac7ed30140d82a494f1a4d179",
+  "apk_sha256": "b01acfd8e8ae16bd25ceabbb50df787e895f5b50b2c2ba7d3dfe9d584e54ea14",
+  "unit_tests": 123,
+  "failures": 0,
+  "errors": 0,
+  "command": "JAVA_HOME=/Users/liangkairui/Library/Java/JavaVirtualMachines/corretto-17.0.13/Contents/Home ANDROID_HOME=/Users/liangkairui/Library/Android/sdk ./gradlew --offline --no-daemon --console plain :app:testDebugUnitTest :app:assembleDebug",
+  "merge_conflicts": "budget: incoming attempt records exact subset; kept all ours. Service: retained StandardCharsets, both Manager pre/post scene guards around planning request try/catch, opt-in executorPrompt then scene guard and completion hint.",
+  "installed_apk_sha256": "b01acfd8e8ae16bd25ceabbb50df787e895f5b50b2c2ba7d3dfe9d584e54ea14",
+  "installation": "adb install -r succeeded; encrypted configuration and task history retained; no task auto-started",
+  "accessibility_enabled_after_upgrade": true,
+  "device": "OnePlus8T Android14 API34",
+  "phone_global_accounted_cny": 1.4279645,
+  "host_accounted_and_reserved_cny": 2.944233,
+  "review": "26732ad had one runtime-status scene false-positive; corrected by 2bba3d0",
+  "physical_disconnected_acceptance": false,
+  "follow_up": {
+    "source_commit": "2bba3d0a398b1386f728d92031599aaa91ff5f4e",
+    "apk_sha256": "6b01ba47afeab7f75acf00a18cd49c5aae5ae0f592640f46749f5311819f4cce",
+    "affected_policy_tests": 19,
+    "failures": 0,
+    "assemble": "passed",
+    "review": "source clear in recovery27-integrated-review.md",
+    "phone": "actual Settings switch pause and wrong-app recovery refusal passed; focused caret confirmation timing alias failed, recorded in scene01-interim"
+  },
+  "cadence_follow_up": {
+    "source_commit": "1f28e53d915d8e96f12d6897abb0253edaa08245",
+    "apk_sha256": "395add0d7cb806ebeb7c00dbaea6c57aed0b7696c78df28a3d05ba906d3a5c21",
+    "affected_policy_tests": 20,
+    "failures": 0,
+    "assemble": "passed",
+    "change": "bounded staggered screenshot resampling; geometry and final image equality checks retained",
+    "phone": "paused task and fees survived upgrade; focused fresh review and explicit resume succeeded with first comparison sample. This does not prove multi-sample cadence on hardware."
+  }
+}
