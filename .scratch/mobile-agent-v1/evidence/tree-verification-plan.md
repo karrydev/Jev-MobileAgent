@@ -28,7 +28,7 @@
 
 ## 冻结场景入口与时点
 
-MainActivity 的独立 Debug 入口打开 TreeVerificationFixtureActivity；正常 ControlledPageActivity 不新增控件。
+MainActivity 的独立 Debug 入口打开 ControlledPageActivity 的 debug_tree_verification_fixture 模式；正常模式不新增控件。复用现有 Activity，不新建运行入口。
 
 - 加载：目标 `点击“延迟加载按钮”一次，等待页面显示“加载完成”，不要重复点击。`；真实按钮显示“加载中”1200ms，然后“加载完成”。首个加载观察标签PENDING，600ms一次最多两次等待；超限转UNKNOWN，再补证据或暂停。若观察延迟错过加载，不冒称覆盖PENDING，保留尝试并以明确环境变化另编号。
 - 无效果：目标 `点击“无效果按钮”一次，不要重复。`；真实click监听不改页面，树证据标签UNKNOWN，不能仅凭受理报SUCCESS。
@@ -36,3 +36,9 @@ MainActivity 的独立 Debug 入口打开 TreeVerificationFixtureActivity；正�
 - 截图失败：目标 `点击自绘区域蓝框中心`；启动前只打开一次性“下次AFTER截图不可用”，运行时走真实onError路径，不生成伪图片。真实BEFORE保留、AFTER缺失，核验UNKNOWN并暂停/NEEDS_REVIEW；页面真实副作用单独取证。
 
 所有目标由本机任务入口驱动，主协调不手点目标控件。标签按实际捕获时点判分，模型的自述不作为真值。
+
+## 首轮准备偏差与审查暂停
+
+`tree24-off-input01` 使用 d3a5f8c APK，Jev选择开关未成功保存；实际为selection=false/tree=false。任务成功但不符合配对条件，已保留全部请求、截图采集、费用与页面记录，排除配对放行。准备动作修正为每次开关操作后等待UI稳定，并只读确认保存值；后续新编号，不覆盖此尝试。首批八个正式用例额度仍不扩大，额外这一无效尝试计入¥2阶段预算。
+
+Sol审查指出同一步选择与核验共享Jev去重键、预算拒绝后仍进入视觉的问题，暂缓新真实调用；在修复后的同一APK执行正式配对。Debug树外变化页面还需避免把视觉结果写入可访问文本，正常配对页面保留原布局和行为；正常蓝框的规则UNKNOWN不等价于所有树证据不足。
