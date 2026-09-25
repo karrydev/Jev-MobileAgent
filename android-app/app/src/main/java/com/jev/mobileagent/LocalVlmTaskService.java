@@ -991,6 +991,7 @@ public final class LocalVlmTaskService extends Service {
                         pendingPlanningReason = "action_exception";
                         consecutiveActionFailures++;
                         recordPlanningStepOutcome(runTaskId, step, "FAILURE", false,
+                                false, "vlm_action_retained",
                                 false, "", consecutiveActionFailures, loopReplanAttempted);
                         if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
                             recordPlanningStop(runTaskId, step, "repeated_action_failures");
@@ -1175,6 +1176,7 @@ public final class LocalVlmTaskService extends Service {
                         pendingPlanningReason = "action_exception";
                         consecutiveActionFailures++;
                         recordPlanningStepOutcome(runTaskId, step, "FAILURE", false,
+                                false, "vlm_action_retained",
                                 false, "", consecutiveActionFailures, loopReplanAttempted);
                         if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
                             recordPlanningStop(runTaskId, step, "repeated_action_failures");
@@ -1270,7 +1272,8 @@ public final class LocalVlmTaskService extends Service {
                         }
                         boolean observationChanged = observationChanged(before, after);
                         pendingPlanningReason = OnDemandPlanningPolicy.nextPlanReason(
-                                verifiedStatus, effectiveExecutorSubgoalCompleteHint);
+                                verifiedStatus, executorSubgoalCompleteHint,
+                                jevActionSelected, jevSelectionRelation);
                         if ("SUCCESS".equals(verifiedStatus)) {
                             consecutiveActionFailures = 0;
                         } else if ("FAILURE".equals(verifiedStatus)) {
@@ -1280,7 +1283,8 @@ public final class LocalVlmTaskService extends Service {
                             loopReplanAttempted = false;
                         }
                         recordPlanningStepOutcome(runTaskId, step, verifiedStatus,
-                                effectiveExecutorSubgoalCompleteHint, observationChanged,
+                                executorSubgoalCompleteHint, jevActionSelected, jevSelectionRelation,
+                                observationChanged,
                                 observationFingerprintHash(after),
                                 consecutiveActionFailures, loopReplanAttempted);
                         if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
@@ -1326,7 +1330,8 @@ public final class LocalVlmTaskService extends Service {
                     String verifiedStatus = "A".equals(normalizedOutcome) ? "SUCCESS" : "FAILURE";
                     boolean observationChanged = observationChanged(before, after);
                     pendingPlanningReason = OnDemandPlanningPolicy.nextPlanReason(
-                            verifiedStatus, effectiveExecutorSubgoalCompleteHint);
+                            verifiedStatus, executorSubgoalCompleteHint,
+                            jevActionSelected, jevSelectionRelation);
                     if ("SUCCESS".equals(verifiedStatus)) {
                         consecutiveActionFailures = 0;
                     } else {
@@ -1336,7 +1341,8 @@ public final class LocalVlmTaskService extends Service {
                         loopReplanAttempted = false;
                     }
                     recordPlanningStepOutcome(runTaskId, step, verifiedStatus,
-                            effectiveExecutorSubgoalCompleteHint, observationChanged,
+                            executorSubgoalCompleteHint, jevActionSelected, jevSelectionRelation,
+                            observationChanged,
                             observationFingerprintHash(after),
                             consecutiveActionFailures, loopReplanAttempted);
                     if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
@@ -2482,11 +2488,14 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private void recordPlanningStepOutcome(String runTaskId, int completedStep, String verificationStatus,
-            boolean executorSubgoalCompleteHint, boolean observationChanged,
+            boolean executorReportedCompleteHint, boolean jevSelectedAction, String selectionRelation,
+            boolean observationChanged,
             String afterObservationSha256,
             int consecutiveActionFailures, boolean loopReplanAttempted) throws TaskFailure, JSONException {
         String nextReason = OnDemandPlanningPolicy.nextPlanReason(
-                verificationStatus, executorSubgoalCompleteHint);
+                verificationStatus, executorReportedCompleteHint, jevSelectedAction, selectionRelation);
+        boolean effectiveExecutorSubgoalCompleteHint = OnDemandPlanningPolicy.executorCompletionHintApplies(
+                executorReportedCompleteHint, jevSelectedAction, selectionRelation);
         boolean verificationPaused = "UNKNOWN".equals(verificationStatus)
                 || "PENDING".equals(verificationStatus);
         recordPlanningEvent(runTaskId, new JSONObject()
@@ -2497,7 +2506,7 @@ public final class LocalVlmTaskService extends Service {
                         : nextReason.isEmpty() ? "plan_still_current" : nextReason)
                 .put("step", completedStep)
                 .put("verification_status", verificationStatus)
-                .put("executor_subgoal_complete_hint", executorSubgoalCompleteHint)
+                .put("executor_subgoal_complete_hint", effectiveExecutorSubgoalCompleteHint)
                 .put("next_plan_reason", nextReason)
                 .put("observation_changed", observationChanged)
                 .put("after_observation_sha256", afterObservationSha256 == null ? "" : afterObservationSha256)

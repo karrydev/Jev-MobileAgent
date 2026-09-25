@@ -195,6 +195,18 @@ final class OnDemandPlanningPolicy {
         return "";
     }
 
+    /** Combines the verified outcome with the action Jev actually selected for execution. */
+    static String nextPlanReason(String verificationStatus, boolean executorMarkedComplete,
+            boolean jevSelectedAction, String selectionRelation) {
+        if ("SUCCESS".equals(verificationStatus) && jevSelectedAction
+                && "different_action".equals(selectionRelation)) {
+            return "jev_action_changed";
+        }
+        return nextPlanReason(verificationStatus,
+                executorCompletionHintApplies(executorMarkedComplete, jevSelectedAction,
+                        selectionRelation));
+    }
+
     private static String normalizeAction(String value) {
         return value == null ? "" : value.trim();
     }

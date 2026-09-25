@@ -103,6 +103,25 @@ public final class OnDemandPlanningPolicyTest {
     }
 
     @Test
+    public void successfulChangedJevActionInvalidatesPlanWithoutTreatingItAsSubgoalCompletion() {
+        // The current fixture reports IN_PROGRESS_OR_UNKNOWN, but Jev still replaced the proposed action.
+        assertEquals("jev_action_changed", OnDemandPlanningPolicy.nextPlanReason(
+                "SUCCESS", false, true, "different_action"));
+        assertEquals("jev_action_changed", OnDemandPlanningPolicy.nextPlanReason(
+                "SUCCESS", true, true, "different_action"));
+        assertEquals("", OnDemandPlanningPolicy.nextPlanReason(
+                "SUCCESS", false, true, "same_action"));
+        assertEquals("", OnDemandPlanningPolicy.nextPlanReason(
+                "SUCCESS", false, false, "vlm_action_retained"));
+        assertEquals("subgoal_completed", OnDemandPlanningPolicy.nextPlanReason(
+                "SUCCESS", true, true, "same_action"));
+        assertEquals("", OnDemandPlanningPolicy.nextPlanReason(
+                "UNKNOWN", true, true, "different_action"));
+        assertEquals("action_exception", OnDemandPlanningPolicy.nextPlanReason(
+                "FAILURE", true, true, "different_action"));
+    }
+
+    @Test
     public void confirmedResumeKeepsFailureAndLoopLimitsButRequestsFreshPlan() throws Exception {
         JSONArray events = new JSONArray().put(new JSONObject()
                 .put("event", "verified_step_outcome")
