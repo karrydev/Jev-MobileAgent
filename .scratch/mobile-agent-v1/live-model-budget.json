@@ -1368,8 +1368,60 @@
       "requests": 0,
       "jev_requests": 0,
       "accounted_cny_in_app": 0
+    },
+    {
+      "id": "planning25-off-input03",
+      "source_commit": "bec1606b77368aa6139556c0e6b7824c0b238d28",
+      "result": "CANCELLED: user_ended_after_fresh_reconciliation",
+      "budget_reservation_cny": 0.010000000000000002,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0392055,
+      "actual_billed_cny": null,
+      "requests": 10,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.0492055
+    },
+    {
+      "id": "planning25-on-input02",
+      "source_commit": "bec1606b77368aa6139556c0e6b7824c0b238d28",
+      "result": "CANCELLED: user_ended_after_fresh_reconciliation",
+      "budget_reservation_cny": 0.019999999999999997,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0416175,
+      "actual_billed_cny": null,
+      "requests": 10,
+      "jev_requests": 2,
+      "accounted_cny_in_app": 0.0616175
+    },
+    {
+      "id": "planning25-off-visual01",
+      "source_commit": "bec1606b77368aa6139556c0e6b7824c0b238d28",
+      "result": "CANCELLED: user_ended_after_fresh_reconciliation",
+      "budget_reservation_cny": 0.030000000000000006,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0315165,
+      "actual_billed_cny": null,
+      "requests": 8,
+      "jev_requests": 3,
+      "accounted_cny_in_app": 0.06151650000000001
+    },
+    {
+      "id": "planning25-on-visual01",
+      "source_commit": "bec1606b77368aa6139556c0e6b7824c0b238d28",
+      "result": "CANCELLED: user_ended_after_fresh_reconciliation",
+      "budget_reservation_cny": 0.05,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0378975,
+      "actual_billed_cny": null,
+      "requests": 9,
+      "jev_requests": 5,
+      "accounted_cny_in_app": 0.0878975
     }
   ],
-  "estimated_list_price_total_cny": 1.668915,
+  "estimated_list_price_total_cny": 1.8191519999999999,
   "unknown_usage_request_count": 4
 }

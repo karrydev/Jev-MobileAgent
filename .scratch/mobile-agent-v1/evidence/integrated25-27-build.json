@@ -40,5 +40,13 @@
     "diff": "two setMaxLines(3) replaced with setLines(3); no scene guard changes",
     "review": "main inspected exact two-line UI fix; existing policy review remains applicable",
     "unit_tests": "not repeated for fixed line count UI change; phone geometry check pending"
+  },
+  "pixel_height_follow_up": {
+    "source_commit": "bec1606b77368aa6139556c0e6b7824c0b238d28",
+    "apk_sha256": "dfdc4b261b3182be1e2d21907da8feec30e53a32c6d4fbdd039d3db9e7a2ea4c",
+    "apk_path": "/tmp/recovery27-evidence/integrated-bec1606.apk",
+    "assemble": "passed",
+    "scope": "fixed own status region pixel height including font padding; target scene safety unchanged",
+    "verification": "Six RUNNING observations in planning25-off-input03 retained identical status/control bounds; runtime-status-layout-validation.json. Four paired tasks completed with failed goals due to coordinate protocol incompatibility; on-demand-planning-validation.md. Earlier source gates remain valid."
   }
 }

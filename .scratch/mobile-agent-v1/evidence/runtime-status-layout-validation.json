@@ -1,0 +1,67 @@
+{
+  "source_commit": "bec1606b77368aa6139556c0e6b7824c0b238d28",
+  "attempt": "planning25-off-input03",
+  "rows": [
+    {
+      "observation_version": 3613,
+      "bounds": {
+        "left": 0,
+        "top": 2198,
+        "right": 1080,
+        "bottom": 2343
+      },
+      "text": "本地任务：已启动；可用此页或通知栏随时暂停/取消"
+    },
+    {
+      "observation_version": 3619,
+      "bounds": {
+        "left": 0,
+        "top": 2198,
+        "right": 1080,
+        "bottom": 2343
+      },
+      "text": "本地任务：RUNNING · 本任务 ¥0.0198 / ¥1，全局 ¥1.5100 / ¥10"
+    },
+    {
+      "observation_version": 3621,
+      "bounds": {
+        "left": 0,
+        "top": 2198,
+        "right": 1080,
+        "bottom": 2343
+      },
+      "text": "本地任务：RUNNING · 本任务 ¥0.0339 / ¥1，全局 ¥1.5242 / ¥10"
+    },
+    {
+      "observation_version": 3625,
+      "bounds": {
+        "left": 0,
+        "top": 2198,
+        "right": 1080,
+        "bottom": 2343
+      },
+      "text": "本地任务：RUNNING · 本任务 ¥0.0416 / ¥1，全局 ¥1.5319 / ¥10"
+    },
+    {
+      "observation_version": 3628,
+      "bounds": {
+        "left": 0,
+        "top": 2198,
+        "right": 1080,
+        "bottom": 2343
+      },
+      "text": "本地任务：RUNNING · 本任务 ¥0.0457 / ¥1，全局 ¥1.5360 / ¥10"
+    },
+    {
+      "observation_version": 3631,
+      "bounds": {
+        "left": 0,
+        "top": 2198,
+        "right": 1080,
+        "bottom": 2343
+      },
+      "text": "本地任务：RUNNING · 本任务 ¥0.0536 / ¥1，全局 ¥1.5439 / ¥10"
+    }
+  ],
+  "stable_bounds": true
+}

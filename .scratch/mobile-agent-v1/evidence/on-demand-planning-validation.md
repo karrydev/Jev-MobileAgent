@@ -16,4 +16,23 @@
 
 on-input01准备时协调者误开树核验Debug夹具，目标为延迟加载，不属于有效中文ON对照。零模型/零Jev/零动作，费用0；尚未请求就因本App状态节点字体度量差异145→146px暂停，fresh核对后结束。该准备失误和1px布局尾差均记录，修复精确状态区域高度后正常页以新编号开始。
 
-模型区别核查：[百炼官方说明](https://help.aliyun.com/zh/model-studio/gui-automation)分别列出gui-plus和gui-plus-2026-02-26，并说明后者能力升级；不能把同费率理解为同一行为版本。当前四角色使用显式0–1000坐标约定，既不根据单次错误点击猜测新坐标协议，也不自动调整缩放来拟合答案。
+## bec1606 同 APK 四项对照
+
+APK SHA-256 `dfdc4b261b3182be1e2d21907da8feec30e53a32c6d4fbdd039d3db9e7a2ea4c`。精确固定状态区高度后，input03 的六个 RUNNING 观察中状态与控制区 bounds 保持一致，见 [布局证据](runtime-status-layout-validation.json)。
+
+| 尝试 | 规划 | 实际结果 / 试验停止原因 | VLM / Jev | 步 / 动作 | 试验耗时秒 | 费用含预留元 |
+| --- | --- | --- | --- | --- | --- | --- |
+| [off-input03](planning25-off-input03.json) | OFF | 输入为空；max_steps_reached | 10 / 1 | 5 / 1 | 35.286276 | 0.0492055 |
+| [on-input02](planning25-on-input02.json) | ON | 输入为空；repeated_action_failures | 10 / 2 | 5 / 2 | 35.740105 | 0.0616175 |
+| [off-visual01](planning25-off-visual01.json) | OFF | 蓝框仍为 ready；overall_goal_not_verified_after_executor_finished | 8 / 3 | 3 / 2 | 26.591111 | 0.0615165 |
+| [on-visual01](planning25-on-visual01.json) | ON | 蓝框仍为 ready；同上 | 9 / 5 | 4 / 3 | 32.863560 | 0.0878975 |
+
+四次均经 fresh 核对后由协调者明确结束为 CANCELLED，未核实整体目标完成；模型逐步 SUCCESS 的历史未被改写。耗时使用试验首次停止时记录，不混入人工核对结束的时间。ON 输入记录了3次计划更新、2次复用及动作异常后重规划；ON 蓝框 Manager 2次、Executor 4次、Reflector 3次。失败样本不能证明任务25放行或规划收益。
+
+## gui-plus 协议缺口与后续边界
+
+[百炼官方说明](https://help.aliyun.com/zh/model-studio/gui-automation)明确两版系统提示不能共用：日期版移动端示例使用0–1000坐标，精确 gui-plus 示例使用处理后图像宽高与像素坐标。现有 Android 路径统一提示并换算0–1000，未实现模型专属上传图像/坐标适配。这是已确认的协议适配缺口，尚不能据上述失败评价 gui-plus 的固有能力。
+
+输入任务历史中的[120,290]被换算为屏幕[129,696]；蓝框任务[486,990]被换算为[525,2376]，实际目标未被命中。这些坐标仅是失败证据，不据此猜测缩放或拟合目标答案。后续修复应明确上传图像尺寸、坐标单位和到原屏幕的映射；保留原观察身份及安全核对，日期版原协议保持独立。
+
+适配改变模型输入与动作映射，修复后必须采用新尝试编号与新 APK；上述原始配对、失败及费用继续保留。截至本轮四项结束，Jev 已用35/40次，只余5次；累计费用仍按全局总账计算，不能仅以当前阶段费用或手机累计值替代。任务25保持进行中。
