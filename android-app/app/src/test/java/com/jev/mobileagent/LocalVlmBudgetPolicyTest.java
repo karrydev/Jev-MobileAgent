@@ -8,10 +8,13 @@ import org.junit.Test;
 
 public class LocalVlmBudgetPolicyTest {
     @Test
-    public void onlyReviewedProviderAndModelCanPassThePriceGate() {
+    public void onlyExplicitlyReviewedProviderModelsCanPassThePriceGate() {
         assertTrue(LocalVlmBudgetPolicy.isReviewedProfile("gui-plus", "gui-plus-2026-02-26"));
+        assertTrue(LocalVlmBudgetPolicy.isReviewedProfile("GUI-Plus", "gui-plus"));
         assertFalse(LocalVlmBudgetPolicy.isReviewedProfile("GUI-Plus", "another-model"));
+        assertFalse(LocalVlmBudgetPolicy.isReviewedProfile("GUI-Plus", "gui-plus-2026-02-26-preview"));
         assertFalse(LocalVlmBudgetPolicy.isReviewedProfile("another-provider", "gui-plus-2026-02-26"));
+        assertFalse(LocalVlmBudgetPolicy.isReviewedProfile("another-provider", "gui-plus"));
     }
 
     @Test

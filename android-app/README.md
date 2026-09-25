@@ -19,7 +19,7 @@ export JEV_ANDROID_SDK=/path/to/android-sdk
 
 ## App 配置和操作
 
-1. 在主页面填写 VLM 的供应商、HTTPS endpoint、模型及 API Key，点击保存。当前付费任务只放行已配置费率的 `GUI-Plus` / `gui-plus-2026-02-26`。
+1. 在主页面填写 VLM 的供应商、HTTPS endpoint、模型及 API Key，点击保存。当前付费任务只放行已配置费率的 `GUI-Plus` / `gui-plus` 与 `GUI-Plus` / `gui-plus-2026-02-26`；北京区域两者均按输入 ¥1.5/百万 token、输出 ¥4.5/百万 token 核算（[GUI Automation 官方费率](https://help.aliyun.com/zh/model-studio/gui-automation)、[GUI-Plus 官方文档](https://help.aliyun.com/zh/model-studio/gui-plus)）。
 2. Jev 配置单独保存，可留空。任务 22 的影子开关默认关闭；启用后只记录建议，设备仍由 VLM 操作，任务 23 的受控选择开关与影子开关独立，默认关闭；树核验/按需规划由 24–25 接入。开发者的 env 文件不是用户配置入口。
 3. 开启 **Jev local task accessibility** 无障碍服务，并允许通知。通知提供任务启动、暂停和取消入口。
 4. 受控验证：打开受控测试页面，选择“中文输入目标”或“视觉手势目标”，点击“开始本地 VLM 任务”。

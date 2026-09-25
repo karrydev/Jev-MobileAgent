@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
         settingsStatus.setTextIsSelectable(true);
         root.addView(settingsStatus, marginTop(widthMatchWrap(), 6));
         root.addView(label("预算限制", 18, Color.rgb(35, 50, 65)), marginTop(widthMatchWrap(), 14));
-        root.addView(label("当前可执行模型：GUI-Plus gui-plus-2026-02-26。每任务上限 ¥1、全局累计上限 ¥10；usage 缺失或费用超限时会暂停。其他模型可保存，完成费率审查前不能启动付费任务。", 13,
+        root.addView(label("当前可执行模型：GUI-Plus gui-plus、gui-plus-2026-02-26（北京区域输入 ¥1.5/百万 token，输出 ¥4.5/百万 token）。每任务上限 ¥1、全局累计上限 ¥10；usage 缺失或费用超限时会暂停。其他模型可保存，完成费率审查前不能启动付费任务。", 13,
                 Color.DKGRAY), widthMatchWrap());
 
         CheckBox jevShadow = new CheckBox(this);

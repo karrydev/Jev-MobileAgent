@@ -2,10 +2,11 @@ package com.jev.mobileagent;
 
 import java.util.Locale;
 
-/** Price gate for the one model rate reviewed for this mobile acceptance run. */
+/** Price gate for the models reviewed for this mobile acceptance run. */
 public final class LocalVlmBudgetPolicy {
     public static final String REVIEWED_PROVIDER = "GUI-Plus";
     public static final String REVIEWED_MODEL = "gui-plus-2026-02-26";
+    public static final String REVIEWED_MODEL_SHORT_NAME = "gui-plus";
     public static final int INPUT_TOKEN_RESERVATION_ESTIMATE = 8192;
     public static final int OUTPUT_TOKEN_LIMIT = 1024;
     public static final double INPUT_CNY_PER_MILLION = 1.5;
@@ -15,8 +16,10 @@ public final class LocalVlmBudgetPolicy {
     }
 
     public static boolean isReviewedProfile(String provider, String model) {
+        String normalizedModel = normalize(model);
         return REVIEWED_PROVIDER.toLowerCase(Locale.ROOT).equals(normalize(provider))
-                && REVIEWED_MODEL.equals(normalize(model));
+                && (REVIEWED_MODEL.equals(normalizedModel)
+                || REVIEWED_MODEL_SHORT_NAME.equals(normalizedModel));
     }
 
     /** This estimate is not a request input limit; actual provider usage is settled after response. */
