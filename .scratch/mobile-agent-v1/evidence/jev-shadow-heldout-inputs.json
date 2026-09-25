@@ -1,0 +1,208 @@
+{
+  "format": "jev-shadow-heldout-input-template-v1",
+  "note": "Only captured_at is replaced with run start UTC immediately before sending each case; all semantic fields frozen. No truth sent to App input.",
+  "cases": [
+    {
+      "case_id": "jev22-heldout-music-pause",
+      "instruction": "暂停当前正在播放的音乐",
+      "observation": {
+        "observation_id": "obs-jev22-heldout-music-pause",
+        "observation_version": 1,
+        "page_state": "observed",
+        "availability": "AVAILABLE",
+        "captured_at": "$RUN_START_ISO_UTC",
+        "nodes": [
+          {
+            "node_id": "pause",
+            "label": "暂停",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          },
+          {
+            "node_id": "next-track",
+            "label": "下一首",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          }
+        ]
+      },
+      "known_parameters": {}
+    },
+    {
+      "case_id": "jev22-heldout-completed-tab",
+      "instruction": "只切换到已完成任务标签，不删除任务",
+      "observation": {
+        "observation_id": "obs-jev22-heldout-completed-tab",
+        "observation_version": 1,
+        "page_state": "observed",
+        "availability": "AVAILABLE",
+        "captured_at": "$RUN_START_ISO_UTC",
+        "nodes": [
+          {
+            "node_id": "pending-tab",
+            "label": "待办",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          },
+          {
+            "node_id": "completed-tab",
+            "label": "已完成",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          },
+          {
+            "node_id": "delete-task",
+            "label": "删除任务",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          }
+        ]
+      },
+      "known_parameters": {}
+    },
+    {
+      "case_id": "jev22-heldout-keep-draft",
+      "instruction": "保留草稿并返回列表，不丢弃内容",
+      "observation": {
+        "observation_id": "obs-jev22-heldout-keep-draft",
+        "observation_version": 1,
+        "page_state": "observed",
+        "availability": "AVAILABLE",
+        "captured_at": "$RUN_START_ISO_UTC",
+        "nodes": [
+          {
+            "node_id": "discard",
+            "label": "丢弃草稿",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          },
+          {
+            "node_id": "keep-and-back",
+            "label": "保留草稿并返回",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          }
+        ]
+      },
+      "known_parameters": {}
+    },
+    {
+      "case_id": "jev22-heldout-city-text",
+      "instruction": "在城市输入框输入“上海”，不要立即提交",
+      "observation": {
+        "observation_id": "obs-jev22-heldout-city-text",
+        "observation_version": 1,
+        "page_state": "observed",
+        "availability": "AVAILABLE",
+        "captured_at": "$RUN_START_ISO_UTC",
+        "nodes": [
+          {
+            "node_id": "city-input",
+            "label": "城市",
+            "role": "text_field",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "input_text"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          },
+          {
+            "node_id": "submit",
+            "label": "提交",
+            "role": "button",
+            "enabled": true,
+            "visible_to_user": true,
+            "actions": [
+              "tap"
+            ],
+            "bounds": {
+              "left": 100,
+              "top": 200,
+              "right": 500,
+              "bottom": 300
+            }
+          }
+        ]
+      },
+      "known_parameters": {
+        "text": "上海"
+      }
+    }
+  ]
+}

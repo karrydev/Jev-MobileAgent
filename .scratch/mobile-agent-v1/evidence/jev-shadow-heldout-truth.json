@@ -1,0 +1,37 @@
+{
+  "format": "jev-shadow-independent-truth-v1",
+  "records": [
+    {
+      "case_id": "jev22-heldout-music-pause",
+      "acceptable_target_node_ids": [
+        "pause"
+      ],
+      "source": "frozen synthetic task meaning; not VLM output",
+      "split": "holdout"
+    },
+    {
+      "case_id": "jev22-heldout-completed-tab",
+      "acceptable_target_node_ids": [
+        "completed-tab"
+      ],
+      "source": "frozen synthetic task meaning; not VLM output",
+      "split": "holdout"
+    },
+    {
+      "case_id": "jev22-heldout-keep-draft",
+      "acceptable_target_node_ids": [
+        "keep-and-back"
+      ],
+      "source": "frozen synthetic task meaning; not VLM output",
+      "split": "holdout"
+    },
+    {
+      "case_id": "jev22-heldout-city-text",
+      "acceptable_target_node_ids": [
+        "city-input"
+      ],
+      "source": "frozen synthetic task meaning; not VLM output",
+      "split": "holdout"
+    }
+  ]
+}
