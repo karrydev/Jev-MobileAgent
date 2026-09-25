@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Jev Android Observation</string>
-    <string name="accessibility_service_label">Jev observation service</string>
-    <string name="accessibility_service_description">Captures the current accessible window and node tree for the paired Jev bridge.</string>
+    <string name="app_name">Jev Mobile Agent</string>
+    <string name="accessibility_service_label">Jev local task accessibility</string>
+    <string name="accessibility_service_description">Reads the current screen locally and performs observation-bound actions only during a task started in Jev Mobile Agent.</string>
 </resources>

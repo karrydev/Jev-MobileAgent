@@ -1,166 +1,44 @@
-# Jev Android observation app
+# Jev Android App
 
-> 2026-09-25：以下说明当前桥接式实现或其历史验收。按 [ADR-0003](../docs/adr/0003-standalone-android-runtime.md)，最终产品改为手机内编排；这些操作不作为独立 App 用户的使用前提，迁移由任务 26/27 验收。
+本目录承载[独立 Android 运行时](../docs/adr/0003-standalone-android-runtime.md)：App 在手机内观察、规划、执行、核验和记录任务，直接请求模型供应商。产品入口不再配置设备桥地址或 Token。
 
-This is the minimal real device bridge for task 06. It is a plain Java
-Android app with no external runtime dependency. The app has two screens:
+任务 26 尚在实施和验收。当前已取得真实 VLM 的中文输入与视觉点击 USB 联调记录；它们不是断开 USB 后的独立使用验收。完整中断恢复和最终交付分别由 27、28 验收，状态见[任务索引](../.scratch/mobile-agent-v1/index.md)。
 
-* **Jev Android observation** stores the bridge URL, token, device identity and
-  task identity, shows connection and Accessibility permission status, pairs
-  with the bridge, and displays the latest current observation returned by the
-  server.
-* **Controlled observation page** provides visible text, state and a button so
-  the device evidence comes from a real accessibility tree rather than a
-  hand-written fixture.
+## 构建与安装
 
-## Build and install
-
-The checked-in Gradle wrapper pins Gradle 9.4.1. `bootstrap.sh` locates the
-Android SDK from `JEV_ANDROID_SDK`, `ANDROID_SDK_ROOT`, or the standard macOS
-and Linux SDK locations, then runs that wrapper. From this directory:
+使用 JDK 17 和 Android SDK（android-35）。Gradle wrapper 固定版本，SDK 可通过环境变量或标准安装路径发现：
 
 ```bash
 export JEV_ANDROID_SDK=/path/to/android-sdk
-./bootstrap.sh --offline --no-daemon --console plain :app:assembleDebug
+./bootstrap.sh --offline --no-daemon --console plain :app:testDebugUnitTest :app:assembleDebug
 "$JEV_ANDROID_SDK/platform-tools/adb" -s <device-serial> \
   install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-`--offline` is reproducible after the pinned Gradle distribution and Android
-Gradle Plugin dependencies are present in the local Gradle cache. Omit it only
-when the first wrapper/dependency download is intentionally allowed. The app
-build is self-contained under `android-app/`; no system `gradle` or global
-`ANDROID_HOME` setting is required.
+`--offline` 要求 wrapper 和依赖已进入本地 Gradle 缓存。首次下载依赖时可省略该参数。ADB 只用于开发安装和验收取证，用户运行任务无需安装开发工具。
 
-## Emulator run
+## App 配置和操作
 
-Start the Python bridge on the host first:
+1. 在主页面填写 VLM 的供应商、HTTPS endpoint、模型及 API Key，点击保存。当前付费任务只放行已配置费率的 `GUI-Plus` / `gui-plus-2026-02-26`。
+2. Jev 配置单独保存，可留空；本阶段仍由 VLM 控制任务，Jev 策略由 22–25 接入。开发者的 env 文件不是用户配置入口。
+3. 开启 **Jev local task accessibility** 无障碍服务，并允许通知。通知提供任务启动、暂停和取消入口。
+4. 受控验证：打开受控测试页面，选择“中文输入目标”或“视觉手势目标”，点击“开始本地 VLM 任务”。
+5. 其他应用：填写目标，点击“准备在其他应用中运行”，切换到目标应用，再从通知点击“开始任务”。
 
-```bash
-JEV_ANDROID_AUTH_TOKEN=local-dev-token \
-python3 -m services.android_bridge --host 0.0.0.0 --port 8765 \
-  --device-id android-emulator-01
-```
+VLM 和 Jev Key 使用 Android Keystore 支持的 AES-GCM 加密保存，界面不回显。端点或供应商变更时须重新输入 Key；同一配置留空则保留。每种配置均可独立清除。旧桥接版本的 VLM 明文设置仅在成功迁移后移除；加密或解密失败会要求重新输入。
 
-On the Android emulator, `http://10.0.2.2:8765` routes to the host. Launch
-the app, keep the matching local token and identity, open Android's
-Accessibility settings, enable **Jev observation service**, and return to the
-app. Press **Connect and capture observation**, then open the controlled page.
-The service captures on the page/window events and posts the real windows and
-node tree. A fresh tree appears in the app and can also be read from:
+任务和证据留在 App 私有目录；普通使用无需读取开发机文件，也不把 Key 转发给设备桥。应用备份关闭。
 
-```bash
-curl -sS \
-  -H 'Authorization: Bearer local-dev-token' \
-  -H 'X-JEV-Protocol-Version: 1' \
-  -H 'X-JEV-Device-Id: android-emulator-01' \
-  'http://127.0.0.1:8765/v1/android/observations/latest?device_id=android-emulator-01'
-```
+## 当前边界
 
-The app posts an explicit `PERMISSION_UNAVAILABLE` observation when the
-service is disabled. An empty active root is reported as `EMPTY_TREE`. If a
-bridge request fails, the visible screen clears its latest observation and
-shows a disconnected reason; it does not continue presenting the previous
-tree as current. The bridge also refuses stale observation versions and stale
-latest reads.
+- 同时只有一个任务。每任务最多 5 步、25 次模型请求、单请求最多 1024 输出 token；每任务估算上限 ¥1，本地累计上限 ¥10。其他模型可保存，但尚不能通过当前费率门控。
+- 请求前按 8192 输入 token 和输出上限估算预留；8192 不是输入硬上限。用量结算超额会停止后续请求，缺少 usage 保留预留并暂停。报告中的费用是标价估算，账户免费额度和实际账单需另核对。
+- 模型的完成自述不等于独立终局成功。当前独立判据面向已冻结的受控中文输入和视觉点击目标；未支持的目标或证据不足进入待核对状态。
+- 已发生动作不能被暂停撤销。结果未知的动作保留记录和任务占用；完整核对、用户确认恢复流程由任务 27 完成。
+- 系统权限撤销、执行服务终止等情况停止新动作；不承诺锁屏自动操作或无限后台常驻。开发真机测试结束后锁屏。
 
-## USB-connected phone run
+## 移植来源与历史证据
 
-Use an isolated bridge port and scope every ADB command to the intended serial.
-`adb reverse` is only a debugging tunnel; it is not the deployment model.
+角色和提示词对照 `agent_core/vlm/roles.py`、`agent_core/vlm/orchestration.py`，保留 MobileAgent v3.5 来源。默认角色流程包含 Manager、Executor、Action Reflector；Notetaker 的默认关闭行为保持不变。
 
-```bash
-export JEV_ANDROID_SDK=/path/to/android-sdk
-JEV_ANDROID_AUTH_TOKEN=local-dev-token \
-python3 -m services.android_bridge --host 127.0.0.1 --port 18765 \
-  --device-id android-phone-01
-
-"$JEV_ANDROID_SDK/platform-tools/adb" -s <device-serial> \
-  reverse tcp:18765 tcp:18765
-```
-
-Set the app endpoint to `http://127.0.0.1:18765`, use the matching token and
-`android-phone-01` identity, and perform the same pairing and controlled-page
-steps. Remove only this serial's reverse rule after the run with
-`adb -s <device-serial> reverse --remove tcp:18765`.
-
-When Accessibility is revoked, the service posts a fresh
-`PERMISSION_UNAVAILABLE` observation with an empty tree before stopping. The
-app also checks permission and bridge freshness when it returns to the
-foreground, so it clears the old tree on revocation, a failed bridge request,
-or a stale latest response.
-
-## Reproducible deterministic node task
-
-On the connection screen, set the endpoint, token, device identity and a new
-task identity for the run, then press **Connect and capture observation**.
-This saves the pairing and task configuration and uploads the first fresh
-tree. Use the deterministic goal buttons to fill either the click goal or the
-Chinese input goal, then press **Open controlled observation page** and press
-**Start configured node task** there. The app captures and
-uploads a fresh before observation, submits the goal, polls the bridge, and
-performs the returned `tap` or `set_text` through the Accessibility service.
-It captures the after observation and sends the execution receipt before
-showing the task result. The product action must come from this app flow;
-`adb` is only for installation, transport setup, or observing the device.
-
-Use the same bridge headers shown above to inspect a run, replacing the task
-identity with the value entered in the app:
-
-```bash
-curl -sS \
-  -H 'Authorization: Bearer local-dev-token' \
-  -H 'X-JEV-Protocol-Version: 1' \
-  -H 'X-JEV-Device-Id: android-emulator-01' \
-  'http://127.0.0.1:8765/v1/android/tasks/<task-id>'
-```
-
-Task identities are single-use while retained by the bridge, so a rerun needs
-a new identity and a new **Connect and capture observation** pairing. Pausing
-leaves the existing task in `PAUSED`; the app keeps **Cancel task** enabled
-and disables **Start node task** so a pause cannot be mistaken for a new
-submission. Cancel the paused task from the controlled page before beginning
-another run.
-
-## Reproducible visual and gesture task
-
-The controlled page includes a small self-drawn gesture surface whose semantic
-description is intentionally empty. Its separate `Visual gesture state` text
-node records the observed result. The page also keeps the Chinese `EditText`,
-the node-addressable controlled-state button, and the system-back state on the
-same screen, so IME, semantic-missing, rotation, and window-stack cases can be
-checked without operating a private app.
-
-Use a new task identity, pair and capture first, then choose one of these
-goals on the connection screen before opening the controlled page:
-
-| Goal | Accessibility action | Expected independent page state |
-| --- | --- | --- |
-| `长按“切换受控状态”按钮` | retained-node long press | `long press completed` |
-| `滑动视觉目标` | coordinate swipe through the visual surface | `swipe completed` |
-| `点击坐标(540,1200)` | coordinate tap | `coordinate tap completed` |
-| `系统返回` | Accessibility global Back | `system back completed` |
-
-For visual goals the App first uploads a fresh tree and a real API 30+
-Accessibility screenshot tagged `BEFORE` with that observation id/version.
-The bridge refuses the action if that image is absent or belongs to another
-observation. After Accessibility reports the gesture/global action complete,
-the App uploads a fresh `AFTER` observation and screenshot before sending the
-receipt. The receipt records acceptance separately from the postcondition;
-missing screenshot reasons leave a visual task paused rather than reporting
-success. Screenshot capture and successful upload counters are separate fields
-in the screenshot payload. A failed capture or upload is sent as an unavailable
-visual event with its reason and counters; the bridge exposes that metadata on
-the latest observation and task status while keeping the failed event out of
-the usable BEFORE/AFTER image index.
-
-The action frame carries display size, model size, rotation, system-bar
-insets, window offset, coordinate space, and the bound active window identity
-and bounds. Screen coordinates are scaled in the current display orientation;
-rotation is a freshness guard rather than a second coordinate transform. The
-service rejects a changed display or bound window, checks the active/focused
-Accessibility window and every higher-layer intersection, then maps model
-coordinates before `dispatchGesture`. A rotation, multi-window change, or
-overlay therefore requires a new observation. A screenshot may also be
-rejected by a secure window or revoked permission; inspect the task failure
-reason and pair a new identity after the page is stable.
+旧 Python 设备桥、运行脚本与任务 19/20 的证据保留为开发参考，不构成新 App 的运行依赖，也不替代手机内基线。旧版桥接 App 的构建和操作说明可从 Git 历史及 [App+VLM 历史验证](../docs/app-vlm-validation.md)、[恢复历史验证](../docs/android-recovery-validation.md) 查阅。
