@@ -20,7 +20,7 @@ export JEV_ANDROID_SDK=/path/to/android-sdk
 ## App 配置和操作
 
 1. 在主页面填写 VLM 的供应商、HTTPS endpoint、模型及 API Key，点击保存。当前付费任务只放行已配置费率的 `GUI-Plus` / `gui-plus-2026-02-26`。
-2. Jev 配置单独保存，可留空；本阶段仍由 VLM 控制任务，Jev 策略由 22–25 接入。开发者的 env 文件不是用户配置入口。
+2. Jev 配置单独保存，可留空。任务 22 的影子开关默认关闭；启用后只记录建议，设备仍由 VLM 操作，实际 Jev 选择/树核验/按需规划由 23–25 接入。开发者的 env 文件不是用户配置入口。
 3. 开启 **Jev local task accessibility** 无障碍服务，并允许通知。通知提供任务启动、暂停和取消入口。
 4. 受控验证：打开受控测试页面，选择“中文输入目标”或“视觉手势目标”，点击“开始本地 VLM 任务”。
 5. 其他应用：填写目标，点击“准备在其他应用中运行”，切换到目标应用，再从通知点击“开始任务”。
@@ -28,6 +28,12 @@ export JEV_ANDROID_SDK=/path/to/android-sdk
 VLM 和 Jev Key 使用 Android Keystore 支持的 AES-GCM 加密保存，界面不回显。端点或供应商变更时须重新输入 Key；同一配置留空则保留。每种配置均可独立清除。旧桥接版本的 VLM 明文设置仅在成功迁移后移除；加密或解密失败会要求重新输入。
 
 任务和证据留在 App 私有目录；普通使用无需读取开发机文件，也不把 Key 转发给设备桥。应用备份关闭。
+
+## Jev 影子建议
+
+使用已保存的 `TypeSafe` / `jev-1.13.0` 配置和 `https://api.typesafe.ai/v1/systemone`，在新任务开始前启用影子开关。每步最多一次 Jev 请求，当前试验累计最多20次，每次保守占用 ¥0.01；token 用量与未知实际费用分开记录，不虚构汇率。空候选或缺少输入文本在本地回退；合法或高置信建议不代表正确，尤其自绘目标可能不在节点候选中。
+
+Debug 构建包含单次协议探针及私有 JSON 样例入口，供开发验收，不执行 Jev 建议。结果与限制见[任务22报告](../.scratch/mobile-agent-v1/evidence/jev-shadow-validation.md)。
 
 ## 当前边界
 
