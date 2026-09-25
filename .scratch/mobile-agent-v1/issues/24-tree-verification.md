@@ -6,9 +6,9 @@ Blocked by: 12, 23
 
 Status: ready-for-agent
 
-Execution: pending
-Owner: unassigned
-Branch: unassigned
+Execution: in-progress
+Owner: luna-tree-verification
+Branch: codex/v1-tree-verification
 Evidence: 真实模型与物理手机
 Gate: 树核验参与真实任务且证据不足可回退
 
@@ -36,3 +36,5 @@ Gate: 树核验参与真实任务且证据不足可回退
 2026-09-22：用户已确认测试边界、任务拆分与延后人工准备；本票已发布，尚未实施。
 
 2026-09-25：按 ADR-0003 改为手机内策略实现与独立 App 对照；旧 Python 实现可作参考，不作为本票产品运行通道。
+
+2026-09-25：23 已在 9be779a 主线验收并推送，领取本票；仅改变核验策略，选择设置与规划频率维持23。独占Android核验和现有运行入口；27串行等待，主Agent独占真机/API/预算/证据/Git。
