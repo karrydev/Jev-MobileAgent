@@ -466,6 +466,95 @@ public final class LocalTaskControlPolicyTest {
     }
 
     @Test
+    public void postActionSamplingAllowsOnlyDecorativeStatusBarOnePixelDrift() throws Exception {
+        JSONObject expected = observationWithDecorativeSystemStatusBar();
+        JSONObject shiftedStatusBarChildren = new JSONObject(expected.toString());
+        JSONArray shiftedNodes = shiftedStatusBarChildren.getJSONArray("nodes");
+        for (int i = 3; i < 12; i++) {
+            JSONObject bounds = shiftedNodes.getJSONObject(i).getJSONObject("bounds");
+            bounds.put("left", bounds.getInt("left") - 1);
+            bounds.put("right", bounds.getInt("right") - 1);
+        }
+        assertTrue("noninteractive status bar children moved one pixel",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                        expected, shiftedStatusBarChildren));
+        assertTrue("pre-action decision scene remains scoped to the active target app",
+                LocalTaskControlPolicy.sameDecisionScene(expected, shiftedStatusBarChildren));
+
+        JSONObject largerDrift = new JSONObject(expected.toString());
+        JSONObject largeDriftBounds = largerDrift.getJSONArray("nodes").getJSONObject(3)
+                .getJSONObject("bounds");
+        largeDriftBounds.put("left", largeDriftBounds.getInt("left") - 2);
+        largeDriftBounds.put("right", largeDriftBounds.getInt("right") - 2);
+        assertFalse("larger status bar movement remains a scene change",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, largerDrift));
+
+        JSONObject targetMoved = new JSONObject(expected.toString());
+        targetMoved.getJSONArray("nodes").getJSONObject(0).put("bounds", "11,20,301,80");
+        assertFalse("target app geometry stays strict",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, targetMoved));
+
+        JSONObject statusBarWindowChanged = new JSONObject(expected.toString());
+        statusBarWindowChanged.getJSONArray("windows").getJSONObject(1).getJSONObject("bounds")
+                .put("bottom", 104);
+        assertFalse("status bar window geometry stays strict",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                        expected, statusBarWindowChanged));
+
+        JSONObject changedStatusBarType = new JSONObject(expected.toString());
+        changedStatusBarType.getJSONArray("windows").getJSONObject(1).put("window_type", 1);
+        assertFalse("status bar window type stays strict",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                        expected, changedStatusBarType));
+
+        JSONObject broadSystemWindow = new JSONObject(expected.toString());
+        broadSystemWindow.getJSONArray("windows").getJSONObject(1).getJSONObject("bounds")
+                .put("bottom", 400);
+        broadSystemWindow.getJSONArray("nodes").getJSONObject(1).getJSONObject("bounds")
+                .put("bottom", 400);
+        broadSystemWindow.getJSONArray("nodes").getJSONObject(2).getJSONObject("bounds")
+                .put("bottom", 400);
+        JSONObject broadSystemWindowDrift = new JSONObject(broadSystemWindow.toString());
+        JSONObject broadDriftBounds = broadSystemWindowDrift.getJSONArray("nodes").getJSONObject(3)
+                .getJSONObject("bounds");
+        broadDriftBounds.put("left", broadDriftBounds.getInt("left") - 1);
+        broadDriftBounds.put("right", broadDriftBounds.getInt("right") - 1);
+        assertFalse("other SystemUI windows do not inherit status bar tolerance",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                        broadSystemWindow, broadSystemWindowDrift));
+
+        JSONObject systemUiInteraction = new JSONObject(expected.toString());
+        systemUiInteraction.getJSONArray("nodes").getJSONObject(3).put("clickable", true);
+        assertFalse("interactive SystemUI nodes stay strict",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                        expected, systemUiInteraction));
+
+        JSONObject systemUiSemanticChange = new JSONObject(expected.toString());
+        systemUiSemanticChange.getJSONArray("nodes").getJSONObject(3)
+                .put("content_description", "changed system status");
+        assertFalse("SystemUI semantic changes stay strict",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                        expected, systemUiSemanticChange));
+
+        JSONObject activeSystemWindow = new JSONObject(expected.toString());
+        activeSystemWindow.getJSONArray("windows").getJSONObject(1)
+                .put("active", true).put("focused", true);
+        assertFalse("active SystemUI windows stay strict",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(
+                        expected, activeSystemWindow));
+
+        JSONObject keyboardWindow = new JSONObject(expected.toString());
+        keyboardWindow.getJSONArray("windows").put(new JSONObject().put("window_id", 3)
+                .put("window_type", 2).put("title", "Input method")
+                .put("package_name", "com.example.ime").put("active", false)
+                .put("focused", false).put("layer", 2)
+                .put("bounds", new JSONObject().put("left", 0).put("top", 1700)
+                        .put("right", 1080).put("bottom", 2400)));
+        assertFalse("new keyboard window remains a scene change",
+                LocalTaskControlPolicy.samePostActionSceneContextAndStructure(expected, keyboardWindow));
+    }
+
+    @Test
     public void postActionSamplingRejectsPackageWindowGeometryAndLayoutChanges() throws Exception {
         JSONObject expected = sceneObservation();
 
@@ -553,6 +642,50 @@ public final class LocalTaskControlPolicyTest {
         assertFalse(sampler.shouldContinue(700L));
     }
 
+    @Test
+    public void screenshotEventNeedsOneFreshMatchingTreeWithinExistingSampleBudget() throws Exception {
+        LocalTaskControlPolicy.PostActionSceneSampler matchingSampler =
+                new LocalTaskControlPolicy.PostActionSceneSampler();
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTINUE,
+                matchingSampler.recordSample(700L, 12L, 12L, true, false));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.ACCEPT,
+                matchingSampler.recordSample(800L, 12L, 12L, true, true));
+        assertTrue(matchingSampler.prepareFreshSampleAfterScreenshotEvent(850L, 13L));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.ACCEPT,
+                matchingSampler.recordSample(900L, 13L, 13L, true, true));
+        assertEquals(3, matchingSampler.sampleCount());
+        assertFalse("a third-sample screenshot event cannot grow the existing budget",
+                matchingSampler.prepareFreshSampleAfterScreenshotEvent(950L, 14L));
+
+        LocalTaskControlPolicy.PostActionSceneSampler changedSceneSampler =
+                new LocalTaskControlPolicy.PostActionSceneSampler();
+        changedSceneSampler.recordSample(700L, 12L, 12L, true, false);
+        changedSceneSampler.recordSample(800L, 12L, 12L, true, true);
+        assertTrue(changedSceneSampler.prepareFreshSampleAfterScreenshotEvent(850L, 13L));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTINUE,
+                changedSceneSampler.recordSample(900L, 13L, 13L, true, false));
+        assertEquals(3, changedSceneSampler.sampleCount());
+        assertFalse(changedSceneSampler.shouldContinue(900L));
+
+        LocalTaskControlPolicy.PostActionSceneSampler changedContextSampler =
+                new LocalTaskControlPolicy.PostActionSceneSampler();
+        changedContextSampler.recordSample(700L, 12L, 12L, true, false);
+        changedContextSampler.recordSample(800L, 12L, 12L, true, true);
+        assertTrue(changedContextSampler.prepareFreshSampleAfterScreenshotEvent(850L, 13L));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTEXT_CHANGED,
+                changedContextSampler.recordSample(900L, 13L, 13L, false, true));
+
+        LocalTaskControlPolicy.PostActionSceneSampler eventDuringFreshTreeSampler =
+                new LocalTaskControlPolicy.PostActionSceneSampler();
+        eventDuringFreshTreeSampler.recordSample(700L, 12L, 12L, true, false);
+        eventDuringFreshTreeSampler.recordSample(800L, 12L, 12L, true, true);
+        assertTrue(eventDuringFreshTreeSampler.prepareFreshSampleAfterScreenshotEvent(850L, 13L));
+        assertEquals(LocalTaskControlPolicy.PostActionSceneSampler.Decision.CONTINUE,
+                eventDuringFreshTreeSampler.recordSample(900L, 13L, 14L, true, true));
+        assertEquals(3, eventDuringFreshTreeSampler.sampleCount());
+        assertFalse(eventDuringFreshTreeSampler.shouldContinue(900L));
+    }
+
     private static JSONObject sceneObservation() throws Exception {
         return new JSONObject()
                 .put("availability", "AVAILABLE")
@@ -576,6 +709,47 @@ public final class LocalTaskControlPolicyTest {
                         .put("enabled", true).put("visible_to_user", true).put("clickable", true)
                         .put("focusable", true).put("focused", false).put("selected", false)
                         .put("scrollable", false).put("editable", false).put("bounds", "10,20,300,80")));
+    }
+
+    /** Mirrors the production window/node shape from the sanitized status-bar drift capture. */
+    private static JSONObject observationWithDecorativeSystemStatusBar() throws Exception {
+        JSONObject observation = sceneObservation().put("page_state", "observed");
+        observation.getJSONObject("screen").put("active_window_bounds", new JSONObject()
+                .put("left", 0).put("top", 0).put("right", 1080).put("bottom", 2400));
+        JSONObject appWindow = observation.getJSONArray("windows").getJSONObject(0);
+        appWindow.put("layer", 0).put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                .put("right", 1080).put("bottom", 2400));
+        observation.getJSONArray("nodes").put(systemStatusBarNode("status-root", "", 0, 0, 1080, 103));
+        observation.getJSONArray("nodes").put(systemStatusBarNode("status-content", "status-root",
+                0, 0, 1080, 103));
+        int[][] bounds = {
+                {176, 34, 299, 103}, {299, 34, 351, 103}, {351, 34, 403, 103},
+                {403, 34, 455, 103}, {707, 35, 755, 101}, {755, 35, 812, 101},
+                {812, 35, 869, 101}, {923, 34, 1000, 103}, {928, 50, 1000, 86}
+        };
+        for (int i = 0; i < bounds.length; i++) {
+            observation.getJSONArray("nodes").put(systemStatusBarNode("status-child-" + i,
+                    "status-content", bounds[i][0], bounds[i][1], bounds[i][2], bounds[i][3]));
+        }
+        observation.getJSONArray("windows").put(new JSONObject().put("window_id", 2)
+                .put("window_type", 3).put("title", "").put("class_name", "android.widget.FrameLayout")
+                .put("package_name", "com.android.systemui").put("active", false)
+                .put("focused", false).put("layer", 1)
+                .put("root_node_id", "status-root")
+                .put("bounds", new JSONObject().put("left", 0).put("top", 0)
+                        .put("right", 1080).put("bottom", 103)));
+        return observation;
+    }
+
+    private static JSONObject systemStatusBarNode(String id, String parentId,
+            int left, int top, int right, int bottom) throws Exception {
+        return new JSONObject().put("node_id", id).put("parent_node_id", parentId)
+                .put("package_name", "com.android.systemui").put("class_name", "android.widget.ImageView")
+                .put("enabled", true).put("visible_to_user", true).put("clickable", false)
+                .put("focusable", false).put("focused", false).put("selected", false)
+                .put("scrollable", false).put("editable", false)
+                .put("bounds", new JSONObject().put("left", left).put("top", top)
+                        .put("right", right).put("bottom", bottom));
     }
 
     private static JSONObject localTaskStatusNode(String packageName) throws Exception {

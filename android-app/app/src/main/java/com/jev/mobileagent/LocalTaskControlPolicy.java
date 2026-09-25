@@ -112,6 +112,16 @@ final class LocalTaskControlPolicy {
             previousStableSampleElapsedMs = -1L;
             previousStableEventSequence = -1L;
         }
+
+        /** Rebase only after a fresh tree matches the just-sampled scene following a screenshot event. */
+        boolean prepareFreshSampleAfterScreenshotEvent(long elapsedMs, long eventSequenceAfterScreenshot) {
+            if (!hasPreviousStableSample || !shouldContinue(elapsedMs)) {
+                invalidateStablePair();
+                return false;
+            }
+            previousStableEventSequence = eventSequenceAfterScreenshot;
+            return true;
+        }
     }
 
     enum ExecutionFact {
@@ -263,11 +273,205 @@ final class LocalTaskControlPolicy {
         return sameObjectArrayById(expectedWindows, currentWindows,
                 "window_id", new String[] {"window_type", "title", "class_name", "package_name",
                         "active", "focused", "layer", "bounds", "root_node_id"})
-                && sameObjectArrayById(expectedNodes, currentNodes,
-                        "node_id", new String[] {"parent_node_id", "package_name", "class_name",
-                                "view_id_resource_name", "enabled", "visible_to_user", "clickable",
-                                "focusable", "focused", "selected", "scrollable", "editable",
-                                "bounds", "child_node_ids"});
+                && samePostActionNodes(expected, current, expectedNodes, currentNodes, expectedPackage);
+    }
+
+    private static boolean samePostActionNodes(JSONObject expectedObservation, JSONObject currentObservation,
+            JSONArray expectedNodes, JSONArray currentNodes, String targetPackage) {
+        String[] comparedFields = {"parent_node_id", "package_name", "class_name",
+                "view_id_resource_name", "enabled", "visible_to_user", "clickable",
+                "focusable", "focused", "selected", "scrollable", "editable",
+                "bounds", "child_node_ids"};
+        String[] semanticFields = {"text", "content_description", "state_description", "hint_text"};
+        for (int i = 0; i < expectedNodes.length(); i++) {
+            JSONObject expectedNode = expectedNodes.optJSONObject(i);
+            if (expectedNode == null || !expectedNode.has("node_id")) return false;
+            String nodeId = expectedNode.optString("node_id", "");
+            if (nodeId.isEmpty()) return false;
+            JSONObject currentNode = uniqueObjectById(currentNodes, "node_id", nodeId);
+            if (currentNode == null) return false;
+            if (sameFields(expectedNode, currentNode, comparedFields)) {
+                if (!targetPackage.equals(expectedNode.optString("package_name", ""))
+                        && !sameFields(expectedNode, currentNode, semanticFields)) return false;
+                continue;
+            }
+            if (!sameObjectExceptBounds(expectedNode, currentNode)
+                    || !isDecorativeStatusBarNode(expectedObservation, currentObservation,
+                            expectedNode, currentNode, expectedNodes, currentNodes)
+                    || !isOnePixelHorizontalTranslation(expectedNode, currentNode,
+                            expectedObservation, currentObservation)) {
+                return false;
+            }
+        }
+        return expectedNodes.length() == currentNodes.length();
+    }
+
+    private static boolean isDecorativeStatusBarNode(JSONObject expectedObservation,
+            JSONObject currentObservation, JSONObject expectedNode, JSONObject currentNode,
+            JSONArray expectedNodes, JSONArray currentNodes) {
+        if (!"com.android.systemui".equals(expectedNode.optString("package_name", ""))
+                || !"com.android.systemui".equals(currentNode.optString("package_name", ""))
+                || !isNonInteractiveVisibleNode(expectedNode)
+                || !isNonInteractiveVisibleNode(currentNode)) {
+            return false;
+        }
+        JSONObject expectedWindow = containingDecorativeStatusBarWindow(
+                expectedObservation, expectedNode, expectedNodes);
+        JSONObject currentWindow = containingDecorativeStatusBarWindow(
+                currentObservation, currentNode, currentNodes);
+        if (expectedWindow == null || currentWindow == null
+                || !sameFields(expectedWindow, currentWindow, "window_id", "window_type", "title",
+                        "class_name", "package_name", "active", "focused", "layer", "bounds",
+                        "root_node_id")) {
+            return false;
+        }
+        return sameObjectExceptBounds(expectedNode, currentNode);
+    }
+
+    private static boolean isNonInteractiveVisibleNode(JSONObject node) {
+        return node.optBoolean("visible_to_user", false)
+                && !node.optBoolean("clickable", true)
+                && !node.optBoolean("focusable", true)
+                && !node.optBoolean("focused", true)
+                && !node.optBoolean("selected", true)
+                && !node.optBoolean("scrollable", true)
+                && !node.optBoolean("editable", true);
+    }
+
+    private static JSONObject containingDecorativeStatusBarWindow(JSONObject observation,
+            JSONObject node, JSONArray nodes) {
+        JSONArray windows = observation == null ? null : observation.optJSONArray("windows");
+        JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
+        JSONObject activeWindow = activeWindow(observation);
+        JSONObject activeBounds = activeWindow == null ? null : activeWindow.optJSONObject("bounds");
+        if (windows == null || screen == null || activeWindow == null || activeBounds == null) return null;
+        int screenWidth = screen.optInt("width_px", 0);
+        int screenHeight = screen.optInt("height_px", 0);
+        int activeLayer = activeWindow.optInt("layer", Integer.MIN_VALUE);
+        for (int i = 0; i < windows.length(); i++) {
+            JSONObject window = windows.optJSONObject(i);
+            if (!isDecorativeStatusBarWindow(window, screenWidth, screenHeight, activeLayer)) continue;
+            String rootNodeId = window.optString("root_node_id", "");
+            if (rootNodeId.isEmpty()) continue;
+            JSONObject root = uniqueObjectById(nodes, "node_id", rootNodeId);
+            if (root == null || !"com.android.systemui".equals(root.optString("package_name", ""))
+                    || !isNonInteractiveVisibleNode(root)
+                    || !isDescendantOfWindowRoot(node, rootNodeId, nodes)) {
+                continue;
+            }
+            boolean allDecorative = true;
+            for (int nodeIndex = 0; nodeIndex < nodes.length(); nodeIndex++) {
+                JSONObject child = nodes.optJSONObject(nodeIndex);
+                if (child != null && isDescendantOfWindowRoot(child, rootNodeId, nodes)
+                        && (!"com.android.systemui".equals(child.optString("package_name", ""))
+                                || !isNonInteractiveVisibleNode(child))) {
+                    allDecorative = false;
+                    break;
+                }
+            }
+            if (allDecorative) return window;
+        }
+        return null;
+    }
+
+    private static boolean isDecorativeStatusBarWindow(JSONObject window,
+            int screenWidth, int screenHeight, int activeLayer) {
+        if (window == null || window.optInt("window_type", -1) != 3
+                || !"com.android.systemui".equals(window.optString("package_name", ""))
+                || window.optBoolean("active", true) || window.optBoolean("focused", true)
+                || window.optInt("layer", Integer.MIN_VALUE) <= activeLayer
+                || screenWidth <= 0 || screenHeight <= 0) {
+            return false;
+        }
+        JSONObject bounds = window.optJSONObject("bounds");
+        if (bounds == null || !hasNonNullFields(bounds, "left", "top", "right", "bottom")) return false;
+        int left = bounds.optInt("left", Integer.MIN_VALUE);
+        int top = bounds.optInt("top", Integer.MIN_VALUE);
+        int right = bounds.optInt("right", Integer.MIN_VALUE);
+        int bottom = bounds.optInt("bottom", Integer.MIN_VALUE);
+        // Anonymous system windows are eligible only when they are an unchanged, full-width
+        // top status strip. Expanded shades, keyboards, and side/edge panels stay strict.
+        return left == 0 && top == 0 && right == screenWidth && bottom > 0
+                && (long) bottom * 8L <= screenHeight;
+    }
+
+    private static boolean isDescendantOfWindowRoot(JSONObject node, String rootNodeId, JSONArray nodes) {
+        String parentId = node == null ? "" : node.optString("parent_node_id", "");
+        if (parentId.isEmpty()) return false;
+        for (int i = 0; i < nodes.length(); i++) {
+            if (rootNodeId.equals(parentId)) return true;
+            JSONObject parent = uniqueObjectById(nodes, "node_id", parentId);
+            if (parent == null) return false;
+            parentId = parent.optString("parent_node_id", "");
+            if (parentId.isEmpty()) return false;
+        }
+        return false;
+    }
+
+    private static boolean isOnePixelHorizontalTranslation(JSONObject expectedNode,
+            JSONObject currentNode, JSONObject expectedObservation, JSONObject currentObservation) {
+        int[] expected = nodeBounds(expectedNode);
+        int[] current = nodeBounds(currentNode);
+        JSONObject expectedWindow = containingDecorativeStatusBarWindow(expectedObservation,
+                expectedNode, expectedObservation.optJSONArray("nodes"));
+        JSONObject currentWindow = containingDecorativeStatusBarWindow(currentObservation,
+                currentNode, currentObservation.optJSONArray("nodes"));
+        int[] expectedWindowBounds = windowBounds(expectedWindow);
+        int[] currentWindowBounds = windowBounds(currentWindow);
+        if (expected == null || current == null || expectedWindowBounds == null || currentWindowBounds == null
+                || expectedWindowBounds[0] != currentWindowBounds[0]
+                || expectedWindowBounds[1] != currentWindowBounds[1]
+                || expectedWindowBounds[2] != currentWindowBounds[2]
+                || expectedWindowBounds[3] != currentWindowBounds[3]) {
+            return false;
+        }
+        int deltaLeft = current[0] - expected[0];
+        int deltaRight = current[2] - expected[2];
+        return deltaLeft != 0 && Math.abs(deltaLeft) <= 1 && deltaLeft == deltaRight
+                && current[1] == expected[1] && current[3] == expected[3]
+                && expected[0] >= expectedWindowBounds[0] && expected[2] <= expectedWindowBounds[2]
+                && expected[1] >= expectedWindowBounds[1] && expected[3] <= expectedWindowBounds[3]
+                && current[0] >= currentWindowBounds[0] && current[2] <= currentWindowBounds[2]
+                && current[1] >= currentWindowBounds[1] && current[3] <= currentWindowBounds[3];
+    }
+
+    private static int[] nodeBounds(JSONObject node) {
+        JSONObject bounds = node == null ? null : node.optJSONObject("bounds");
+        if (bounds == null || !hasNonNullFields(bounds, "left", "top", "right", "bottom")) return null;
+        Object left = bounds.opt("left");
+        Object top = bounds.opt("top");
+        Object right = bounds.opt("right");
+        Object bottom = bounds.opt("bottom");
+        if (!(left instanceof Number) || !(top instanceof Number)
+                || !(right instanceof Number) || !(bottom instanceof Number)) return null;
+        return new int[] {((Number) left).intValue(), ((Number) top).intValue(),
+                ((Number) right).intValue(), ((Number) bottom).intValue()};
+    }
+
+    private static int[] windowBounds(JSONObject window) {
+        JSONObject bounds = window == null ? null : window.optJSONObject("bounds");
+        if (bounds == null || !hasNonNullFields(bounds, "left", "top", "right", "bottom")) return null;
+        return new int[] {bounds.optInt("left", Integer.MIN_VALUE), bounds.optInt("top", Integer.MIN_VALUE),
+                bounds.optInt("right", Integer.MIN_VALUE), bounds.optInt("bottom", Integer.MIN_VALUE)};
+    }
+
+    private static boolean sameObjectExceptBounds(JSONObject expected, JSONObject current) {
+        return canonicalJsonObjectExcept(expected, "bounds")
+                .equals(canonicalJsonObjectExcept(current, "bounds"));
+    }
+
+    private static String canonicalJsonObjectExcept(JSONObject object, String excludedField) {
+        if (object == null) return "null";
+        ArrayList<String> keys = new ArrayList<>();
+        for (java.util.Iterator<String> iterator = object.keys(); iterator.hasNext();) {
+            String key = iterator.next();
+            if (!excludedField.equals(key)) keys.add(key);
+        }
+        Collections.sort(keys);
+        StringBuilder canonical = new StringBuilder("{");
+        for (String key : keys) canonical.append(key).append(':')
+                .append(canonicalJsonValue(object.opt(key))).append(';');
+        return canonical.append('}').toString();
     }
 
     private static boolean hasNonNullFields(JSONObject object, String... fields) {

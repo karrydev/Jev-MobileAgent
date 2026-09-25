@@ -1527,7 +1527,19 @@
       "task_budget_cny": 1,
       "phase_budget_cny": 2,
       "task_jev_call_limit": 5
+    },
+    {
+      "date": "2026-09-25",
+      "field": "jev_global_call_limit",
+      "old_limit": 70,
+      "new_limit": 150,
+      "user_confirmation": "Jev调用扩充到总共150次",
+      "calls_already_used": 46,
+      "global_budget_cny": 10,
+      "task_budget_cny": 1,
+      "phase_budget_cny": 2,
+      "task_jev_call_limit": 5
     }
   ],
-  "jev_global_call_limit": 70
+  "jev_global_call_limit": 150
 }

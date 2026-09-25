@@ -2078,8 +2078,17 @@ public final class LocalVlmTaskService extends Service {
                     return new PostActionSceneResult(candidate, candidateScreenshot,
                             eventSequenceAfterScreenshot, true, "", audit);
                 }
-                sampler.invalidateStablePair();
-                previousStableObservation = null;
+                long screenshotElapsedMs = Math.max(0L,
+                        SystemClock.elapsedRealtime() - receiptElapsedMs);
+                if (sampler.prepareFreshSampleAfterScreenshotEvent(
+                        screenshotElapsedMs, eventSequenceAfterScreenshot)) {
+                    // Keep this tree as the comparison baseline, but never reuse its screenshot:
+                    // the next fresh tree and its own screenshot must pass after the event.
+                    previousStableObservation = candidate;
+                } else {
+                    sampler.invalidateStablePair();
+                    previousStableObservation = null;
+                }
                 continue;
             }
             samples.put(postActionSampleTrace(sampleNumber, candidate, null,
