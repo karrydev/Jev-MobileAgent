@@ -24,6 +24,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CountDownLatch;
@@ -759,9 +760,33 @@ public final class LocalVlmTaskService extends Service {
             MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
             roles.restore(task.optJSONObject("history"));
             roles.instruction = task.optString("goal", "");
+            boolean onDemandPlanning = task.optBoolean("on_demand_planning_enabled", false);
             ActionExecutionGate.Token actionToken = actionGate.begin();
             boolean firstObservation = true;
             int step = task.optInt("step_count", 0);
+            int lastPlanStep = task.optInt("planning_plan_step", -1);
+            JSONArray startupPlanningEvents = onDemandPlanning
+                    ? currentPlanningEvents(runTaskId) : new JSONArray();
+            OnDemandPlanningPolicy.SchedulerState schedulerState = onDemandPlanning
+                    ? OnDemandPlanningPolicy.restoreSchedulerState(
+                            startupPlanningEvents, roles.actionHistory, roles.actionOutcomes)
+                    : new OnDemandPlanningPolicy.SchedulerState("", 0, false);
+            boolean resumedPlanningTask = onDemandPlanning && startupPlanningEvents.length() > 0;
+            boolean resumeReplanPending = resumedPlanningTask;
+            boolean checkingResumeObservation = resumedPlanningTask;
+            if (resumedPlanningTask) {
+                schedulerState = OnDemandPlanningPolicy.forResume(schedulerState);
+                recordPlanningEvent(runTaskId, new JSONObject()
+                        .put("event", "resume_plan_invalidated")
+                        .put("decision", "replan")
+                        .put("reason", "resume_requires_fresh_observation")
+                        .put("step", step + 1)
+                        .put("previous_plan_step", lastPlanStep < 0 ? JSONObject.NULL : lastPlanStep + 1)
+                        .put("scheduler_state", schedulerState.toJson()));
+            }
+            int consecutiveActionFailures = schedulerState.consecutiveFailures;
+            String pendingPlanningReason = schedulerState.pendingReason;
+            boolean loopReplanAttempted = schedulerState.loopReplanAttempted;
             while (step < LocalTaskStore.MAX_STEPS && !hasControlRequest()) {
                 setStatus("第 " + (step + 1) + "/" + LocalTaskStore.MAX_STEPS + " 步：读取当前页面");
                 long[] sceneEventBaseline = {decisionSceneEventSequence()};
@@ -774,15 +799,129 @@ public final class LocalVlmTaskService extends Service {
 
                 roles.instruction = task.optString("goal", "");
                 roles.errorFlagPlan = errorEscalationRequired(roles);
-                boolean skipManager = shouldSkipManager(roles);
+                JSONArray planningEvents = onDemandPlanning
+                        ? currentPlanningEvents(runTaskId) : new JSONArray();
+                String currentFingerprint = onDemandPlanning ? observationFingerprintHash(before) : "";
+                boolean sceneChangedSinceLastStep = onDemandPlanning && checkingResumeObservation
+                        && OnDemandPlanningPolicy.sceneChangedSinceLastVerifiedStep(
+                                planningEvents, currentFingerprint);
+                checkingResumeObservation = false;
+                boolean actionLoop = onDemandPlanning && !sceneChangedSinceLastStep
+                        && OnDemandPlanningPolicy.hasActionLoop(
+                                roles.actionHistory, roles.actionOutcomes, planningEvents);
+                if (OnDemandPlanningPolicy.shouldStopPersistentLoop(
+                        actionLoop, loopReplanAttempted, resumeReplanPending)) {
+                    recordPlanningEvent(runTaskId, new JSONObject()
+                            .put("event", "planner_loop_stopped")
+                            .put("decision", "pause")
+                            .put("reason", "action_loop_persisted_after_replan")
+                            .put("step", step + 1)
+                            .put("scheduler_state", new OnDemandPlanningPolicy.SchedulerState(
+                                    pendingPlanningReason, consecutiveActionFailures, true).toJson()));
+                    throw new TaskFailure("planning_loop_persisted",
+                            "重新规划后仍重复相同动作循环；任务已暂停，需检查手机页面");
+                }
+                if (actionLoop) {
+                    loopReplanAttempted = true;
+                } else {
+                    loopReplanAttempted = false;
+                }
+                String planningReason;
+                boolean skipManager;
+                if (onDemandPlanning) {
+                    planningReason = OnDemandPlanningPolicy.replanReason(
+                            !roles.plan.trim().isEmpty(), pendingPlanningReason, step, lastPlanStep, actionLoop);
+                    skipManager = planningReason.isEmpty();
+                } else {
+                    skipManager = shouldSkipManager(roles);
+                    planningReason = skipManager
+                            ? "legacy_policy_skipped_after_invalid_action"
+                            : "legacy_policy_manager_refresh";
+                }
+                JSONObject plannerDecision = new JSONObject()
+                        .put("event", "planner_decision")
+                        .put("decision", skipManager ? "reuse_plan" : "replan")
+                        .put("reason", skipManager ? "plan_current" : planningReason)
+                        .put("step", step + 1)
+                        .put("plan_step", lastPlanStep < 0 ? JSONObject.NULL : lastPlanStep + 1)
+                        .put("plan_age_steps", lastPlanStep < 0 ? JSONObject.NULL : Math.max(0, step - lastPlanStep))
+                        .put("active_subgoal", OnDemandPlanningPolicy.firstSubgoal(roles.plan))
+                        .put("on_demand_enabled", onDemandPlanning);
+                if (onDemandPlanning) {
+                    plannerDecision.put("action_loop", actionLoop);
+                    plannerDecision.put("scheduler_state", new OnDemandPlanningPolicy.SchedulerState(
+                            pendingPlanningReason, consecutiveActionFailures, loopReplanAttempted).toJson());
+                    recordPlanningEvent(runTaskId, plannerDecision);
+                } else {
+                    recordPlanningEventBestEffort(runTaskId, plannerDecision);
+                }
                 if (!skipManager) {
                     ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
-                    String response = requestRole(profile, runTaskId, "manager", step,
-                            roles.managerPrompt(), beforeImages);
+                    String previousSubgoal = OnDemandPlanningPolicy.firstSubgoal(roles.plan);
+                    if (onDemandPlanning && "action_exception".equals(pendingPlanningReason)) {
+                        roles.errorFlagPlan = true;
+                    }
+                    String response;
+                    try {
+                        response = requestRole(profile, runTaskId, "manager", step,
+                                roles.managerPrompt(), beforeImages);
+                    } catch (TaskFailure failure) {
+                        JSONObject stopped = new JSONObject()
+                                .put("event", "planner_request_stopped")
+                                .put("decision", "pause")
+                                .put("reason", failure.code.startsWith("budget_gate_")
+                                        ? "planning_budget_exhausted" : "planner_request_failed")
+                                .put("error_code", failure.code)
+                                .put("role", "manager")
+                                .put("step", step + 1);
+                        if (onDemandPlanning) {
+                            stopped.put("scheduler_state", new OnDemandPlanningPolicy.SchedulerState(
+                                    pendingPlanningReason, consecutiveActionFailures,
+                                    loopReplanAttempted).toJson());
+                        }
+                        recordPlanningEvent(runTaskId, stopped);
+                        throw failure;
+                    }
                     ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     String[] planning = roles.parseManager(response);
                     roles.completedPlan = planning[1];
                     roles.plan = planning[2];
+                    String nextSubgoal = OnDemandPlanningPolicy.firstSubgoal(roles.plan);
+                    lastPlanStep = step;
+                    pendingPlanningReason = "";
+                    JSONObject planUpdated = new JSONObject()
+                            .put("event", "plan_updated")
+                            .put("decision", "replanned")
+                            .put("reason", planningReason)
+                            .put("role", "manager")
+                            .put("step", step + 1)
+                            .put("previous_subgoal", previousSubgoal)
+                            .put("next_subgoal", nextSubgoal)
+                            .put("subgoal_changed", OnDemandPlanningPolicy.subgoalChanged(
+                                    previousSubgoal, nextSubgoal));
+                    if (onDemandPlanning) {
+                        planUpdated.put("scheduler_state", new OnDemandPlanningPolicy.SchedulerState(
+                                pendingPlanningReason, consecutiveActionFailures,
+                                loopReplanAttempted).toJson());
+                        recordPlanningEvent(runTaskId, planUpdated);
+                    } else {
+                        recordPlanningEventBestEffort(runTaskId, planUpdated);
+                    }
+                    if (onDemandPlanning && (!LocalTaskStore.saveHistory(this, runTaskId, roles.toJson())
+                            || !LocalTaskStore.setPlanningPlanStep(this, runTaskId, step))) {
+                        throw new TaskFailure("planning_state_not_saved",
+                                "新计划无法保存到本地轨迹；已停止后续操作");
+                    }
+                    if (onDemandPlanning) resumeReplanPending = false;
+                    if (onDemandPlanning && roles.plan.trim().isEmpty()) {
+                        recordPlanningEvent(runTaskId, new JSONObject()
+                                .put("event", "plan_rejected")
+                                .put("decision", "pause")
+                                .put("reason", "manager_returned_empty_plan")
+                                .put("role", "manager")
+                                .put("step", step + 1));
+                        throw new TaskFailure("planner_response_invalid", "规划响应没有可执行计划；任务已暂停");
+                    }
                     if (roles.plan.trim().equalsIgnoreCase("Finished")
                             || roles.plan.trim().startsWith("Finished\n")) {
                         roles.finishThought = planning[0];
@@ -808,8 +947,19 @@ public final class LocalVlmTaskService extends Service {
                 setStatus("第 " + (step + 1) + "/" + LocalTaskStore.MAX_STEPS + " 步：执行角色选择动作");
                 ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                 String executorResponse = requestRole(profile, runTaskId, "executor", step,
-                        roles.executorPrompt(), beforeImages);
+                        roles.executorPrompt(onDemandPlanning), beforeImages);
                 ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
+                boolean executorSubgoalCompleteHint = onDemandPlanning
+                        && MobileAgentVlmRoles.executorMarkedSubgoalComplete(executorResponse);
+                if (onDemandPlanning) {
+                    recordPlanningEvent(runTaskId, new JSONObject()
+                            .put("event", "executor_progress_hint_received")
+                            .put("decision", executorSubgoalCompleteHint ? "subgoal_candidate" : "continue_plan")
+                            .put("reason", executorSubgoalCompleteHint
+                                    ? "executor_marked_current_subgoal_complete" : "executor_marked_in_progress_or_unknown")
+                            .put("step", step + 1)
+                            .put("hint", executorSubgoalCompleteHint ? "COMPLETE" : "IN_PROGRESS_OR_UNKNOWN"));
+                }
                 String[] selected = roles.parseExecutor(executorResponse);
                 roles.lastActionThought = selected[0];
                 roles.lastSummary = selected[2];
@@ -827,6 +977,17 @@ public final class LocalVlmTaskService extends Service {
                     }
                     roles.recordInvalid(actionSummary, "invalid action format; no device action was sent");
                     finishStep(runTaskId, roles, ++step);
+                    if (onDemandPlanning) {
+                        pendingPlanningReason = "action_exception";
+                        consecutiveActionFailures++;
+                        recordPlanningStepOutcome(runTaskId, step, "FAILURE", false,
+                                false, "", consecutiveActionFailures, loopReplanAttempted);
+                        if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
+                            recordPlanningStop(runTaskId, step, "repeated_action_failures");
+                            throw new TaskFailure("repeated_action_failures",
+                                    "连续两次动作格式无效；任务已暂停，需检查模型响应");
+                        }
+                    }
                     continue;
                 }
                 if (command.terminal) {
@@ -853,12 +1014,18 @@ public final class LocalVlmTaskService extends Service {
                 }
 
                 boolean jevActionSelected = false;
+                String jevSelectionRelation = "vlm_action_retained";
+                boolean effectiveExecutorSubgoalCompleteHint = executorSubgoalCompleteHint;
                 if (task.optBoolean("jev_selection_enabled", false)) {
                     ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     JevShadow.ControlledAttempt controlled = runJevControlledForDecision(
                             task, runTaskId, step, before, command.contractAction);
                     ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     if (controlled.selectedCandidate != null) {
+                        JSONObject comparison = controlled.report == null
+                                ? null : controlled.report.optJSONObject("comparison");
+                        jevSelectionRelation = comparison == null ? "not_compared"
+                                : comparison.optString("status", "not_compared");
                         try {
                             command = roles.actionForCandidate(controlled.selectedCandidate, before,
                                     runTaskId, step + 1, beforeShot.optString("screenshot_id", ""));
@@ -867,7 +1034,11 @@ public final class LocalVlmTaskService extends Service {
                                     + controlled.selectedCandidate.id;
                             roles.lastSummary = actionSummary;
                             jevActionSelected = true;
+                            effectiveExecutorSubgoalCompleteHint = OnDemandPlanningPolicy
+                                    .executorCompletionHintApplies(executorSubgoalCompleteHint,
+                                            true, jevSelectionRelation);
                         } catch (JSONException exception) {
+                            jevSelectionRelation = "candidate_action_unavailable";
                             if (!JevShadow.markControlledFallback(this, runTaskId, step,
                                     "candidate_action_unavailable")) {
                                 throw new TaskFailure("jev_control_report_failed",
@@ -879,6 +1050,23 @@ public final class LocalVlmTaskService extends Service {
                     ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     runJevShadowForDecision(task, runTaskId, step, before, command.contractAction);
                     ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
+                }
+                if (onDemandPlanning) {
+                    String hintReason = !executorSubgoalCompleteHint
+                            ? "executor_marked_in_progress_or_unknown"
+                            : effectiveExecutorSubgoalCompleteHint
+                                    ? "executor_complete_hint_applies_to_executed_action"
+                                    : "jev_selected_non_equivalent_action";
+                    recordPlanningEvent(runTaskId, new JSONObject()
+                            .put("event", "executor_progress_hint")
+                            .put("decision", effectiveExecutorSubgoalCompleteHint
+                                    ? "subgoal_candidate" : "continue_plan")
+                            .put("reason", hintReason)
+                            .put("step", step + 1)
+                            .put("executor_reported_complete", executorSubgoalCompleteHint)
+                            .put("effective_complete_hint", effectiveExecutorSubgoalCompleteHint)
+                            .put("jev_selected_action", jevActionSelected)
+                            .put("selection_relation", jevSelectionRelation));
                 }
 
                 JSONObject action = command.contractAction;
@@ -973,6 +1161,17 @@ public final class LocalVlmTaskService extends Service {
                     }
                     roles.recordInvalid(actionSummary, actionResult.safeMessage);
                     finishStep(runTaskId, roles, ++step);
+                    if (onDemandPlanning) {
+                        pendingPlanningReason = "action_exception";
+                        consecutiveActionFailures++;
+                        recordPlanningStepOutcome(runTaskId, step, "FAILURE", false,
+                                false, "", consecutiveActionFailures, loopReplanAttempted);
+                        if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
+                            recordPlanningStop(runTaskId, step, "repeated_action_failures");
+                            throw new TaskFailure("repeated_action_failures",
+                                    "连续两次设备动作失败且未派发；任务已暂停");
+                        }
+                    }
                     continue;
                 }
                 deviceActionNeedsVerification = true;
@@ -1019,6 +1218,36 @@ public final class LocalVlmTaskService extends Service {
                     roles.recordAction(command.original, actionSummary, legacyOutcome, explanation);
                     roles.clearActionForReflection();
                     finishStep(runTaskId, roles, ++step);
+                    if (onDemandPlanning) {
+                        String verifiedStatus = verification.status.name();
+                        if ("SUCCESS".equals(verifiedStatus) || "FAILURE".equals(verifiedStatus)) {
+                            deviceActionNeedsVerification = false;
+                        }
+                        boolean observationChanged = observationChanged(before, after);
+                        pendingPlanningReason = OnDemandPlanningPolicy.nextPlanReason(
+                                verifiedStatus, effectiveExecutorSubgoalCompleteHint);
+                        if ("SUCCESS".equals(verifiedStatus)) {
+                            consecutiveActionFailures = 0;
+                        } else if ("FAILURE".equals(verifiedStatus)) {
+                            consecutiveActionFailures++;
+                        }
+                        if ("SUCCESS".equals(verifiedStatus) || observationChanged) {
+                            loopReplanAttempted = false;
+                        }
+                        recordPlanningStepOutcome(runTaskId, step, verifiedStatus,
+                                effectiveExecutorSubgoalCompleteHint, observationChanged,
+                                observationFingerprintHash(after),
+                                consecutiveActionFailures, loopReplanAttempted);
+                        if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
+                            if (verification.status == TreeActionVerifier.Status.SUCCESS
+                                    || verification.status == TreeActionVerifier.Status.FAILURE) {
+                                deviceActionNeedsVerification = false;
+                            }
+                            recordPlanningStop(runTaskId, step, "repeated_action_failures");
+                            throw new TaskFailure("repeated_action_failures",
+                                    "连续两次动作核验为 FAILURE；任务已暂停");
+                        }
+                    }
                     if (verification.status == TreeActionVerifier.Status.SUCCESS
                             || verification.status == TreeActionVerifier.Status.FAILURE) {
                         deviceActionNeedsVerification = false;
@@ -1047,6 +1276,29 @@ public final class LocalVlmTaskService extends Service {
                 roles.clearActionForReflection();
                 finishStep(runTaskId, roles, ++step);
                 deviceActionNeedsVerification = false;
+                if (onDemandPlanning) {
+                    String verifiedStatus = "A".equals(normalizedOutcome) ? "SUCCESS" : "FAILURE";
+                    boolean observationChanged = observationChanged(before, after);
+                    pendingPlanningReason = OnDemandPlanningPolicy.nextPlanReason(
+                            verifiedStatus, effectiveExecutorSubgoalCompleteHint);
+                    if ("SUCCESS".equals(verifiedStatus)) {
+                        consecutiveActionFailures = 0;
+                    } else {
+                        consecutiveActionFailures++;
+                    }
+                    if ("SUCCESS".equals(verifiedStatus) || observationChanged) {
+                        loopReplanAttempted = false;
+                    }
+                    recordPlanningStepOutcome(runTaskId, step, verifiedStatus,
+                            effectiveExecutorSubgoalCompleteHint, observationChanged,
+                            observationFingerprintHash(after),
+                            consecutiveActionFailures, loopReplanAttempted);
+                    if (OnDemandPlanningPolicy.shouldPauseAfterFailure(consecutiveActionFailures)) {
+                        recordPlanningStop(runTaskId, step, "repeated_action_failures");
+                        throw new TaskFailure("repeated_action_failures",
+                                "连续两次动作核验失败；任务已暂停");
+                    }
+                }
                 if (hasControlRequest()) {
                     throw new TaskStopped();
                 }
@@ -1073,6 +1325,12 @@ public final class LocalVlmTaskService extends Service {
                     || LocalTaskStore.hasUnresolvedDeviceAction(this, runTaskId) ? "NEEDS_REVIEW" : "PAUSED";
             finalReason = failure.code;
             setStatus(failure.safeMessage);
+        } catch (JSONException exception) {
+            boolean unresolvedAction = deviceActionUnresolved || deviceActionNeedsVerification
+                    || LocalTaskStore.hasUnresolvedDeviceAction(this, runTaskId);
+            finalState = unresolvedAction ? "NEEDS_REVIEW" : "PAUSED";
+            finalReason = unresolvedAction ? "planning_trace_error_with_unresolved_action" : "planning_trace_error";
+            setStatus("本地规划轨迹无法编码；任务已安全暂停");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             boolean unresolvedAction = LocalTaskStore.hasUnresolvedDeviceAction(this, runTaskId);
@@ -1655,6 +1913,9 @@ public final class LocalVlmTaskService extends Service {
         }
         LocalTaskStore.Reservation reservation = LocalTaskStore.reserveRequest(this, runTaskId, role, step);
         if (!reservation.allowed) {
+            if (isBudgetDenial(reservation.reason)) {
+                recordBudgetGateEvent(runTaskId, role, step, reservation.reason);
+            }
             throw new TaskFailure("budget_gate_" + reservation.reason,
                     "请求预算已到上限（每任务 ¥1、最多 25 次）；任务已暂停");
         }
@@ -1697,6 +1958,7 @@ public final class LocalVlmTaskService extends Service {
             if (exception.getCategory() == VlmApiClient.ErrorCategory.INVALID_ARGUMENT) {
                 LocalTaskStore.releaseUnsentRequest(this, runTaskId, reservation.attemptIndex,
                         exception.getCategory().name().toLowerCase(java.util.Locale.ROOT));
+                recordRoleRequestStop(runTaskId, role, step, "invalid_request_arguments");
                 throw new TaskFailure("vlm_endpoint_invalid", "模型 endpoint 或请求参数无效；未执行设备动作");
             }
             LocalTaskStore.Settlement settlement = LocalTaskStore.finishRequest(this, runTaskId,
@@ -1708,6 +1970,7 @@ public final class LocalVlmTaskService extends Service {
             if (hasControlRequest()) {
                 throw new TaskStopped();
             }
+            recordRoleRequestStop(runTaskId, role, step, "model_request_failed_usage_unknown");
             throw new TaskFailure("usage_unknown_" + exception.getCategory().name().toLowerCase(java.util.Locale.ROOT),
                     "模型请求失败或 usage 缺失；已保留本次预留费用，停止重试并暂停任务（HTTP "
                             + exception.getHttpStatus() + "）");
@@ -1722,15 +1985,39 @@ public final class LocalVlmTaskService extends Service {
             throw new TaskFailure("usage_ledger_not_saved", "模型响应已返回但本地用量记录失败；任务已暂停");
         }
         if (settlement.budgetExceeded) {
+            recordRoleRequestStop(runTaskId, role, step, "actual_usage_budget_exceeded");
             throw new TaskFailure("actual_usage_budget_exceeded", "实际 usage 已超过预算，已停止后续模型请求");
         }
         if (!settlement.usageKnown) {
+            recordRoleRequestStop(runTaskId, role, step, "usage_missing");
             throw new TaskFailure("usage_missing", "模型响应缺少完整 usage；本次预留费用保留，停止重试并暂停任务");
         }
         if (hasControlRequest()) {
             throw new TaskStopped();
         }
         return response.content;
+    }
+
+    private static boolean isBudgetDenial(String reason) {
+        return "task_budget_reserved".equals(reason)
+                || "global_budget_reserved".equals(reason)
+                || "max_requests".equals(reason)
+                || "max_steps".equals(reason);
+    }
+
+    private void recordBudgetGateEvent(String runTaskId, String role, int step, String budgetReason)
+            throws TaskFailure {
+        try {
+            recordPlanningEvent(runTaskId, new JSONObject()
+                    .put("event", "budget_gate")
+                    .put("decision", "pause_before_request")
+                    .put("reason", "model_budget_exhausted")
+                    .put("budget_reason", budgetReason)
+                    .put("role", role)
+                    .put("step", step + 1));
+        } catch (JSONException exception) {
+            throw new TaskFailure("planning_trace_not_saved", "预算停止记录无法编码；任务已安全暂停");
+        }
     }
 
     /** Jev can only append a report; this path has no reference to the action dispatcher. */
@@ -1881,6 +2168,100 @@ public final class LocalVlmTaskService extends Service {
         if (!LocalTaskStore.saveHistory(this, runTaskId, roles.toJson())
                 || !LocalTaskStore.setStep(this, runTaskId, nextStep)) {
             throw new TaskFailure("task_history_not_saved", "本地任务历史无法保存；已停止后续操作");
+        }
+    }
+
+    private void recordPlanningStepOutcome(String runTaskId, int completedStep, String verificationStatus,
+            boolean executorSubgoalCompleteHint, boolean observationChanged,
+            String afterObservationSha256,
+            int consecutiveActionFailures, boolean loopReplanAttempted) throws TaskFailure, JSONException {
+        String nextReason = OnDemandPlanningPolicy.nextPlanReason(
+                verificationStatus, executorSubgoalCompleteHint);
+        boolean verificationPaused = "UNKNOWN".equals(verificationStatus)
+                || "PENDING".equals(verificationStatus);
+        recordPlanningEvent(runTaskId, new JSONObject()
+                .put("event", "verified_step_outcome")
+                .put("decision", verificationPaused ? "pause"
+                        : nextReason.isEmpty() ? "reuse_plan_next_step" : "replan_next_step")
+                .put("reason", verificationPaused ? "step_verification_" + verificationStatus.toLowerCase(java.util.Locale.ROOT)
+                        : nextReason.isEmpty() ? "plan_still_current" : nextReason)
+                .put("step", completedStep)
+                .put("verification_status", verificationStatus)
+                .put("executor_subgoal_complete_hint", executorSubgoalCompleteHint)
+                .put("next_plan_reason", nextReason)
+                .put("observation_changed", observationChanged)
+                .put("after_observation_sha256", afterObservationSha256 == null ? "" : afterObservationSha256)
+                .put("scheduler_state", new OnDemandPlanningPolicy.SchedulerState(
+                        nextReason,
+                        consecutiveActionFailures, loopReplanAttempted).toJson()));
+    }
+
+    private JSONArray currentPlanningEvents(String runTaskId) {
+        JSONObject task = LocalTaskStore.task(this, runTaskId);
+        JSONArray events = task == null ? null : task.optJSONArray("planning_events");
+        return events == null ? new JSONArray() : events;
+    }
+
+    private static boolean observationChanged(JSONObject before, JSONObject after) {
+        String beforeFingerprint = CoordinateObservationFingerprint.create(before);
+        String afterFingerprint = CoordinateObservationFingerprint.create(after);
+        return !beforeFingerprint.isEmpty() && !afterFingerprint.isEmpty()
+                && !beforeFingerprint.equals(afterFingerprint);
+    }
+
+    private static String observationFingerprintHash(JSONObject observation) {
+        String fingerprint = CoordinateObservationFingerprint.create(observation);
+        if (fingerprint.isEmpty()) return "";
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(fingerprint.getBytes(StandardCharsets.UTF_8));
+            char[] digits = "0123456789abcdef".toCharArray();
+            char[] hex = new char[digest.length * 2];
+            for (int i = 0; i < digest.length; i++) {
+                int value = digest[i] & 0xff;
+                hex[i * 2] = digits[value >>> 4];
+                hex[i * 2 + 1] = digits[value & 0x0f];
+            }
+            return new String(hex);
+        } catch (NoSuchAlgorithmException impossible) {
+            return "";
+        }
+    }
+
+    private void recordPlanningEvent(String runTaskId, JSONObject event) throws TaskFailure {
+        if (!LocalTaskStore.recordPlanningEvent(this, runTaskId, event)) {
+            throw new TaskFailure("planning_trace_not_saved", "本地规划轨迹无法保存；已停止后续操作");
+        }
+    }
+
+    private void recordPlanningEventBestEffort(String runTaskId, JSONObject event) {
+        LocalTaskStore.recordPlanningEvent(this, runTaskId, event);
+    }
+
+    private void recordPlanningStop(String runTaskId, int completedStep, String reason)
+            throws TaskFailure {
+        try {
+            recordPlanningEvent(runTaskId, new JSONObject()
+                    .put("event", "planner_stopped")
+                    .put("decision", "pause")
+                    .put("reason", reason)
+                    .put("step", completedStep));
+        } catch (JSONException exception) {
+            throw new TaskFailure("planning_trace_not_saved", "规划停止原因无法编码；任务已安全暂停");
+        }
+    }
+
+    private void recordRoleRequestStop(String runTaskId, String role, int step, String reason)
+            throws TaskFailure {
+        try {
+            recordPlanningEvent(runTaskId, new JSONObject()
+                    .put("event", "role_request_stopped")
+                    .put("decision", "pause")
+                    .put("reason", reason)
+                    .put("role", role)
+                    .put("step", step + 1));
+        } catch (JSONException exception) {
+            throw new TaskFailure("planning_trace_not_saved", "模型请求停止原因无法编码；任务已安全暂停");
         }
     }
 

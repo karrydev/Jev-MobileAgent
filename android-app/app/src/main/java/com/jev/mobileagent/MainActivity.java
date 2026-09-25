@@ -186,6 +186,19 @@ public class MainActivity extends Activity {
         root.addView(label("新任务快照独立开关。规则先核对当前树；必要时 Jev 给出四态，信息不足再用真实前后图调用 VLM Reflector。PENDING 最多等待 2 次、每次 600ms；前后截图缺失时保持 UNKNOWN 并暂停。", 12,
                 Color.DKGRAY), widthMatchWrap());
 
+        CheckBox onDemandPlanning = new CheckBox(this);
+        onDemandPlanning.setText("启用按需规划（默认关闭）");
+        onDemandPlanning.setChecked(LocalTaskStore.isOnDemandPlanningEnabled(this));
+        onDemandPlanning.setOnCheckedChangeListener((button, checked) -> {
+            if (!LocalTaskStore.setOnDemandPlanningEnabled(this, checked)) {
+                button.setChecked(!checked);
+                settingsStatus.setText("按需规划设置未能保存；任务保持原配置。");
+            }
+        });
+        root.addView(onDemandPlanning, marginTop(widthMatchWrap(), 10));
+        root.addView(label("新任务创建时固定此开关。任务开始、已核验的子目标完成、动作异常、计划过期或循环时重新规划；其他步复用计划，最多复用 2 个已执行步骤后复查。反复失败或模型预算耗尽时安全暂停，逐步核验仍按上方设置执行。", 12,
+                Color.DKGRAY), widthMatchWrap());
+
         if (BuildConfig.DEBUG) {
             root.addView(label("Jev 协议验收（仅 Debug）", 18, Color.rgb(35, 50, 65)),
                     marginTop(widthMatchWrap(), 16));
@@ -441,6 +454,21 @@ public class MainActivity extends Activity {
         JSONObject history = task.optJSONObject("history");
         String answer = history == null ? "" : history.optString("last_answer", "").trim();
         String result = answer.isEmpty() ? summary : summary + "\n模型答复：" + answer;
+        if (task.optBoolean("on_demand_planning_enabled", false)) {
+            org.json.JSONArray planningEvents = task.optJSONArray("planning_events");
+            int replans = 0;
+            int reused = 0;
+            String lastReason = "";
+            for (int i = 0; planningEvents != null && i < planningEvents.length(); i++) {
+                JSONObject event = planningEvents.optJSONObject(i);
+                if (event == null || !"planner_decision".equals(event.optString("event", ""))) continue;
+                if ("replan".equals(event.optString("decision", ""))) replans++;
+                if ("reuse_plan".equals(event.optString("decision", ""))) reused++;
+                lastReason = event.optString("reason", lastReason);
+            }
+            result += "\n按需规划：" + replans + " 次重新规划，" + reused + " 步复用计划"
+                    + (lastReason.isEmpty() ? "" : "；最近决策：" + lastReason);
+        }
         org.json.JSONArray jevAttempts = task.optJSONArray("jev_shadow_attempts");
         if (jevAttempts != null && jevAttempts.length() > 0) {
             int valid = 0;
