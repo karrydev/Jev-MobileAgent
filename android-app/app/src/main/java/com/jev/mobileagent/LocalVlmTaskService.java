@@ -752,6 +752,14 @@ public final class LocalVlmTaskService extends Service {
             if (!LocalVlmBudgetPolicy.isReviewedProfile(profile.provider, profile.model)) {
                 throw new TaskFailure("unpriced_profile", "本地没有该模型的已审查费率，无法执行 ¥1 预算门控");
             }
+            final VlmCoordinateProtocol coordinateProtocol;
+            try {
+                coordinateProtocol = VlmCoordinateProtocol.forTaskModel(
+                        task.optString("model", ""), profile.model);
+            } catch (IllegalArgumentException exception) {
+                throw new TaskFailure("vlm_task_model_changed",
+                        "当前模型与任务保存的模型不同；任务继续暂停，请恢复原模型配置");
+            }
             if (!ObservationAccessibilityService.isEnabled(this)) {
                 throw new TaskFailure("accessibility_unavailable", "无障碍服务未启用；任务已安全暂停");
             }
@@ -863,7 +871,7 @@ public final class LocalVlmTaskService extends Service {
                     String response;
                     try {
                         response = requestRole(profile, runTaskId, "manager", step,
-                                roles.managerPrompt(), beforeImages);
+                                roles.managerPrompt(), beforeImages, coordinateProtocol);
                     } catch (TaskFailure failure) {
                         JSONObject stopped = new JSONObject()
                                 .put("event", "planner_request_stopped")
@@ -946,7 +954,7 @@ public final class LocalVlmTaskService extends Service {
                 setStatus("第 " + (step + 1) + "/" + LocalTaskStore.MAX_STEPS + " 步：执行角色选择动作");
                 ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                 String executorResponse = requestRole(profile, runTaskId, "executor", step,
-                        roles.executorPrompt(onDemandPlanning), beforeImages);
+                        roles.executorPrompt(onDemandPlanning), beforeImages, coordinateProtocol);
                 ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                 boolean executorSubgoalCompleteHint = onDemandPlanning
                         && MobileAgentVlmRoles.executorMarkedSubgoalComplete(executorResponse);
@@ -965,9 +973,12 @@ public final class LocalVlmTaskService extends Service {
                 String actionSummary = selected[2];
                 MobileAgentVlmRoles.ActionCommand command;
                 try {
+                    VlmCoordinateProtocol.ImageSize uploadSize = coordinateProtocol.uploadSize(
+                            beforeShot.optInt("width_px", 0), beforeShot.optInt("height_px", 0));
                     command = roles.action(selected[1], before, runTaskId, step + 1,
-                            beforeShot.optString("screenshot_id", ""));
-                } catch (JSONException exception) {
+                            beforeShot.optString("screenshot_id", ""), coordinateProtocol,
+                            uploadSize.width, uploadSize.height);
+                } catch (JSONException | IllegalArgumentException exception) {
                     ensureDecisionSceneCurrent(runTaskId, before, loopGeneration, sceneEventBaseline);
                     if (task.optBoolean("jev_selection_enabled", false)) {
                         runJevControlledForDecision(task, runTaskId, step, before, null);
@@ -1206,7 +1217,7 @@ public final class LocalVlmTaskService extends Service {
                 if (treeVerificationEnabled) {
                     TreeActionVerifier.Result verification;
                     try {
-                        verification = verifyTreeAction(profile, task, runTaskId, step,
+                        verification = verifyTreeAction(profile, coordinateProtocol, task, runTaskId, step,
                                 action, before, after, beforeShot, afterShot, roles);
                     } catch (JSONException exception) {
                         throw new TaskFailure("action_verification_evidence_invalid",
@@ -1260,7 +1271,8 @@ public final class LocalVlmTaskService extends Service {
                     continue;
                 }
                 String reflection = requestRole(profile, runTaskId, "action_reflector", step,
-                        roles.reflectorPrompt(), new JSONArray().put(beforeShot).put(afterShot));
+                        roles.reflectorPrompt(), new JSONArray().put(beforeShot).put(afterShot),
+                        coordinateProtocol);
                 String[] reflected = roles.parseReflection(reflection);
                 String normalizedOutcome = MobileAgentVlmRoles.reflectionOutcomeLabel(reflected[0]);
                 if (normalizedOutcome.isEmpty()) {
@@ -1569,7 +1581,8 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private TreeActionVerifier.Result verifyTreeAction(ModelProfileStore.Profile profile,
-            JSONObject task, String runTaskId, int step, JSONObject action,
+            VlmCoordinateProtocol coordinateProtocol, JSONObject task, String runTaskId,
+            int step, JSONObject action,
             JSONObject before, JSONObject initialAfter, JSONObject beforeShot,
             JSONObject initialAfterShot, MobileAgentVlmRoles roles)
             throws TaskFailure, TaskStopped, InterruptedException, JSONException {
@@ -1695,7 +1708,7 @@ public final class LocalVlmTaskService extends Service {
                         }
                         String response = requestRole(profile, runTaskId, "action_reflector", step,
                                 roles.treeReflectorPrompt(),
-                                new JSONArray().put(beforeShot).put(afterShot));
+                                new JSONArray().put(beforeShot).put(afterShot), coordinateProtocol);
                         String[] reflected = roles.parseTreeReflection(response);
                         TreeActionVerifier.Status visualStatus = TreeActionVerifier.parseModelStatus(reflected[0]);
                         JSONObject visualEvidence = new JSONObject().put("reason", reflected[1]);
@@ -1905,10 +1918,18 @@ public final class LocalVlmTaskService extends Service {
     }
 
     private String requestRole(ModelProfileStore.Profile profile, String runTaskId, String role,
-            int step, String prompt, JSONArray screenshots)
+            int step, String prompt, JSONArray screenshots,
+            VlmCoordinateProtocol coordinateProtocol)
             throws TaskFailure, TaskStopped, InterruptedException {
         if (hasControlRequest()) {
             throw new TaskStopped();
+        }
+        final VlmImageAdapter.PreparedImages preparedImages;
+        try {
+            preparedImages = VlmImageAdapter.prepare(coordinateProtocol, screenshots);
+        } catch (JSONException | RuntimeException exception) {
+            throw new TaskFailure("vlm_image_adaptation_failed",
+                    "本地模型图片适配失败；未发送请求，任务已暂停");
         }
         LocalTaskStore.Reservation reservation = LocalTaskStore.reserveRequest(this, runTaskId, role, step);
         if (!reservation.allowed) {
@@ -1923,7 +1944,8 @@ public final class LocalVlmTaskService extends Service {
             JSONObject screenshot = screenshots.optJSONObject(i);
             screenshotIds.put(screenshot == null ? "" : screenshot.optString("screenshot_id", ""));
         }
-        if (!LocalTaskStore.recordRequestImages(this, runTaskId, reservation.attemptIndex, screenshotIds)) {
+        if (!LocalTaskStore.recordRequestImages(this, runTaskId, reservation.attemptIndex,
+                screenshotIds, preparedImages.requestMetadata)) {
             LocalTaskStore.releaseUnsentRequest(this, runTaskId, reservation.attemptIndex,
                     "request_evidence_not_saved");
             throw new TaskFailure("request_evidence_not_saved", "请求证据无法保存，未发送模型请求");
@@ -1938,7 +1960,8 @@ public final class LocalVlmTaskService extends Service {
         try {
             JSONObject message = new JSONObject()
                     .put("role", "user")
-                    .put("content", new MobileAgentVlmRoles().userContent(prompt, screenshots));
+                    .put("content", new MobileAgentVlmRoles().userContent(
+                            prompt, preparedImages.images, coordinateProtocol));
             messages = new JSONArray().put(message);
         } catch (JSONException exception) {
             LocalTaskStore.releaseUnsentRequest(this, runTaskId, reservation.attemptIndex,

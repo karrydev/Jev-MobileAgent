@@ -12,6 +12,90 @@ import org.junit.Test;
 
 public final class MobileAgentVlmRolesTest {
     @Test
+    public void guiPlusPromptUsesExactPreparedImageDimensionsAndPixelCoordinates() throws Exception {
+        JSONArray screenshots = new JSONArray().put(new JSONObject()
+                .put("screenshot_id", "shot-original")
+                .put("observation_id", "obs-original")
+                .put("width_px", 672).put("height_px", 1484)
+                .put("png_base64", "IMAGE"));
+
+        String prompt = new MobileAgentVlmRoles().userContent("tap the target", screenshots,
+                VlmCoordinateProtocol.forModel("gui-plus")).getJSONObject(0).getString("text");
+
+        assertTrue(prompt.contains("Uploaded image 1 is exactly 672 x 1484 pixels."));
+        assertTrue(prompt.contains("raw pixels in the uploaded image"));
+        assertTrue(prompt.contains("Do not normalize coordinates."));
+        assertFalse(prompt.contains("0 to 1000"));
+    }
+
+    @Test
+    public void datedGuiPlusPromptAndActionsKeepTheNormalizedCoordinateContract() throws Exception {
+        VlmCoordinateProtocol protocol = VlmCoordinateProtocol.forModel("gui-plus-2026-02-26");
+        JSONArray screenshots = new JSONArray().put(new JSONObject()
+                .put("width_px", 1080).put("height_px", 2400).put("png_base64", "IMAGE"));
+        String prompt = new MobileAgentVlmRoles().userContent("tap", screenshots, protocol)
+                .getJSONObject(0).getString("text");
+
+        assertTrue(prompt.contains("normalized x/y values from 0 to 1000"));
+        MobileAgentVlmRoles.ActionCommand command = new MobileAgentVlmRoles().action(
+                new JSONObject().put("action", "click")
+                        .put("coordinate", new JSONArray().put(1000).put(1000)).toString(),
+                screenObservation(1080, 2400), "task-date", 1, "shot-date", protocol, 672, 1484);
+        JSONObject point = command.contractAction.getJSONObject("parameters");
+        assertEquals(1079, point.getInt("x"));
+        assertEquals(2399, point.getInt("y"));
+    }
+
+    @Test
+    public void guiPlusClickLongPressAndSwipeMapOnlyInBoundsPixels() throws Exception {
+        VlmCoordinateProtocol protocol = VlmCoordinateProtocol.forModel("gui-plus");
+        JSONObject observation = screenObservation(1080, 2400);
+        MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
+
+        JSONObject click = roles.action(new JSONObject().put("action", "click")
+                        .put("coordinate", new JSONArray().put(336).put(742)).toString(),
+                observation, "task-gui", 1, "shot-gui", protocol, 672, 1484)
+                .contractAction.getJSONObject("parameters");
+        assertEquals(540, click.getInt("x"));
+        assertEquals(1200, click.getInt("y"));
+
+        JSONObject longPress = roles.action(new JSONObject().put("action", "long_press")
+                        .put("coordinate", new JSONArray().put(671).put(1483)).toString(),
+                observation, "task-gui", 2, "shot-gui", protocol, 672, 1484)
+                .contractAction.getJSONObject("parameters");
+        assertEquals(1078, longPress.getInt("x"));
+        assertEquals(2398, longPress.getInt("y"));
+
+        JSONObject swipe = roles.action(new JSONObject().put("action", "swipe")
+                        .put("coordinate", new JSONArray().put(0).put(0))
+                        .put("coordinate2", new JSONArray().put(671).put(20)).toString(),
+                observation, "task-gui", 3, "shot-gui", protocol, 672, 1484)
+                .contractAction.getJSONObject("parameters");
+        assertEquals(0, swipe.getInt("x1"));
+        assertEquals(0, swipe.getInt("y1"));
+        assertEquals(1078, swipe.getInt("x2"));
+
+        assertGuiPlusActionRejected(roles, observation, protocol, "click",
+                new JSONArray().put(-1).put(0), null);
+        assertGuiPlusActionRejected(roles, observation, protocol, "long_press",
+                new JSONArray().put(0).put(1484), null);
+        assertGuiPlusActionRejected(roles, observation, protocol, "swipe",
+                new JSONArray().put(0).put(0), new JSONArray().put(672).put(20));
+    }
+
+    @Test
+    public void guiPlusTypeStillRequiresCurrentFocusedEditableNode() throws Exception {
+        try {
+            new MobileAgentVlmRoles().action(new JSONObject().put("action", "type")
+                            .put("text", "测试").toString(), screenObservation(1080, 2400),
+                    "task-gui", 1, "shot-gui", VlmCoordinateProtocol.forModel("gui-plus"), 672, 1484);
+            throw new AssertionError("type without a focused editable node was accepted");
+        } catch (org.json.JSONException expected) {
+            assertTrue(expected.getMessage().contains("focused editable node"));
+        }
+    }
+
+    @Test
     public void reflectorPromptUsesCurrentFirstActionWithoutPrematureHistoryEntry() throws Exception {
         MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
         JSONObject currentAction = new JSONObject().put("action", "type").put("text", "甲");
@@ -206,6 +290,26 @@ public final class MobileAgentVlmRolesTest {
             throw new AssertionError("invalid answer text should be rejected");
         } catch (org.json.JSONException expected) {
             // Invalid answer content is rejected before any terminal or device action is returned.
+        }
+    }
+
+    private static JSONObject screenObservation(int width, int height) throws Exception {
+        return new JSONObject().put("observation_id", "obs-current")
+                .put("observation_version", 7)
+                .put("screen", new JSONObject().put("width_px", width).put("height_px", height))
+                .put("nodes", new JSONArray());
+    }
+
+    private static void assertGuiPlusActionRejected(MobileAgentVlmRoles roles,
+            JSONObject observation, VlmCoordinateProtocol protocol, String action,
+            JSONArray coordinate, JSONArray coordinate2) throws Exception {
+        JSONObject raw = new JSONObject().put("action", action).put("coordinate", coordinate);
+        if (coordinate2 != null) raw.put("coordinate2", coordinate2);
+        try {
+            roles.action(raw.toString(), observation, "task-gui", 1, "shot-gui", protocol, 672, 1484);
+            throw new AssertionError("out-of-image GUI-Plus action was accepted");
+        } catch (org.json.JSONException expected) {
+            assertTrue(expected.getMessage().contains("GUI-Plus coordinates"));
         }
     }
 }

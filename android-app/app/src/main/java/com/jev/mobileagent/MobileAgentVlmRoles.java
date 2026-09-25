@@ -265,8 +265,15 @@ public final class MobileAgentVlmRoles {
     }
 
     public JSONArray userContent(String prompt, JSONArray screenshots) throws JSONException {
+        return userContent(prompt, screenshots, VlmCoordinateProtocol.forModel("gui-plus-2026-02-26"));
+    }
+
+    public JSONArray userContent(String prompt, JSONArray screenshots,
+            VlmCoordinateProtocol coordinateProtocol) throws JSONException {
+        String coordinateNote = coordinateProtocol.usesPixelCoordinates()
+                ? guiPlusCoordinateNote(screenshots) : COORDINATE_NOTE;
         JSONArray content = new JSONArray().put(new JSONObject().put("type", "text")
-                .put("text", prompt == null ? "" : prompt.trim() + COORDINATE_NOTE));
+                .put("text", prompt == null ? "" : prompt.trim() + coordinateNote));
         if (screenshots != null) {
             for (int i = 0; i < screenshots.length(); i++) {
                 JSONObject screenshot = screenshots.optJSONObject(i);
@@ -283,6 +290,17 @@ public final class MobileAgentVlmRoles {
 
     public ActionCommand action(String actionText, JSONObject observation,
             String taskId, int sequence, String beforeScreenshotId) throws JSONException {
+        JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
+        int width = screen == null ? 0 : screen.optInt("width_px", 0);
+        int height = screen == null ? 0 : screen.optInt("height_px", 0);
+        return action(actionText, observation, taskId, sequence, beforeScreenshotId,
+                VlmCoordinateProtocol.forModel("gui-plus-2026-02-26"), width, height);
+    }
+
+    public ActionCommand action(String actionText, JSONObject observation,
+            String taskId, int sequence, String beforeScreenshotId,
+            VlmCoordinateProtocol coordinateProtocol, int uploadImageWidth, int uploadImageHeight)
+            throws JSONException {
         JSONObject raw;
         try {
             raw = new JSONObject(actionText);
@@ -326,15 +344,19 @@ public final class MobileAgentVlmRoles {
             case "click": {
                 JSONArray coordinate = requiredPoint(raw, "coordinate");
                 androidKind = "coordinate_tap";
-                parameters.put("x", pixel(coordinate.optDouble(0, Double.NaN), width));
-                parameters.put("y", pixel(coordinate.optDouble(1, Double.NaN), height));
+                parameters.put("x", actionPixel(coordinateProtocol,
+                        coordinate.optDouble(0, Double.NaN), uploadImageWidth, width));
+                parameters.put("y", actionPixel(coordinateProtocol,
+                        coordinate.optDouble(1, Double.NaN), uploadImageHeight, height));
                 break;
             }
             case "long_press": {
                 JSONArray coordinate = requiredPoint(raw, "coordinate");
                 androidKind = "long_press";
-                parameters.put("x", pixel(coordinate.optDouble(0, Double.NaN), width));
-                parameters.put("y", pixel(coordinate.optDouble(1, Double.NaN), height));
+                parameters.put("x", actionPixel(coordinateProtocol,
+                        coordinate.optDouble(0, Double.NaN), uploadImageWidth, width));
+                parameters.put("y", actionPixel(coordinateProtocol,
+                        coordinate.optDouble(1, Double.NaN), uploadImageHeight, height));
                 parameters.put("duration_ms", 700);
                 break;
             }
@@ -342,10 +364,14 @@ public final class MobileAgentVlmRoles {
                 JSONArray start = requiredPoint(raw, "coordinate");
                 JSONArray end = requiredPoint(raw, "coordinate2");
                 androidKind = "swipe";
-                parameters.put("x1", pixel(start.optDouble(0, Double.NaN), width));
-                parameters.put("y1", pixel(start.optDouble(1, Double.NaN), height));
-                parameters.put("x2", pixel(end.optDouble(0, Double.NaN), width));
-                parameters.put("y2", pixel(end.optDouble(1, Double.NaN), height));
+                parameters.put("x1", actionPixel(coordinateProtocol,
+                        start.optDouble(0, Double.NaN), uploadImageWidth, width));
+                parameters.put("y1", actionPixel(coordinateProtocol,
+                        start.optDouble(1, Double.NaN), uploadImageHeight, height));
+                parameters.put("x2", actionPixel(coordinateProtocol,
+                        end.optDouble(0, Double.NaN), uploadImageWidth, width));
+                parameters.put("y2", actionPixel(coordinateProtocol,
+                        end.optDouble(1, Double.NaN), uploadImageHeight, height));
                 parameters.put("duration_ms", 600);
                 break;
             }
@@ -410,6 +436,36 @@ public final class MobileAgentVlmRoles {
                 .put("source", "mobileagent-v3.5-vlm-role")
                 .put("created_at", java.time.Instant.now().toString());
         return new ActionCommand(raw, action, false);
+    }
+
+    private static String guiPlusCoordinateNote(JSONArray screenshots) throws JSONException {
+        StringBuilder note = new StringBuilder("\n\n---\n### GUI-Plus image pixel coordinates ###\n")
+                .append("Return click, long_press, and swipe coordinates as raw pixels in the uploaded image. ")
+                .append("The origin is the top-left corner; x is in [0, width - 1] and y is in [0, height - 1]. ")
+                .append("Do not normalize coordinates.\n");
+        for (int i = 0; screenshots != null && i < screenshots.length(); i++) {
+            JSONObject screenshot = screenshots.optJSONObject(i);
+            int width = screenshot == null ? 0 : screenshot.optInt("width_px", 0);
+            int height = screenshot == null ? 0 : screenshot.optInt("height_px", 0);
+            if (width < 1 || height < 1) {
+                throw new JSONException("GUI-Plus prompt requires the exact uploaded image dimensions");
+            }
+            note.append("Uploaded image ").append(i + 1).append(" is exactly ")
+                    .append(width).append(" x ").append(height).append(" pixels.\n");
+        }
+        return note.toString();
+    }
+
+    private static int actionPixel(VlmCoordinateProtocol protocol, double value,
+            int uploadImageSize, int screenSize) throws JSONException {
+        if (protocol == null || !protocol.usesPixelCoordinates()) {
+            return pixel(value, screenSize);
+        }
+        try {
+            return protocol.toScreenPixel(value, uploadImageSize, screenSize);
+        } catch (IllegalArgumentException exception) {
+            throw new JSONException("GUI-Plus coordinates must be finite pixels inside the uploaded image");
+        }
     }
 
     /** Builds the same observation-bound action envelope for a Jev-selected live candidate. */

@@ -1021,6 +1021,12 @@ public final class LocalTaskStore {
     /** Record which local screenshots are included in this already-reserved request. */
     public static boolean recordRequestImages(Context context, String taskId, int attemptIndex,
             JSONArray screenshotIds) {
+        return recordRequestImages(context, taskId, attemptIndex, screenshotIds, new JSONArray());
+    }
+
+    /** Record original image identities and safe transfer dimensions, never encoded screenshot bytes. */
+    public static boolean recordRequestImages(Context context, String taskId, int attemptIndex,
+            JSONArray screenshotIds, JSONArray imageTransfers) {
         synchronized (LOCK) {
             JSONObject task = task(context, taskId);
             JSONArray requests = task == null ? null : task.optJSONArray("requests");
@@ -1033,8 +1039,11 @@ public final class LocalTaskStore {
             }
             try {
                 JSONArray safeIds = screenshotIds == null ? new JSONArray() : new JSONArray(screenshotIds.toString());
+                JSONArray safeTransfers = imageTransfers == null
+                        ? new JSONArray() : new JSONArray(imageTransfers.toString());
                 request.put("image_count", safeIds.length());
                 request.put("screenshot_ids", safeIds);
+                request.put("image_uploads", safeTransfers);
                 touch(task);
                 return preferences(context).edit().putString(taskKey(taskId), task.toString()).commit();
             } catch (JSONException exception) {
