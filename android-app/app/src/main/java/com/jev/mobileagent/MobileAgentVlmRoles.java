@@ -201,14 +201,30 @@ public final class MobileAgentVlmRoles {
 
     /** Four-state visual fallback used only when the task's tree-verification option is enabled. */
     public String treeReflectorPrompt() {
-        return "You verify one Android action using only the two attached real screenshots and the current task context.\n"
+        return "You verify one Android action using the attached real screenshots and the current task context.\n"
+                + "The first screenshot is BEFORE the action and the second screenshot is AFTER the action.\n"
                 + "The execution receipt, action callback, and overall task status are not proof of the action result.\n"
                 + "Goal: " + instruction + "\n"
                 + "Action actually dispatched: " + latestActionForReflection() + "\n"
-                + "Expected behavior: " + lastSummary + "\n\n"
-                + "Return exactly one status and a short reason. SUCCESS means the expected postcondition is visibly satisfied; "
+                + "Action description (intent only; not an expected postcondition): " + lastSummary + "\n\n"
+                + "For a Jev candidate, selected_accessibility_target grounds the accessible node that was selected. "
+                + "Its bounds_screen_px use the original screen pixel frame named by source_screen_size_px; uploaded screenshots may be resized, "
+                + "so map each x coordinate by source width and each y coordinate by source height to locate that node in the screenshot; "
+                + "never treat source screen pixels as uploaded-image pixels. Candidate identifiers and target bounds say what was selected, "
+                + "not whether it changed or whether the action succeeded.\n"
+                + "Judge the goal-relevant result from the target app's visible content and controls in these screenshots. "
+                + "Compare BEFORE with AFTER and cite only evidence that is actually visible; do not invent a state transition. "
+                + "The agent or automation UI's own task, progress, running, waiting, or cost indicators are operational metadata, "
+                + "not target-app content and never evidence that the requested action worked.\n"
+                + "Distinguish a requested state from a requested event. For a state goal, SUCCESS is allowed when the requested state is visibly true AFTER, "
+                + "even if it was already true BEFORE. For an event goal such as clicking, tapping, sending, or submitting, "
+                + "the target merely being visible, available, or selected does not prove that the event happened; require a visible target-app consequence "
+                + "of that event in AFTER, such as a relevant state transition or resulting content. If that evidence is absent, do not choose SUCCESS; "
+                + "choose FAILURE when the screenshots show a wrong or unmet result, otherwise UNKNOWN when they do not decide.\n"
+                + "Return exactly one status and a short reason. SUCCESS means the goal-relevant postcondition is visibly satisfied; "
                 + "FAILURE means it is visibly wrong or the action had no effect; PENDING means the page is still changing "
-                + "and a bounded wait may help; UNKNOWN means these screenshots do not decide. Never infer SUCCESS from a click receipt.\n\n"
+                + "and a bounded wait may help; UNKNOWN means these screenshots do not decide. Never infer SUCCESS from a click receipt, "
+                + "candidate identifier, target visibility, or successful action selection.\n\n"
                 + "### Status ###\nSUCCESS, FAILURE, PENDING, or UNKNOWN\n\n### Reason ###\nBrief visual evidence for that status.";
     }
 
@@ -554,7 +570,38 @@ public final class MobileAgentVlmRoles {
                 .put("target_node_id", candidate.nodeId)
                 .put("description", candidate.description)
                 .put("parameters", new JSONObject(parameters.toString()));
+        JSONObject selectedTarget = new JSONObject()
+                .put("label", targetLabel)
+                .put("role", targetRole)
+                .put("source_screen_size_px", new JSONObject()
+                        .put("width_px", width)
+                        .put("height_px", height));
+        JSONObject targetBounds = screenBoundsForReflection(sourceNode);
+        if (targetBounds != null) {
+            selectedTarget.put("bounds_screen_px", targetBounds);
+        }
+        original.put("selected_accessibility_target", selectedTarget);
         return new ActionCommand(original, action, false);
+    }
+
+    private static JSONObject screenBoundsForReflection(JSONObject sourceNode) throws JSONException {
+        JSONObject sourceBounds = sourceNode.optJSONObject("bounds");
+        if (sourceBounds == null) {
+            return null;
+        }
+        double left = sourceBounds.optDouble("left", Double.NaN);
+        double top = sourceBounds.optDouble("top", Double.NaN);
+        double right = sourceBounds.optDouble("right", Double.NaN);
+        double bottom = sourceBounds.optDouble("bottom", Double.NaN);
+        if (!Double.isFinite(left) || !Double.isFinite(top) || !Double.isFinite(right)
+                || !Double.isFinite(bottom) || right <= left || bottom <= top) {
+            return null;
+        }
+        return new JSONObject()
+                .put("left", sourceBounds.get("left"))
+                .put("top", sourceBounds.get("top"))
+                .put("right", sourceBounds.get("right"))
+                .put("bottom", sourceBounds.get("bottom"));
     }
 
     private static JSONObject swipeParameters(JevCandidateBuilder.Candidate candidate,

@@ -147,6 +147,32 @@ public final class MobileAgentVlmRolesTest {
     }
 
     @Test
+    public void treeReflectorDistinguishesStateAndEventEvidence() throws Exception {
+        MobileAgentVlmRoles roles = new MobileAgentVlmRoles();
+        JSONObject selected = new JSONObject().put("action", "jev_candidate")
+                .put("candidate_id", "tap-node-7");
+        roles.instruction = "Click the blue visual target";
+        roles.lastSummary = "Click the visual target button";
+        roles.setActionForReflection(selected);
+
+        String prompt = roles.treeReflectorPrompt();
+
+        // The executor is instructed to make lastSummary an action description, not an outcome claim.
+        assertTrue(prompt.contains("first screenshot is BEFORE the action and the second screenshot is AFTER"));
+        assertTrue(prompt.contains("Action description (intent only; not an expected postcondition): "
+                + roles.lastSummary));
+        assertFalse(prompt.contains("Expected behavior: " + roles.lastSummary));
+        assertTrue(prompt.contains("agent or automation UI's own task, progress, running, waiting, or cost indicators"));
+        assertTrue(prompt.contains("do not invent a state transition"));
+        assertTrue(prompt.contains("For a state goal, SUCCESS is allowed when the requested state is visibly true AFTER"));
+        assertTrue(prompt.contains("For an event goal such as clicking, tapping, sending, or submitting"));
+        assertTrue(prompt.contains("the target merely being visible, available, or selected does not prove that the event happened"));
+        assertTrue(prompt.contains("map each x coordinate by source width and each y coordinate by source height"));
+        assertTrue(prompt.contains("otherwise UNKNOWN when they do not decide"));
+        assertFalse(prompt.contains("even if this action caused no new visible change"));
+    }
+
+    @Test
     public void jevCandidateReplacesVlmDraftInBoundActionReflectorAndRoleHistory() throws Exception {
         JSONObject node = new JSONObject().put("node_id", "search-box").put("role", "text_field")
                 .put("content_description", "搜索框").put("enabled", true)
@@ -167,6 +193,9 @@ public final class MobileAgentVlmRolesTest {
         MobileAgentVlmRoles.ActionCommand command = roles.actionForCandidate(
                 candidates.candidates.get(0), observation, "task-1", 3, "before-1");
 
+        JSONObject selectedTarget = command.original.getJSONObject("selected_accessibility_target");
+        JSONObject targetBounds = selectedTarget.getJSONObject("bounds_screen_px");
+        JSONObject targetScreen = selectedTarget.getJSONObject("source_screen_size_px");
         assertEquals("set_text", command.contractAction.optString("kind"));
         assertEquals("search-box", command.contractAction.optString("target_node_id"));
         assertEquals("独立手机测试成功",
@@ -177,14 +206,33 @@ public final class MobileAgentVlmRolesTest {
         assertEquals("jev-controlled-candidate-v1", command.contractAction.optString("source"));
         assertEquals(candidates.candidates.get(0).id,
                 command.contractAction.optString("jev_candidate_id"));
+        assertEquals("搜索框", selectedTarget.optString("label"));
+        assertEquals("text_field", selectedTarget.optString("role"));
+        assertEquals(400, targetScreen.optInt("width_px"));
+        assertEquals(800, targetScreen.optInt("height_px"));
+        assertEquals(10, targetBounds.optInt("left"));
+        assertEquals(20, targetBounds.optInt("top"));
+        assertEquals(210, targetBounds.optInt("right"));
+        assertEquals(70, targetBounds.optInt("bottom"));
+        assertFalse("Visual target grounding must not change the executed action contract",
+                command.contractAction.has("selected_accessibility_target"));
 
         roles.setActionForReflection(command.original);
         String reflector = roles.reflectorPrompt();
         assertTrue(reflector.contains(candidates.candidates.get(0).id));
         assertFalse(reflector.contains(vlmDraft.toString()));
+        roles.instruction = "输入一段文本";
+        roles.lastSummary = candidates.candidates.get(0).description;
+        String treeReflector = roles.treeReflectorPrompt();
+        assertTrue(treeReflector.contains(command.original.getJSONObject(
+                "selected_accessibility_target").toString()));
+        assertTrue(treeReflector.contains("map each x coordinate by source width and each y coordinate by source height"));
         roles.recordAction(command.original, candidates.candidates.get(0).description, "A", "None");
         assertTrue(roles.toJson().optJSONArray("action_history").optString(0)
                 .contains(candidates.candidates.get(0).id));
+        targetBounds.put("left", 99);
+        assertEquals("Reflector grounding is a detached snapshot", 10,
+                node.getJSONObject("bounds").optInt("left"));
         assertNotNull(command.original);
     }
 

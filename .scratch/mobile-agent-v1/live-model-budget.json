@@ -1615,6 +1615,94 @@
       "requests": 7,
       "jev_requests": 4,
       "accounted_cny_in_app": 0.069241
+    },
+    {
+      "id": "planning25-reflector-old01",
+      "result": "HTTP 200 ",
+      "budget_reservation_cny": 0,
+      "max_requests": 1,
+      "max_jev_requests": 0,
+      "estimated_list_price_cny": 0.0045734999999999994,
+      "actual_billed_cny": null,
+      "requests": 1,
+      "usage": {
+        "prompt_tokens": 2893,
+        "completion_tokens": 52,
+        "total_tokens": 2945,
+        "prompt_tokens_details": {
+          "image_tokens": 2548,
+          "text_tokens": 345
+        },
+        "completion_tokens_details": {
+          "text_tokens": 52
+        }
+      }
+    },
+    {
+      "id": "planning25-reflector-new01",
+      "result": "HTTP 200 ",
+      "budget_reservation_cny": 0,
+      "max_requests": 1,
+      "max_jev_requests": 0,
+      "estimated_list_price_cny": 0.0049004999999999995,
+      "actual_billed_cny": null,
+      "requests": 1,
+      "usage": {
+        "prompt_tokens": 3018,
+        "completion_tokens": 83,
+        "total_tokens": 3101,
+        "prompt_tokens_details": {
+          "image_tokens": 2548,
+          "text_tokens": 470
+        },
+        "completion_tokens_details": {
+          "text_tokens": 83
+        }
+      }
+    },
+    {
+      "id": "planning25-reflector-new02",
+      "result": "HTTP 200 ",
+      "budget_reservation_cny": 0,
+      "max_requests": 1,
+      "max_jev_requests": 0,
+      "estimated_list_price_cny": 0.005265000000000001,
+      "actual_billed_cny": null,
+      "requests": 1,
+      "usage": {
+        "prompt_tokens": 3297,
+        "completion_tokens": 71,
+        "total_tokens": 3368,
+        "prompt_tokens_details": {
+          "image_tokens": 2548,
+          "text_tokens": 749
+        },
+        "completion_tokens_details": {
+          "text_tokens": 71
+        }
+      }
+    },
+    {
+      "id": "planning25-reflector-hit02",
+      "result": "HTTP 200 ",
+      "budget_reservation_cny": 0,
+      "max_requests": 1,
+      "max_jev_requests": 0,
+      "estimated_list_price_cny": 0.0051345,
+      "actual_billed_cny": null,
+      "requests": 1,
+      "usage": {
+        "prompt_tokens": 3171,
+        "completion_tokens": 84,
+        "total_tokens": 3255,
+        "prompt_tokens_details": {
+          "image_tokens": 2548,
+          "text_tokens": 623
+        },
+        "completion_tokens_details": {
+          "text_tokens": 84
+        }
+      }
     }
   ],
   "estimated_list_price_total_cny": 2.0478989999999997,
