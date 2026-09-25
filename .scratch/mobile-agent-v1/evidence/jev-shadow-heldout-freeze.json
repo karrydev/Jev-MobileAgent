@@ -1,8 +1,10 @@
 {
   "input_sha256": "106465b1a80f82b1949e98b59e26378e3777f56d4f71d413f2d482ee6f21639d",
   "truth_sha256": "e6d2743dac2214057f995c6f47eabbac8ac66d12372dca8121dc15b27a629ecc",
-  "policy_source_commit": "pending freeze after dev checks, before first heldout real call",
+  "policy_source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
   "calls_per_case": 1,
   "positive_cases": 4,
-  "heldout_tuning_allowed": false
+  "heldout_tuning_allowed": false,
+  "dev_checks": "58 JVM tests passed including ticket11 candidate semantics, malformed ID and bounded protocol; valid/invalid Android protocol probes passed",
+  "review_status_at_freeze": "pending; corrections must preserve original heldout attempts"
 }

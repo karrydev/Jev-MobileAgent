@@ -900,6 +900,50 @@
       },
       "http_status": 400,
       "estimated_list_price_usd": null
+    },
+    {
+      "id": "jev22-heldout-101",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
+      "result": "reserved before frozen heldout request",
+      "max_requests": 1,
+      "budget_reservation_cny": 0.01,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "jev22-heldout-201",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
+      "result": "reserved before frozen heldout request",
+      "max_requests": 1,
+      "budget_reservation_cny": 0.01,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "jev22-heldout-301",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
+      "result": "reserved before frozen heldout request",
+      "max_requests": 1,
+      "budget_reservation_cny": 0.01,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null
+    },
+    {
+      "id": "jev22-heldout-401",
+      "provider": "TypeSafe",
+      "model": "jev-1.13.0",
+      "source_commit": "0142589e02d360a1071c405cac857b6be02c3450",
+      "result": "reserved before frozen heldout request",
+      "max_requests": 1,
+      "budget_reservation_cny": 0.01,
+      "estimated_list_price_cny": null,
+      "actual_billed_cny": null
     }
   ],
   "estimated_list_price_total_cny": 0.909588,
