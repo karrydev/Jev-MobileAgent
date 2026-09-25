@@ -46,3 +46,5 @@ Gate: 独立 App 中断后核对并手动恢复
 2026-09-25：在主线bea2d87领取，24默认关闭实现已提前合入但未全部验收。27独占Android本地运行/持久化/恢复UI；复用24动作四态和共享预算。当前手机保留无效果UNKNOWN动作task 8e7f485f-b810-465b-9b49-5d7a6a25a9a5，不能清空偏好或重置费用以绕过。先实现核对与明确恢复/结束入口，主协调独占真机和模型调用，再补24最后边界。
 
 2026-09-25 集成进度：手机真实派发前、文字副作用后回执前、回执后核验前、断网、锁屏、运行中撤权、重启以及迟到响应均已留证，见 [恢复报告](../evidence/standalone-recovery-validation.md)。25/27源码已在recovery分支集成，任务/费用升级保留、scene变化拒绝和fresh明确恢复通过；正常Agent跨应用恢复及最终APK物理拔线仍未覆盖，保持in-progress。gui-plus可用不代表各任务成功，scene01错误点击后以未决效果明确结束。
+
+2026-09-25：717b174 GUI-Plus专属坐标适配已通过135项单元与Sol范围审查，真机PNG处理、HTTP200、文本副作用和独立VLM蓝框命中均有证据。input04及visual03暴露successful receipt之后AFTER树采得过早、正常状态文本更新触发decision scene门禁，已定位为待修产品时序问题；当前fresh双重核对完成保留原后置UNKNOWN，不视为自动完成。详见[协议与真机证据](../evidence/gui-plus-coordinate-validation.md)。用户已明确提高Jev全局次数40→70，费用上限不变。

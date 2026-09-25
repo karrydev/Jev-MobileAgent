@@ -18,7 +18,7 @@ on-input01准备时协调者误开树核验Debug夹具，目标为延迟加载�
 
 ## bec1606 同 APK 四项对照
 
-APK SHA-256 `dfdc4b261b3182be1e2d21907da8feec30e53a32c6d4fbdd039d3db9e7a2ea4c`。精确固定状态区高度后，input03 的六个 RUNNING 观察中状态与控制区 bounds 保持一致，见 [布局证据](runtime-status-layout-validation.json)。
+APK SHA-256 `dfdc4b261b3182be1e2d21907da8feec30e53a32c6d4fbdd039d3db9e7a2ea4c`。精确固定状态区高度后，input03 的六个 RUNNING 观察中状态区 bounds 保持一致，见 [布局证据](runtime-status-layout-validation.json)。
 
 | 尝试 | 规划 | 实际结果 / 试验停止原因 | VLM / Jev | 步 / 动作 | 试验耗时秒 | 费用含预留元 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -36,3 +36,15 @@ APK SHA-256 `dfdc4b261b3182be1e2d21907da8feec30e53a32c6d4fbdd039d3db9e7a2ea4c`�
 输入任务历史中的[120,290]被换算为屏幕[129,696]；蓝框任务[486,990]被换算为[525,2376]，实际目标未被命中。这些坐标仅是失败证据，不据此猜测缩放或拟合目标答案。后续修复应明确上传图像尺寸、坐标单位和到原屏幕的映射；保留原观察身份及安全核对，日期版原协议保持独立。
 
 适配改变模型输入与动作映射，修复后必须采用新尝试编号与新 APK；上述原始配对、失败及费用继续保留。截至本轮四项结束，Jev 已用35/40次，只余5次；累计费用仍按全局总账计算，不能仅以当前阶段费用或手机累计值替代。任务25保持进行中。
+
+## 717b174 协议修复后的有界验证
+
+[适配说明](gui-plus-coordinate-validation.md)记录实现、135项单元测试与Sol范围审查。
+
+`planning25-off-input04` 的名称原意为OFF，但任务快照实际ON；协调者在滚动后未验证开关状态就启动，不作为OFF配对。代码中的开关会立即保存，不需要另点保存VLM。2次VLM、1次Jev、¥0.017248。VLM动作映射匹配中文输入框候选，Jev改选set_text，实际目标文本写入；动作后的早采样旧文本和稍后回显更新被场景门禁拦截，NEEDS_REVIEW，0个完成步骤。fresh两次核对后明确结束COMPLETED_ON_REVIEW，保留原动作EXECUTED/后置UNKNOWN。这证明图片适配实际调用与真实输入发生，不证明全自动完成或独立VLM坐标点击。
+
+`planning25-on-visual02`，同APK，实际ON，7次VLM、4次Jev、¥0.0693325。执行的两次动作均为Jev候选“视觉手势目标”预设按钮，蓝框仍ready；VLM Reflector两次误报SUCCESS，整体完成门禁拒绝，fresh核对后CANCELLED。没有实际coordinate_tap蓝框证据，不能宣称协议修复已恢复全部任务质量。
+
+两项新请求元数据均记录原1080×2400、上传672×1484及原观察关联；Android PNG缩放/编码和真实HTTP200路径已发生。Jev累计40次后停止相关调用，用户随后明确提高到70次；累计费用含预留¥3.3533675，原历史不重置。动作后短暂更新误暂停继续作为范围内缺陷修复，任务25与最终拔线验收仍未通过。
+
+`planning25-on-visual03-vlm-only` 是独立VLM诊断，不属于正式25配对：Jev选择/树核验/影子均关闭，规划ON，源及APK仍717b174。7次VLM、0次Jev、¥0.0290955。前2次返回[486,990]并按672×1484映射到屏幕[781,1601]，确实点到预设按钮；第3次屏幕[540,1010]由VLM直接派发，真实蓝框变为`coordinate tap completed`。成功receipt后又因动作期正常文本回显的AFTER采样不稳定而NEEDS_REVIEW；fresh两重核对后COMPLETED_ON_REVIEW。此结果证明gui-plus坐标适配后可直接命中真实视觉目标，也保留前两次选错目标和自动核验中断，不宣称一击成功或整体自动完成。Jev已用仍40，费用含预留累计¥3.382463。

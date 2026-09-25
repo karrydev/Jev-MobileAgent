@@ -47,6 +47,18 @@
     "apk_path": "/tmp/recovery27-evidence/integrated-bec1606.apk",
     "assemble": "passed",
     "scope": "fixed own status region pixel height including font padding; target scene safety unchanged",
-    "verification": "Six RUNNING observations in planning25-off-input03 retained identical status/control bounds; runtime-status-layout-validation.json. Four paired tasks completed with failed goals due to coordinate protocol incompatibility; on-demand-planning-validation.md. Earlier source gates remain valid."
+    "verification": "Six RUNNING observations in planning25-off-input03 retained identical status bounds; runtime-status-layout-validation.json. Four paired tasks completed with failed goals due to coordinate protocol incompatibility; on-demand-planning-validation.md. Earlier source gates remain valid."
+  },
+  "gui_plus_coordinate_follow_up": {
+    "source_commit": "717b174d67c93be8251b0abd370d3ad04c00c6dc",
+    "apk_sha256": "5ca1cf036394dcfb2a092584ab4a8c49b66f30a3a8108315c3a2c5223f89c36b",
+    "unit_tests": 135,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "assemble": "passed",
+    "review": "Sol scope review: no blocker supported by current call path; actual PNG and device boundary subsequently exercised",
+    "evidence": "gui-plus-coordinate-validation.md",
+    "limitations": "Actual set_text and direct VLM blue coordinate_tap achieved; normal post-action text update causes early AFTER sample pause; completed only after explicit fresh review, not automatic task completion."
   }
 }
