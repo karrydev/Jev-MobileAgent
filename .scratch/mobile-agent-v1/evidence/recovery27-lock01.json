@@ -1,0 +1,220 @@
+{
+  "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+  "goal": "在中文输入框中输入“独立手机测试成功”",
+  "state": "CANCELLED",
+  "state_reason": "user_ended_after_fresh_reconciliation",
+  "created_at": "2026-09-25T10:37:18.700197Z",
+  "updated_at": "2026-09-25T10:42:37.085766Z",
+  "step_count": 0,
+  "request_count": 1,
+  "jev_shadow_enabled": false,
+  "jev_selection_enabled": false,
+  "jev_shadow_call_count": 0,
+  "jev_shadow_reserved_cny": 0,
+  "accounted_cost_cny": 0.016896,
+  "usage_missing": true,
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_unknown",
+      "usage": null,
+      "usage_present": false,
+      "estimated_cost_cny": null,
+      "reserved_cost_cny": 0.016896,
+      "http_status": 403,
+      "error_code": "http_error",
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+      ]
+    }
+  ],
+  "jev_shadow_attempts": [],
+  "tree_verification_enabled": false,
+  "tree_verification_policy_id": "jev-android-tree-verification-rules-v1",
+  "tree_verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3420-1b98264fc103466f9a556c76d025915f",
+      "observation_version": 3420,
+      "screenshot_id": "local-shot-a45d5c6f4280487b8235d8aca39d5af8",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6b0395de-1d42-4bcd-8518-554c8daa77f6/screenshot-3420-before.png",
+      "captured_at": "2026-09-25T10:37:19.213041Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3424-ebf34d130956488d94771153a906704b",
+      "observation_version": 3424,
+      "screenshot_id": "local-shot-b92a5a7bc86a491eb55b637da9cc729a",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6b0395de-1d42-4bcd-8518-554c8daa77f6/screenshot-3424-recovery.png",
+      "captured_at": "2026-09-25T10:42:09.153134Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3429-ed3498b8ce1549cd9cf14cea47a85fe7",
+      "observation_version": 3429,
+      "screenshot_id": "local-shot-805548071f96455e9938243dab5b102c",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/6b0395de-1d42-4bcd-8518-554c8daa77f6/screenshot-3429-recovery.png",
+      "captured_at": "2026-09-25T10:42:36.808145Z",
+      "attempt": 3
+    }
+  ],
+  "schema_version": "standalone-phone-evidence-v1",
+  "attempt": "recovery27-lock01",
+  "source_commit": "d54ad05b001aac6e0d5d46c2ab508a4870f8c694",
+  "apk_sha256": "e3b2f049fc22f80dda3e59161930a25090982d9699decaaa0fd162884d37697d",
+  "device": "OnePlus 8T / Android14 API34",
+  "vlm_model": "gui-plus-2026-02-26",
+  "jev_model": "jev-1.13.0",
+  "execution_boundary": "Android app direct HTTPS; USB for setup and read-only evidence, no host orchestration; not a disconnected acceptance",
+  "final_device_state": "Dozing",
+  "final_observation_sha256": "f597094ed9a2e56e4b805ba6da8beb83aa4322decb7d2bb01a68f187d6ae544b",
+  "independent_page_evidence": [
+    {
+      "node_id": "window-16-1-node-0-0-0-3",
+      "text": "请输入中文",
+      "content_description": "中文输入框",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-16-1-node-0-0-0-6",
+      "text": "在中文输入框中输入“独立手机测试成功”",
+      "content_description": "Local VLM task goal",
+      "label": null,
+      "role": null
+    }
+  ],
+  "elapsed_seconds": 318.385569,
+  "recovery_evidence": {
+    "debug_recovery_fault": null,
+    "recovery_review": {
+      "observation_id": "standalone-device-obs-3424-ebf34d130956488d94771153a906704b",
+      "observation_version": 3424,
+      "captured_at": "2026-09-25T10:42:08.658638Z",
+      "scene_fingerprint": "7516f975312a8d93a7b3ff689e608187df7a524ba0cd2436e86877f1f7106bfc",
+      "target_application_package": "com.jev.mobileagent",
+      "goal": "在中文输入框中输入“独立手机测试成功”",
+      "goal_outcome": "NOT_VERIFIED",
+      "valid": false,
+      "action_facts": [],
+      "invalidated_reason": "confirmation_consumed"
+    },
+    "recovery_decisions": [
+      {
+        "decision": "end",
+        "decision_actor": "user",
+        "review_observation_id": "standalone-device-obs-3424-ebf34d130956488d94771153a906704b",
+        "confirmation_observation_id": "standalone-device-obs-3429-ed3498b8ce1549cd9cf14cea47a85fe7",
+        "confirmed_at": "2026-09-25T10:42:37.055543Z",
+        "execution_facts_known": true,
+        "unresolved_postcondition_retained": false,
+        "review_goal_outcome": "NOT_VERIFIED",
+        "confirmation_goal_outcome": "NOT_VERIFIED",
+        "step_count_before": 0,
+        "request_count_at_confirmation": 1,
+        "accounted_cost_cny_at_confirmation": 0.016896
+      }
+    ],
+    "recovery_history": null,
+    "debug_recovery_window": {
+      "expectedTargetPackage": "com.jev.mobileagent",
+      "phase": "stable_target",
+      "error": "",
+      "readinessError": "",
+      "elapsedMs": 1186,
+      "screenInteractive": true,
+      "keyguardLocked": false,
+      "capturedAt": "2026-09-25T10:42:36.452038Z",
+      "availability": "AVAILABLE",
+      "screen": {
+        "widthPx": 1080,
+        "heightPx": 2400,
+        "rotation": 0,
+        "activeWindowId": 16,
+        "activeWindowBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 2400
+        },
+        "recoverySystemBarInsets": {
+          "available": true,
+          "source": "window_metrics_system_bars",
+          "reason": "",
+          "statusBarsVisible": true,
+          "navigationBarsVisible": true,
+          "left": 0,
+          "top": 103,
+          "right": 0,
+          "bottom": 48,
+          "metricsBoundsPx": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      },
+      "windowCount": 2,
+      "windows": [
+        {
+          "id": 2,
+          "type": 3,
+          "packageName": "com.android.systemui",
+          "className": "android.widget.FrameLayout",
+          "active": false,
+          "focused": false,
+          "layer": 1,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 103
+          }
+        },
+        {
+          "id": 16,
+          "type": 1,
+          "packageName": "com.jev.mobileagent",
+          "className": "android.widget.FrameLayout",
+          "active": true,
+          "focused": true,
+          "layer": 0,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      ]
+    },
+    "completion_attribution": null,
+    "decision_actor": null,
+    "execution_actor": null
+  },
+  "actions": [],
+  "estimated_list_price_cny": 0,
+  "actual_billed_cny": null,
+  "role_request_counts": {
+    "manager": 1
+  },
+  "screenshot_capture_attempt_count": 3,
+  "screenshot_capture_status_counts": {
+    "captured": 3
+  },
+  "image_upload_count": 1,
+  "unique_uploaded_screenshot_count": 1
+}

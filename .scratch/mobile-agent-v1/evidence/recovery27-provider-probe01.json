@@ -1,0 +1,11 @@
+{
+  "http_status": 403,
+  "error_code": "AllocationQuota.FreeTierOnly",
+  "error_type": "AllocationQuota.FreeTierOnly",
+  "error_message": "Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \"use free tier only\" mode in the management console.",
+  "usage": null,
+  "scope": "one host diagnostic request only, not Android acceptance; prior transport attempt failed TLS verification before sending HTTP payload; retried with certifi trust store",
+  "reserved_cny": 0.02,
+  "model": "gui-plus-2026-02-26",
+  "credential_source": "existing authorized local env, not included"
+}

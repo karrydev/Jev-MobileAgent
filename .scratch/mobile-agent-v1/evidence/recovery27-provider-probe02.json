@@ -1,0 +1,24 @@
+{
+  "http_status": 200,
+  "error_code": null,
+  "error_type": null,
+  "error_message": "",
+  "usage": {
+    "prompt_tokens": 1302,
+    "completion_tokens": 16,
+    "total_tokens": 1318,
+    "prompt_tokens_details": {
+      "image_tokens": 1274,
+      "text_tokens": 28
+    },
+    "completion_tokens_details": {
+      "text_tokens": 16
+    }
+  },
+  "scope": "one host diagnostic request only, not Android acceptance; requested model gui-plus",
+  "reserved_cny": 0.02,
+  "model": "gui-plus",
+  "estimated_list_price_cny": 0.002025,
+  "actual_billed_cny": null,
+  "price_source": "https://help.aliyun.com/zh/model-studio/gui-automation"
+}

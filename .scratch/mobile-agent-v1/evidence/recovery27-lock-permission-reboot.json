@@ -1,0 +1,326 @@
+{
+  "schema_version": "standalone-phone-evidence-v1",
+  "source_commit": "d54ad05b001aac6e0d5d46c2ab508a4870f8c694",
+  "apk_sha256": "e3b2f049fc22f80dda3e59161930a25090982d9699decaaa0fd162884d37697d",
+  "attempt": "recovery27-lock01",
+  "model_request_lock_events": [
+    {
+      "at": 1790332640.1909492,
+      "event": "pending_request_before_lock",
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "reserved",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": null,
+          "error_code": null,
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "state": "RUNNING"
+    },
+    {
+      "at": 1790332640.314517,
+      "event": "screen_locked"
+    },
+    {
+      "at": 1790332640.901485,
+      "event": "stopped_with_locked",
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "reason": "screen_locked",
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ]
+    },
+    {
+      "at": 1790332640.902058,
+      "event": "remained_locked"
+    },
+    {
+      "at": 1790332643.678695,
+      "event": "after_restore_locked",
+      "state": "PAUSED",
+      "reason": "screen_locked",
+      "request_count": 1,
+      "cost": 0.016896
+    }
+  ],
+  "checkpoints": {
+    "locked": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "runtime_status": "任务已暂停：screen_locked",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "step_count": 0,
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": null,
+      "debug_recovery_window": null
+    },
+    "-unlocked": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "runtime_status": "任务已暂停：screen_locked",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "step_count": 0,
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": null,
+      "debug_recovery_window": null
+    },
+    "-permission-revoked": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "runtime_status": "任务已暂停：screen_locked",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "step_count": 0,
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": null,
+      "debug_recovery_window": null
+    },
+    "-review-without-permission": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "runtime_status": "无障碍权限未启用；任务继续暂停，重新授权后仍需手动核对",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "step_count": 0,
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": null,
+      "debug_recovery_window": null
+    },
+    "-permission-restored": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "runtime_status": "无障碍权限未启用；任务继续暂停，重新授权后仍需手动核对",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "step_count": 0,
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": null,
+      "debug_recovery_window": null
+    },
+    "after-reboot": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": null
+    },
+    "after-reboot-open": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": null
+    },
+    "review-after-reboot": {
+      "task_id": "6b0395de-1d42-4bcd-8518-554c8daa77f6",
+      "state": "PAUSED",
+      "state_reason": "screen_locked",
+      "request_count": 1,
+      "requests": [
+        {
+          "attempt": 1,
+          "role": "manager",
+          "step": 1,
+          "status": "usage_unknown",
+          "usage": null,
+          "usage_present": false,
+          "estimated_cost_cny": null,
+          "reserved_cost_cny": 0.016896,
+          "http_status": 403,
+          "error_code": "http_error",
+          "image_count": 1,
+          "screenshot_ids": [
+            "local-shot-a45d5c6f4280487b8235d8aca39d5af8"
+          ]
+        }
+      ],
+      "actions": [],
+      "accounted_cost_cny": 0.016896,
+      "recovery_review": {
+        "observation_id": "standalone-device-obs-3424-ebf34d130956488d94771153a906704b",
+        "observation_version": 3424,
+        "captured_at": "2026-09-25T10:42:08.658638Z",
+        "scene_fingerprint": "7516f975312a8d93a7b3ff689e608187df7a524ba0cd2436e86877f1f7106bfc",
+        "target_application_package": "com.jev.mobileagent",
+        "goal": "在中文输入框中输入“独立手机测试成功”",
+        "goal_outcome": "NOT_VERIFIED",
+        "valid": true,
+        "action_facts": []
+      }
+    }
+  },
+  "permission_boundary": "System UI revoked and regranted accessibility after the task had already paused for screen_locked. This proves paused recovery permission guard/no-auto-resume, not a RUNNING permission-revocation stop.",
+  "revoked_review_ui": "无障碍权限未启用；任务继续暂停，重新授权后仍需手动核对",
+  "reboot": {
+    "issued": true,
+    "boot_id_before": "8bf92d8b-795d-484b-8560-47d89f23ad8f",
+    "post_reboot_readback": "Same PAUSED task before and after unlock/MainActivity open. Opening recovery fixture restored notification; fresh review plus explicit end CANCELLED with no added request/action.",
+    "boot_id_after": "a4591ac8-3791-4636-b3de-52bf12da73ef"
+  },
+  "execution_boundary": "phone-local orchestration and direct HTTPS; USB for setup and readback, not disconnected acceptance",
+  "final_result": "recovery27-lock01.json"
+}

@@ -55,3 +55,15 @@ Debug 受控夹具中选择一次性中断点，再启动任务；不对正在�
 MainActivity新增仅Debug“任务27精确恢复中断夹具”入口，ControlledPageActivity独立模式。目标仍为在中文输入框中输入“独立手机测试成功”，不使用24的七字截断负例。目标输入控件仅在真实TextWatcher变化时同步commit其当前值，重建直接读取；该值不来自Agent目标/回执/核验，不能据此把执行事实UNKNOWN改为EXECUTED。无活动任务时可明确重置目标输入为空以准备下一用例；有活动任务时拒绝重置。三个既有一次性中断点及任务/通知入口复用。原正常配对与树核验页面保持原行为。
 
 故障执行后的取证同时核对目标独立值、重新打开后可见文字、task durable intent/receipt缺口、fired中断标记与模型费用。若进程窗口缺失receipt，即使目标值已存在，也只按两次fresh整体目标VERIFIED加用户决策走observed_only完成，不补写执行归因。
+
+## 首次付费前冻结执行顺序（d48e0d8 APK）
+
+零调用门禁已通过，24补测也已结束。27新任务关闭selection/tree/shadow，每任务¥1/5步/25请求、阶段¥2/全局¥10不变。固定顺序：BEFORE_DISPATCH进程中断→重开不得自动续跑→fresh复核和明确恢复；AFTER_RECEIPT进程中断→双次整体目标核验后确认完成；真实模型请求期间断网及恢复；系统UI撤销/重授无障碍；请求期间锁屏/解锁；AFTER_SIDE_EFFECT回执前中断→重启保留UNKNOWN及真实目标输入→仅双次fresh目标核验允许observed_only完成。手机重启与最终物理拔线按实际可操作状态组合，无法代办步骤留最终用户复核。
+
+单个场景首轮一次，非指定窗口触发则按实际状态保留，不冒称覆盖，也不自动付费重试。每次先预留、运行后核对全部调用/未知费用；任何等待/异常锁屏。固定安装APK SHA-256 3ca2bc9b93232b34b1687e5aa109cf26059bf32ec54a8bcc555bb7ed47c2c8e3，来源d48e0d8；25独立源码实现期间不替换手机APK。
+
+## 输入窗口补测修正（d54ad05）
+
+AFTER_RECEIPT 首轮实际命中聚焦点击，已保留 after-receipt01，不能代表文字副作用窗口。d54ad05 只修改 Debug 注入选择：独立27夹具的两个执行后点要求 durable action.kind=set_text，前序聚焦继续；正常页面和派发前点不变。LocalTaskStoreTest 10/10，APK e3b2f049fc22f80dda3e59161930a25090982d9699decaaa0fd162884d37697d。以新编号 after-receipt02 补真实输入窗口，后续回执前窗口同用此 APK；历史失败、费用与预算均保留。
+
+断网01已完成：首次 Manager 请求中断保留 usage_unknown/network_error 与 ¥0.016896 预留；网络恢复与解锁不自动运行。首次确认因光标闪烁 369 像素变化拒绝，没有追加模型请求；明确重开目标夹具去除输入焦点、重新核对并确认后 SUCCEEDED。此为安全误拒的现存可用性限制，不能写为光标问题已修复。

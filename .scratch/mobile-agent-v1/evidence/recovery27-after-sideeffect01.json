@@ -1,0 +1,227 @@
+{
+  "task_id": "c6e17287-a1a4-41ac-92e4-72d1a273cf07",
+  "goal": "在中文输入框中输入“独立手机测试成功”",
+  "state": "CANCELLED",
+  "state_reason": "user_ended_after_fresh_reconciliation",
+  "created_at": "2026-09-25T10:43:22.023866Z",
+  "updated_at": "2026-09-25T10:46:32.299763Z",
+  "step_count": 0,
+  "request_count": 1,
+  "jev_shadow_enabled": false,
+  "jev_selection_enabled": false,
+  "jev_shadow_call_count": 0,
+  "jev_shadow_reserved_cny": 0,
+  "accounted_cost_cny": 0.016896,
+  "usage_missing": true,
+  "requests": [
+    {
+      "attempt": 1,
+      "role": "manager",
+      "step": 1,
+      "status": "usage_unknown",
+      "usage": null,
+      "usage_present": false,
+      "estimated_cost_cny": null,
+      "reserved_cost_cny": 0.016896,
+      "http_status": 403,
+      "error_code": "http_error",
+      "image_count": 1,
+      "screenshot_ids": [
+        "local-shot-ba3ab307158544759acf6cd40e1b816c"
+      ]
+    }
+  ],
+  "jev_shadow_attempts": [],
+  "tree_verification_enabled": false,
+  "tree_verification_policy_id": "jev-android-tree-verification-rules-v1",
+  "tree_verification_policy_sha256": "a07ccb149ec2826ace4f5fe692f95ef84a319371b038c41a8eec397a2aac83c4",
+  "screenshot_captures": [
+    {
+      "status": "captured",
+      "capture_type": "BEFORE",
+      "observation_id": "standalone-device-obs-3431-9ee4d87b98c8482cb054a07d75ef7c83",
+      "observation_version": 3431,
+      "screenshot_id": "local-shot-ba3ab307158544759acf6cd40e1b816c",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/c6e17287-a1a4-41ac-92e4-72d1a273cf07/screenshot-3431-before.png",
+      "captured_at": "2026-09-25T10:43:22.648761Z",
+      "attempt": 1
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3435-97e57ff7c51544adae4127d0416f8bf0",
+      "observation_version": 3435,
+      "screenshot_id": "local-shot-1652bcee8921466fa8e1355ae6c9b372",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/c6e17287-a1a4-41ac-92e4-72d1a273cf07/screenshot-3435-recovery.png",
+      "captured_at": "2026-09-25T10:45:52.786643Z",
+      "attempt": 2
+    },
+    {
+      "status": "captured",
+      "capture_type": "RECOVERY",
+      "observation_id": "standalone-device-obs-3440-e4e7cc243afb4ac09091945814c27e69",
+      "observation_version": 3440,
+      "screenshot_id": "local-shot-eb153c01a7f04ef18716567181a67790",
+      "error_code": null,
+      "private_file": "/data/user/0/com.jev.mobileagent/files/standalone_vlm/c6e17287-a1a4-41ac-92e4-72d1a273cf07/screenshot-3440-recovery.png",
+      "captured_at": "2026-09-25T10:46:32.114143Z",
+      "attempt": 3
+    }
+  ],
+  "schema_version": "standalone-phone-evidence-v1",
+  "attempt": "recovery27-after-sideeffect01",
+  "source_commit": "d54ad05b001aac6e0d5d46c2ab508a4870f8c694",
+  "apk_sha256": "e3b2f049fc22f80dda3e59161930a25090982d9699decaaa0fd162884d37697d",
+  "device": "OnePlus 8T / Android14 API34",
+  "vlm_model": "gui-plus-2026-02-26",
+  "jev_model": "jev-1.13.0",
+  "execution_boundary": "Android app direct HTTPS; USB for setup and read-only evidence, no host orchestration; not a disconnected acceptance",
+  "final_device_state": "Dozing",
+  "final_observation_sha256": "19849a31094dd7cc6c8a73535997852237030089f46a36956c5208aafab2cdea",
+  "independent_page_evidence": [
+    {
+      "node_id": "window-19-1-node-0-0-0-3",
+      "text": "请输入中文",
+      "content_description": "中文输入框",
+      "label": null,
+      "role": null
+    },
+    {
+      "node_id": "window-19-1-node-0-0-0-6",
+      "text": "在中文输入框中输入“独立手机测试成功”",
+      "content_description": "Local VLM task goal",
+      "label": null,
+      "role": null
+    }
+  ],
+  "elapsed_seconds": 190.275897,
+  "recovery_evidence": {
+    "debug_recovery_fault": {
+      "point": "AFTER_SIDE_EFFECT_BEFORE_RECEIPT",
+      "status": "armed",
+      "configured_before_task_start": true,
+      "armed_at": "2026-09-25T10:43:22.049814Z",
+      "action_kind": "set_text"
+    },
+    "recovery_review": {
+      "observation_id": "standalone-device-obs-3435-97e57ff7c51544adae4127d0416f8bf0",
+      "observation_version": 3435,
+      "captured_at": "2026-09-25T10:45:52.447523Z",
+      "scene_fingerprint": "3c2bb51278478674875ad665581075e2ed566906175d4da80003122a623b5ed7",
+      "target_application_package": "com.jev.mobileagent",
+      "goal": "在中文输入框中输入“独立手机测试成功”",
+      "goal_outcome": "NOT_VERIFIED",
+      "valid": false,
+      "action_facts": [],
+      "invalidated_reason": "confirmation_consumed"
+    },
+    "recovery_decisions": [
+      {
+        "decision": "end",
+        "decision_actor": "user",
+        "review_observation_id": "standalone-device-obs-3435-97e57ff7c51544adae4127d0416f8bf0",
+        "confirmation_observation_id": "standalone-device-obs-3440-e4e7cc243afb4ac09091945814c27e69",
+        "confirmed_at": "2026-09-25T10:46:32.274145Z",
+        "execution_facts_known": true,
+        "unresolved_postcondition_retained": false,
+        "review_goal_outcome": "NOT_VERIFIED",
+        "confirmation_goal_outcome": "NOT_VERIFIED",
+        "step_count_before": 0,
+        "request_count_at_confirmation": 1,
+        "accounted_cost_cny_at_confirmation": 0.016896
+      }
+    ],
+    "recovery_history": null,
+    "debug_recovery_window": {
+      "expectedTargetPackage": "com.jev.mobileagent",
+      "phase": "stable_target",
+      "error": "",
+      "readinessError": "",
+      "elapsedMs": 1218,
+      "screenInteractive": true,
+      "keyguardLocked": false,
+      "capturedAt": "2026-09-25T10:46:31.844807Z",
+      "availability": "AVAILABLE",
+      "screen": {
+        "widthPx": 1080,
+        "heightPx": 2400,
+        "rotation": 0,
+        "activeWindowId": 19,
+        "activeWindowBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 2400
+        },
+        "recoverySystemBarInsets": {
+          "available": true,
+          "source": "window_metrics_system_bars",
+          "reason": "",
+          "statusBarsVisible": true,
+          "navigationBarsVisible": true,
+          "left": 0,
+          "top": 103,
+          "right": 0,
+          "bottom": 48,
+          "metricsBoundsPx": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      },
+      "windowCount": 2,
+      "windows": [
+        {
+          "id": 2,
+          "type": 3,
+          "packageName": "com.android.systemui",
+          "className": "android.widget.FrameLayout",
+          "active": false,
+          "focused": false,
+          "layer": 1,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 103
+          }
+        },
+        {
+          "id": 19,
+          "type": 1,
+          "packageName": "com.jev.mobileagent",
+          "className": "android.widget.FrameLayout",
+          "active": true,
+          "focused": true,
+          "layer": 0,
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        }
+      ]
+    },
+    "completion_attribution": null,
+    "decision_actor": null,
+    "execution_actor": null
+  },
+  "actions": [],
+  "estimated_list_price_cny": 0,
+  "actual_billed_cny": null,
+  "role_request_counts": {
+    "manager": 1
+  },
+  "screenshot_capture_attempt_count": 3,
+  "screenshot_capture_status_counts": {
+    "captured": 3
+  },
+  "image_upload_count": 1,
+  "unique_uploaded_screenshot_count": 1,
+  "scope_limit": "The real model returned HTTP403 before any device action. Debug AFTER_SIDE_EFFECT remained armed and never fired. This attempt does not cover the requested interruption window."
+}
