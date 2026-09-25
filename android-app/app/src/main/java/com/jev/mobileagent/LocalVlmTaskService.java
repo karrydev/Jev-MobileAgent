@@ -54,8 +54,7 @@ public final class LocalVlmTaskService extends Service {
     private static final int NOTIFICATION_ID = 2601;
     private static final long CALLBACK_TIMEOUT_SECONDS = 35L;
     private static final int RECOVERY_CONFIRMATION_MAX_SAMPLES = 5;
-    private static final long RECOVERY_CONFIRMATION_SAMPLE_INTERVAL_MS = 250L;
-    private static final long RECOVERY_CONFIRMATION_RESAMPLE_TIMEOUT_MS = 2000L;
+    private static final long RECOVERY_CONFIRMATION_RESAMPLE_TIMEOUT_MS = 4000L;
     private static volatile boolean taskLoopActive;
     private static volatile boolean deviceActionDispatchActive;
     private static volatile boolean foregroundServiceActive;
@@ -536,7 +535,7 @@ public final class LocalVlmTaskService extends Service {
                             + RECOVERY_CONFIRMATION_RESAMPLE_TIMEOUT_MS;
                 }
                 if (sample < RECOVERY_CONFIRMATION_MAX_SAMPLES) {
-                    Thread.sleep(RECOVERY_CONFIRMATION_SAMPLE_INTERVAL_MS);
+                    Thread.sleep(LocalTaskControlPolicy.recoveryConfirmationResampleDelayMs(sample));
                     ensureRecoveryConfirmationCurrent(currentTaskId, reviewObservationId, generation);
                 }
             }

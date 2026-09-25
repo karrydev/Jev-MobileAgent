@@ -20,6 +20,12 @@ final class LocalTaskControlPolicy {
         REJECT
     }
 
+    /** Short, non-uniform waits keep repeated screenshots from sampling at a fixed visual phase. */
+    static long recoveryConfirmationResampleDelayMs(int completedSampleNumber) {
+        if (completedSampleNumber < 1 || completedSampleNumber >= 5) return 0L;
+        return 100L + (completedSampleNumber - 1L) * 25L;
+    }
+
     enum ExecutionFact {
         NOT_EXECUTED,
         EXECUTED,

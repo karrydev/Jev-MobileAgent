@@ -160,6 +160,25 @@ public final class LocalTaskControlPolicyTest {
     }
 
     @Test
+    public void recoveryResampleDelaysAreNonUniformShortAndBounded() {
+        long previousDelayMs = -1L;
+        long minimumDelayMs = Long.MAX_VALUE;
+        long maximumDelayMs = Long.MIN_VALUE;
+        for (int sampleNumber = 1; sampleNumber < 5; sampleNumber++) {
+            long delayMs = LocalTaskControlPolicy.recoveryConfirmationResampleDelayMs(sampleNumber);
+            assertTrue("delay=" + delayMs, delayMs >= 100L);
+            assertTrue("delay=" + delayMs, delayMs <= 200L);
+            if (previousDelayMs >= 0L) assertTrue(delayMs != previousDelayMs);
+            previousDelayMs = delayMs;
+            minimumDelayMs = Math.min(minimumDelayMs, delayMs);
+            maximumDelayMs = Math.max(maximumDelayMs, delayMs);
+        }
+        assertTrue(minimumDelayMs < maximumDelayMs);
+        assertEquals(0L, LocalTaskControlPolicy.recoveryConfirmationResampleDelayMs(0));
+        assertEquals(0L, LocalTaskControlPolicy.recoveryConfirmationResampleDelayMs(5));
+    }
+
+    @Test
     public void localStatusDisplayUpdatesDoNotChangeDecisionSceneButOtherTextStillDoes() throws Exception {
         JSONObject expected = sceneObservation();
         expected.getJSONArray("nodes").put(localTaskStatusNode("com.jev.mobileagent"));
