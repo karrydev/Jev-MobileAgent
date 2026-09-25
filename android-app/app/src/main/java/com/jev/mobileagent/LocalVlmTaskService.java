@@ -557,7 +557,7 @@ public final class LocalVlmTaskService extends Service {
             png = Base64.decode(encoded, Base64.DEFAULT);
             bitmap = BitmapFactory.decodeByteArray(png, 0, png.length);
             JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
-            JSONObject bounds = screen == null ? null : screen.optJSONObject("active_window_bounds");
+            int[] bounds = LocalTaskControlPolicy.targetScreenshotBounds(observation);
             if (bitmap == null || bounds == null) {
                 throw new IllegalArgumentException("target application image bounds are missing");
             }
@@ -568,10 +568,10 @@ public final class LocalVlmTaskService extends Service {
             }
             double scaleX = (double) bitmap.getWidth() / screenWidth;
             double scaleY = (double) bitmap.getHeight() / screenHeight;
-            int left = Math.max(0, (int) Math.floor(bounds.optInt("left", 0) * scaleX));
-            int top = Math.max(0, (int) Math.floor(bounds.optInt("top", 0) * scaleY));
-            int right = Math.min(bitmap.getWidth(), (int) Math.ceil(bounds.optInt("right", 0) * scaleX));
-            int bottom = Math.min(bitmap.getHeight(), (int) Math.ceil(bounds.optInt("bottom", 0) * scaleY));
+            int left = Math.max(0, (int) Math.floor(bounds[0] * scaleX));
+            int top = Math.max(0, (int) Math.floor(bounds[1] * scaleY));
+            int right = Math.min(bitmap.getWidth(), (int) Math.ceil(bounds[2] * scaleX));
+            int bottom = Math.min(bitmap.getHeight(), (int) Math.ceil(bounds[3] * scaleY));
             int width = right - left;
             int height = bottom - top;
             if (width < 1 || height < 1) {

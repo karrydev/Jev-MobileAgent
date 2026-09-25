@@ -121,17 +121,21 @@ final class LocalTaskControlPolicy {
                 && "AVAILABLE".equals(observation.optString("availability", ""))
                 && targetPackage != null && !targetPackage.isEmpty()
                 && targetPackage.equals(activeApplicationPackage(observation))
-                && !hasNotificationShadeOverlay(observation, targetPackage);
+                && !hasFullScreenSystemOverlayAboveTarget(observation, targetPackage);
     }
 
-    /** Only a confirmed full notification-shade window is eligible for dismissal. */
-    static boolean isNotificationShade(JSONObject observation, String targetPackage) {
+    /**
+     * A notification shade can hide the target app's Accessibility window entirely.
+     * Only an explicit, unlocked recovery may try the dedicated shade action, and only
+     * when the active/focused system window covers the display.
+     */
+    static boolean shouldAttemptNotificationShadeDismiss(JSONObject observation,
+            boolean explicitRecovery, boolean deviceUnlocked) {
+        if (!explicitRecovery || !deviceUnlocked) return false;
         JSONObject active = activeWindow(observation);
         return active != null && active.optInt("window_type", -1) == 3
-                && "com.android.systemui".equals(active.optString("package_name", ""))
-                && isNotificationShadeWindow(active)
-                && hasTargetApplicationWindow(observation, targetPackage)
-                && coversMostDisplay(active, observation.optJSONObject("screen"));
+                && coversFullDisplay(active.optJSONObject("bounds"),
+                        observation == null ? null : observation.optJSONObject("screen"));
     }
 
     private static JSONObject activeWindow(JSONObject observation) {
@@ -155,7 +159,8 @@ final class LocalTaskControlPolicy {
         return null;
     }
 
-    private static boolean hasNotificationShadeOverlay(JSONObject observation, String targetPackage) {
+    private static boolean hasFullScreenSystemOverlayAboveTarget(
+            JSONObject observation, String targetPackage) {
         JSONArray windows = observation == null ? null : observation.optJSONArray("windows");
         JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
         if (windows == null || screen == null) return false;
@@ -172,39 +177,80 @@ final class LocalTaskControlPolicy {
         for (int i = 0; i < windows.length(); i++) {
             JSONObject window = windows.optJSONObject(i);
             if (window != null && window.optInt("window_type", -1) == 3
-                    && "com.android.systemui".equals(window.optString("package_name", ""))
                     && window.optInt("layer", Integer.MIN_VALUE) > targetLayer
-                    && isNotificationShadeWindow(window) && coversMostDisplay(window, screen)) return true;
+                    && coversFullDisplay(window.optJSONObject("bounds"), screen)) return true;
         }
         return false;
     }
 
-    private static boolean hasTargetApplicationWindow(JSONObject observation, String targetPackage) {
-        JSONArray windows = observation == null ? null : observation.optJSONArray("windows");
-        if (windows == null || targetPackage == null || targetPackage.isEmpty()) return false;
-        for (int i = 0; i < windows.length(); i++) {
-            JSONObject window = windows.optJSONObject(i);
-            if (window != null && window.optInt("window_type", -1) == 1
-                    && targetPackage.equals(window.optString("package_name", ""))) return true;
-        }
-        return false;
-    }
-
-    private static boolean isNotificationShadeWindow(JSONObject window) {
-        String identity = (window.optString("class_name", "") + " "
-                + window.optString("title", "")).toLowerCase(Locale.ROOT);
-        return identity.contains("notificationshad") || identity.contains("notification_shade");
-    }
-
-    private static boolean coversMostDisplay(JSONObject window, JSONObject screen) {
-        JSONObject bounds = window.optJSONObject("bounds");
+    private static boolean coversFullDisplay(JSONObject bounds, JSONObject screen) {
         if (bounds == null || screen == null) return false;
         int width = screen.optInt("width_px", 0);
         int height = screen.optInt("height_px", 0);
-        int overlayWidth = bounds.optInt("right", 0) - bounds.optInt("left", 0);
-        int overlayHeight = bounds.optInt("bottom", 0) - bounds.optInt("top", 0);
         return width > 0 && height > 0
-                && overlayWidth >= width * 0.75 && overlayHeight >= height * 0.55;
+                && bounds.optInt("left", Integer.MAX_VALUE) <= 0
+                && bounds.optInt("top", Integer.MAX_VALUE) <= 0
+                && bounds.optInt("right", Integer.MIN_VALUE) >= width
+                && bounds.optInt("bottom", Integer.MIN_VALUE) >= height;
+    }
+
+    /** Display-coordinate crop for recovery images, excluding only identified system bars. */
+    static int[] targetScreenshotBounds(JSONObject observation) {
+        JSONObject screen = observation == null ? null : observation.optJSONObject("screen");
+        JSONObject activeBounds = screen == null ? null : screen.optJSONObject("active_window_bounds");
+        if (screen == null || activeBounds == null) return null;
+        int screenWidth = screen.optInt("width_px", 0);
+        int screenHeight = screen.optInt("height_px", 0);
+        int left = activeBounds.optInt("left", 0);
+        int top = activeBounds.optInt("top", 0);
+        int right = activeBounds.optInt("right", 0);
+        int bottom = activeBounds.optInt("bottom", 0);
+        if (screenWidth <= 0 || screenHeight <= 0 || right <= left || bottom <= top) return null;
+
+        JSONArray windows = observation.optJSONArray("windows");
+        if (windows != null) {
+            for (int i = 0; i < windows.length(); i++) {
+                JSONObject window = windows.optJSONObject(i);
+                if (window == null || window.optInt("window_type", -1) != 3
+                        || !isSystemBarWindow(window)) continue;
+                JSONObject bar = window.optJSONObject("bounds");
+                if (bar == null) continue;
+                int barLeft = bar.optInt("left", Integer.MAX_VALUE);
+                int barTop = bar.optInt("top", Integer.MAX_VALUE);
+                int barRight = bar.optInt("right", Integer.MIN_VALUE);
+                int barBottom = bar.optInt("bottom", Integer.MIN_VALUE);
+                if (barLeft <= 0 && barRight >= screenWidth && barTop <= 0
+                        && barBottom > 0 && barBottom < screenHeight
+                        && left <= 0 && right >= screenWidth && top <= barTop) {
+                    top = Math.max(top, barBottom);
+                }
+                if (barLeft <= 0 && barRight >= screenWidth && barBottom >= screenHeight
+                        && barTop > 0 && barTop < screenHeight
+                        && left <= 0 && right >= screenWidth && bottom >= barBottom) {
+                    bottom = Math.min(bottom, barTop);
+                }
+                if (barTop <= 0 && barBottom >= screenHeight && barLeft <= 0
+                        && barRight > 0 && barRight < screenWidth
+                        && top <= 0 && bottom >= screenHeight && left <= barLeft) {
+                    left = Math.max(left, barRight);
+                }
+                if (barTop <= 0 && barBottom >= screenHeight && barRight >= screenWidth
+                        && barLeft > 0 && barLeft < screenWidth
+                        && top <= 0 && bottom >= screenHeight && right >= barRight) {
+                    right = Math.min(right, barLeft);
+                }
+            }
+        }
+        return right > left && bottom > top ? new int[] {left, top, right, bottom} : null;
+    }
+
+    private static boolean isSystemBarWindow(JSONObject window) {
+        String identity = (window.optString("class_name", "") + " "
+                + window.optString("title", "")).toLowerCase(Locale.ROOT);
+        return identity.contains("statusbar") || identity.contains("status_bar")
+                || identity.contains("status bar") || identity.contains("状态栏")
+                || identity.contains("navigationbar") || identity.contains("navigation_bar")
+                || identity.contains("navigation bar") || identity.contains("导航栏");
     }
 
     static boolean hasUnresolvedDeviceAction(JSONObject task) {
