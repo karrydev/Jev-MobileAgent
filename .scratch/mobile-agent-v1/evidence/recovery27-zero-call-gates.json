@@ -1,0 +1,642 @@
+{
+  "source_sha": "d48e0d8d21b78b3f5ae7522cc088ba5092f6badb",
+  "apk_sha256": "3ca2bc9b93232b34b1687e5aa109cf26059bf32ec54a8bcc555bb7ed47c2c8e3",
+  "new_vlm_requests": 0,
+  "new_jev_requests": 0,
+  "new_accounted_cost_cny": 0,
+  "actions_and_model_request_history_unchanged": true,
+  "active_task_released_after_explicit_end": true,
+  "phone_locked_after_checks": true,
+  "cases": [
+    {
+      "case_id": "recovery27-review05",
+      "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+      "state": "NEEDS_REVIEW",
+      "state_reason": "cancel_requested_with_unresolved_device_action",
+      "runtime_status": "已重新观察；动作已执行但后置条件仍未决；只可显式结束或在目标经双重核验后确认完成。；设备动作 [EXECUTED/后置条件 UNKNOWN]",
+      "step_count": 1,
+      "request_count": 3,
+      "jev_shadow_call_count": 2,
+      "accounted_cost_cny": 0.038927,
+      "recovery_review": {
+        "observation_id": "standalone-device-obs-3256-38aeb2b316cf456cb34cb5dc09181bf4",
+        "observation_version": 3256,
+        "captured_at": "2026-09-25T10:06:54.367119Z",
+        "scene_fingerprint": "6396a284e84e8e20344618fc3adb4114f9eceeca8fb1539316420a97332ac6be",
+        "target_application_package": "com.jev.mobileagent",
+        "goal": "点击“无效果按钮”一次，不要重复点击。",
+        "goal_outcome": "UNKNOWN",
+        "valid": true,
+        "action_facts": [
+          {
+            "action_id": "local-vlm-action-8e7f485f-b810-465b-9b49-5d7a6a25a9a5-1",
+            "execution_fact": "EXECUTED",
+            "phase": "verification_unknown",
+            "receipt_success": true,
+            "verification_status": "UNKNOWN"
+          }
+        ]
+      },
+      "debug_recovery_window": {
+        "expectedTargetPackage": "com.jev.mobileagent",
+        "phase": "stable_target",
+        "error": "",
+        "readinessError": "",
+        "elapsedMs": 1035,
+        "screenInteractive": true,
+        "keyguardLocked": false,
+        "capturedAt": "2026-09-25T10:06:54.459140Z",
+        "availability": "AVAILABLE",
+        "screen": {
+          "widthPx": 1080,
+          "heightPx": 2400,
+          "rotation": 0,
+          "activeWindowId": 1424,
+          "activeWindowBounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "recoverySystemBarInsets": {
+            "available": true,
+            "source": "window_metrics_system_bars",
+            "reason": "",
+            "statusBarsVisible": true,
+            "navigationBarsVisible": true,
+            "left": 0,
+            "top": 103,
+            "right": 0,
+            "bottom": 48,
+            "metricsBoundsPx": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        },
+        "windowCount": 2,
+        "windows": [
+          {
+            "id": 1416,
+            "type": 3,
+            "packageName": "com.android.systemui",
+            "className": "android.widget.FrameLayout",
+            "active": false,
+            "focused": false,
+            "layer": 1,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 103
+            }
+          },
+          {
+            "id": 1424,
+            "type": 1,
+            "packageName": "com.jev.mobileagent",
+            "className": "android.widget.FrameLayout",
+            "active": true,
+            "focused": true,
+            "layer": 0,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        ]
+      },
+      "recovery_decisions": null
+    },
+    {
+      "case_id": "recovery27-scene-change01",
+      "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+      "state": "NEEDS_REVIEW",
+      "state_reason": "cancel_requested_with_unresolved_device_action",
+      "runtime_status": "目标页面或截图与核对时不同；本次确认已失效，请检查现场后重新观察",
+      "step_count": 1,
+      "request_count": 3,
+      "jev_shadow_call_count": 2,
+      "accounted_cost_cny": 0.038927,
+      "recovery_review": {
+        "observation_id": "standalone-device-obs-3256-38aeb2b316cf456cb34cb5dc09181bf4",
+        "observation_version": 3256,
+        "captured_at": "2026-09-25T10:06:54.367119Z",
+        "scene_fingerprint": "6396a284e84e8e20344618fc3adb4114f9eceeca8fb1539316420a97332ac6be",
+        "target_application_package": "com.jev.mobileagent",
+        "goal": "点击“无效果按钮”一次，不要重复点击。",
+        "goal_outcome": "UNKNOWN",
+        "valid": false,
+        "action_facts": [
+          {
+            "action_id": "local-vlm-action-8e7f485f-b810-465b-9b49-5d7a6a25a9a5-1",
+            "execution_fact": "EXECUTED",
+            "phase": "verification_unknown",
+            "receipt_success": true,
+            "verification_status": "UNKNOWN"
+          }
+        ],
+        "invalidated_reason": "scene_or_goal_changed_before_confirmation"
+      },
+      "debug_recovery_window": {
+        "expectedTargetPackage": "com.jev.mobileagent",
+        "phase": "stable_target",
+        "error": "",
+        "readinessError": "",
+        "elapsedMs": 997,
+        "screenInteractive": true,
+        "keyguardLocked": false,
+        "capturedAt": "2026-09-25T10:07:19.779101Z",
+        "availability": "AVAILABLE",
+        "screen": {
+          "widthPx": 1080,
+          "heightPx": 2400,
+          "rotation": 0,
+          "activeWindowId": 1424,
+          "activeWindowBounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "recoverySystemBarInsets": {
+            "available": true,
+            "source": "window_metrics_system_bars",
+            "reason": "",
+            "statusBarsVisible": true,
+            "navigationBarsVisible": true,
+            "left": 0,
+            "top": 103,
+            "right": 0,
+            "bottom": 48,
+            "metricsBoundsPx": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        },
+        "windowCount": 2,
+        "windows": [
+          {
+            "id": 1416,
+            "type": 3,
+            "packageName": "com.android.systemui",
+            "className": "android.widget.FrameLayout",
+            "active": false,
+            "focused": false,
+            "layer": 1,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 103
+            }
+          },
+          {
+            "id": 1424,
+            "type": 1,
+            "packageName": "com.jev.mobileagent",
+            "className": "android.widget.FrameLayout",
+            "active": true,
+            "focused": true,
+            "layer": 0,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        ]
+      },
+      "recovery_decisions": null
+    },
+    {
+      "case_id": "recovery27-review06",
+      "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+      "state": "NEEDS_REVIEW",
+      "state_reason": "cancel_requested_with_unresolved_device_action",
+      "runtime_status": "已重新观察；动作已执行但后置条件仍未决；只可显式结束或在目标经双重核验后确认完成。；设备动作 [EXECUTED/后置条件 UNKNOWN]",
+      "step_count": 1,
+      "request_count": 3,
+      "jev_shadow_call_count": 2,
+      "accounted_cost_cny": 0.038927,
+      "recovery_review": {
+        "observation_id": "standalone-device-obs-3267-0dfa2cafc3f5440fa484c8c347086745",
+        "observation_version": 3267,
+        "captured_at": "2026-09-25T10:07:54.545968Z",
+        "scene_fingerprint": "9756e9a9cbe59c98959d36c115cc5750205f7a93baa8e3c39592d390c1b4caf7",
+        "target_application_package": "com.jev.mobileagent",
+        "goal": "点击“无效果按钮”一次，不要重复点击。",
+        "goal_outcome": "UNKNOWN",
+        "valid": true,
+        "action_facts": [
+          {
+            "action_id": "local-vlm-action-8e7f485f-b810-465b-9b49-5d7a6a25a9a5-1",
+            "execution_fact": "EXECUTED",
+            "phase": "verification_unknown",
+            "receipt_success": true,
+            "verification_status": "UNKNOWN"
+          }
+        ]
+      },
+      "debug_recovery_window": {
+        "expectedTargetPackage": "com.jev.mobileagent",
+        "phase": "stable_target",
+        "error": "",
+        "readinessError": "",
+        "elapsedMs": 1133,
+        "screenInteractive": true,
+        "keyguardLocked": false,
+        "capturedAt": "2026-09-25T10:07:54.646871Z",
+        "availability": "AVAILABLE",
+        "screen": {
+          "widthPx": 1080,
+          "heightPx": 2400,
+          "rotation": 0,
+          "activeWindowId": 1424,
+          "activeWindowBounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "recoverySystemBarInsets": {
+            "available": true,
+            "source": "window_metrics_system_bars",
+            "reason": "",
+            "statusBarsVisible": true,
+            "navigationBarsVisible": true,
+            "left": 0,
+            "top": 103,
+            "right": 0,
+            "bottom": 48,
+            "metricsBoundsPx": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        },
+        "windowCount": 2,
+        "windows": [
+          {
+            "id": 1416,
+            "type": 3,
+            "packageName": "com.android.systemui",
+            "className": "android.widget.FrameLayout",
+            "active": false,
+            "focused": false,
+            "layer": 1,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 103
+            }
+          },
+          {
+            "id": 1424,
+            "type": 1,
+            "packageName": "com.jev.mobileagent",
+            "className": "android.widget.FrameLayout",
+            "active": true,
+            "focused": true,
+            "layer": 0,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        ]
+      },
+      "recovery_decisions": null
+    },
+    {
+      "case_id": "recovery27-confirm-lock01",
+      "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+      "state": "NEEDS_REVIEW",
+      "state_reason": "cancel_requested_with_unresolved_device_action",
+      "runtime_status": "确认期间设备进入停止状态；任务继续暂停，解锁后重新核对",
+      "step_count": 1,
+      "request_count": 3,
+      "jev_shadow_call_count": 2,
+      "accounted_cost_cny": 0.038927,
+      "recovery_review": {
+        "observation_id": "standalone-device-obs-3267-0dfa2cafc3f5440fa484c8c347086745",
+        "observation_version": 3267,
+        "captured_at": "2026-09-25T10:07:54.545968Z",
+        "scene_fingerprint": "9756e9a9cbe59c98959d36c115cc5750205f7a93baa8e3c39592d390c1b4caf7",
+        "target_application_package": "com.jev.mobileagent",
+        "goal": "点击“无效果按钮”一次，不要重复点击。",
+        "goal_outcome": "UNKNOWN",
+        "valid": true,
+        "action_facts": [
+          {
+            "action_id": "local-vlm-action-8e7f485f-b810-465b-9b49-5d7a6a25a9a5-1",
+            "execution_fact": "EXECUTED",
+            "phase": "verification_unknown",
+            "receipt_success": true,
+            "verification_status": "UNKNOWN"
+          }
+        ]
+      },
+      "debug_recovery_window": {
+        "expectedTargetPackage": "com.jev.mobileagent",
+        "phase": "cancelled",
+        "error": "cancelled",
+        "readinessError": "",
+        "elapsedMs": 238,
+        "screenInteractive": false,
+        "keyguardLocked": false,
+        "capturedAt": "2026-09-25T10:08:05.876116Z",
+        "availability": "AVAILABLE",
+        "screen": {
+          "widthPx": 1080,
+          "heightPx": 2400,
+          "rotation": 0,
+          "activeWindowId": 1419,
+          "activeWindowBounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "recoverySystemBarInsets": {
+            "available": true,
+            "source": "window_metrics_system_bars",
+            "reason": "",
+            "statusBarsVisible": true,
+            "navigationBarsVisible": true,
+            "left": 0,
+            "top": 103,
+            "right": 0,
+            "bottom": 48,
+            "metricsBoundsPx": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        },
+        "windowCount": 1,
+        "windows": [
+          {
+            "id": 1419,
+            "type": 3,
+            "packageName": "com.android.systemui",
+            "className": "android.widget.FrameLayout",
+            "active": true,
+            "focused": true,
+            "layer": 0,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        ]
+      },
+      "recovery_decisions": null
+    },
+    {
+      "case_id": "recovery27-review07",
+      "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+      "state": "NEEDS_REVIEW",
+      "state_reason": "cancel_requested_with_unresolved_device_action",
+      "runtime_status": "已重新观察；动作已执行但后置条件仍未决；只可显式结束或在目标经双重核验后确认完成。；设备动作 [EXECUTED/后置条件 UNKNOWN]",
+      "step_count": 1,
+      "request_count": 3,
+      "jev_shadow_call_count": 2,
+      "accounted_cost_cny": 0.038927,
+      "recovery_review": {
+        "observation_id": "standalone-device-obs-3275-c94357d0c43342a296cab2cb98c9e205",
+        "observation_version": 3275,
+        "captured_at": "2026-09-25T10:08:51.076293Z",
+        "scene_fingerprint": "9756e9a9cbe59c98959d36c115cc5750205f7a93baa8e3c39592d390c1b4caf7",
+        "target_application_package": "com.jev.mobileagent",
+        "goal": "点击“无效果按钮”一次，不要重复点击。",
+        "goal_outcome": "UNKNOWN",
+        "valid": true,
+        "action_facts": [
+          {
+            "action_id": "local-vlm-action-8e7f485f-b810-465b-9b49-5d7a6a25a9a5-1",
+            "execution_fact": "EXECUTED",
+            "phase": "verification_unknown",
+            "receipt_success": true,
+            "verification_status": "UNKNOWN"
+          }
+        ]
+      },
+      "debug_recovery_window": {
+        "expectedTargetPackage": "com.jev.mobileagent",
+        "phase": "stable_target",
+        "error": "",
+        "readinessError": "",
+        "elapsedMs": 1260,
+        "screenInteractive": true,
+        "keyguardLocked": false,
+        "capturedAt": "2026-09-25T10:08:51.122706Z",
+        "availability": "AVAILABLE",
+        "screen": {
+          "widthPx": 1080,
+          "heightPx": 2400,
+          "rotation": 0,
+          "activeWindowId": 1424,
+          "activeWindowBounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "recoverySystemBarInsets": {
+            "available": true,
+            "source": "window_metrics_system_bars",
+            "reason": "",
+            "statusBarsVisible": true,
+            "navigationBarsVisible": true,
+            "left": 0,
+            "top": 103,
+            "right": 0,
+            "bottom": 48,
+            "metricsBoundsPx": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        },
+        "windowCount": 2,
+        "windows": [
+          {
+            "id": 1416,
+            "type": 3,
+            "packageName": "com.android.systemui",
+            "className": "android.widget.FrameLayout",
+            "active": false,
+            "focused": false,
+            "layer": 1,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 103
+            }
+          },
+          {
+            "id": 1424,
+            "type": 1,
+            "packageName": "com.jev.mobileagent",
+            "className": "android.widget.FrameLayout",
+            "active": true,
+            "focused": true,
+            "layer": 0,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        ]
+      },
+      "recovery_decisions": null
+    },
+    {
+      "case_id": "recovery27-end01",
+      "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+      "state": "ENDED_WITH_UNRESOLVED",
+      "state_reason": "user_ended_after_review_acknowledging_unresolved_postcondition",
+      "runtime_status": "已记录用户决策；动作执行事实、核验与费用记录原样保留",
+      "step_count": 1,
+      "request_count": 3,
+      "jev_shadow_call_count": 2,
+      "accounted_cost_cny": 0.038927,
+      "recovery_review": {
+        "observation_id": "standalone-device-obs-3275-c94357d0c43342a296cab2cb98c9e205",
+        "observation_version": 3275,
+        "captured_at": "2026-09-25T10:08:51.076293Z",
+        "scene_fingerprint": "9756e9a9cbe59c98959d36c115cc5750205f7a93baa8e3c39592d390c1b4caf7",
+        "target_application_package": "com.jev.mobileagent",
+        "goal": "点击“无效果按钮”一次，不要重复点击。",
+        "goal_outcome": "UNKNOWN",
+        "valid": false,
+        "action_facts": [
+          {
+            "action_id": "local-vlm-action-8e7f485f-b810-465b-9b49-5d7a6a25a9a5-1",
+            "execution_fact": "EXECUTED",
+            "phase": "verification_unknown",
+            "receipt_success": true,
+            "verification_status": "UNKNOWN"
+          }
+        ],
+        "invalidated_reason": "confirmation_consumed"
+      },
+      "debug_recovery_window": {
+        "expectedTargetPackage": "com.jev.mobileagent",
+        "phase": "stable_target",
+        "error": "",
+        "readinessError": "",
+        "elapsedMs": 1381,
+        "screenInteractive": true,
+        "keyguardLocked": false,
+        "capturedAt": "2026-09-25T10:09:11.624864Z",
+        "availability": "AVAILABLE",
+        "screen": {
+          "widthPx": 1080,
+          "heightPx": 2400,
+          "rotation": 0,
+          "activeWindowId": 1424,
+          "activeWindowBounds": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          },
+          "recoverySystemBarInsets": {
+            "available": true,
+            "source": "window_metrics_system_bars",
+            "reason": "",
+            "statusBarsVisible": true,
+            "navigationBarsVisible": true,
+            "left": 0,
+            "top": 103,
+            "right": 0,
+            "bottom": 48,
+            "metricsBoundsPx": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        },
+        "windowCount": 2,
+        "windows": [
+          {
+            "id": 1416,
+            "type": 3,
+            "packageName": "com.android.systemui",
+            "className": "android.widget.FrameLayout",
+            "active": false,
+            "focused": false,
+            "layer": 1,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 103
+            }
+          },
+          {
+            "id": 1424,
+            "type": 1,
+            "packageName": "com.jev.mobileagent",
+            "className": "android.widget.FrameLayout",
+            "active": true,
+            "focused": true,
+            "layer": 0,
+            "bounds": {
+              "left": 0,
+              "top": 0,
+              "right": 1080,
+              "bottom": 2400
+            }
+          }
+        ]
+      },
+      "recovery_decisions": [
+        {
+          "decision": "end",
+          "decision_actor": "user",
+          "review_observation_id": "standalone-device-obs-3275-c94357d0c43342a296cab2cb98c9e205",
+          "confirmation_observation_id": "standalone-device-obs-3282-0e670147a9684971b63e3c3f85db174e",
+          "confirmed_at": "2026-09-25T10:09:12.066006Z",
+          "execution_facts_known": true,
+          "unresolved_postcondition_retained": true,
+          "review_goal_outcome": "UNKNOWN",
+          "confirmation_goal_outcome": "UNKNOWN",
+          "step_count_before": 1,
+          "request_count_at_confirmation": 3,
+          "accounted_cost_cny_at_confirmation": 0.038927
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "USB connected for test taps and read-only evidence; not disconnected acceptance",
+    "Lock occurred during target transition at 238ms; not post-screenshot callback race coverage"
+  ]
+}

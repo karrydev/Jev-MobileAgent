@@ -1,0 +1,81 @@
+{
+  "case_id": "recovery27-existing-unknown-review04",
+  "source_sha": "e031bedd02c2c7480a908c74755529975af05131",
+  "apk_sha256": "52d3a65fd582143cfa7c525ad86311890dacb8ce87914f40517cad5e3c9ef30c",
+  "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+  "result": "blocked_status_bar_false_cover",
+  "notification_shade_dismissed": true,
+  "recovery_review_created": false,
+  "new_recovery_screenshot": false,
+  "model_request_count_before_after": [
+    3,
+    3
+  ],
+  "jev_calls_before_after": [
+    2,
+    2
+  ],
+  "accounted_cost_before_after": [
+    0.038927,
+    0.038927
+  ],
+  "global_accounted_before_after": [
+    1.1577865000000005,
+    1.1577865000000005
+  ],
+  "debug_recovery_window": {
+    "expectedTargetPackage": "com.jev.mobileagent",
+    "phase": "target_transition_timeout",
+    "error": "recovery_target_wait_timeout",
+    "readinessError": "target_window_covered",
+    "elapsedMs": 2525,
+    "screenInteractive": true,
+    "keyguardLocked": false,
+    "capturedAt": "2026-09-25T09:53:14.727754Z",
+    "availability": "AVAILABLE",
+    "screen": {
+      "widthPx": 1080,
+      "heightPx": 2400,
+      "rotation": 0,
+      "activeWindowId": 1406,
+      "activeWindowBounds": {
+        "left": 0,
+        "top": 0,
+        "right": 1080,
+        "bottom": 2400
+      }
+    },
+    "windowCount": 2,
+    "windows": [
+      {
+        "id": 1401,
+        "type": 3,
+        "packageName": "com.android.systemui",
+        "active": false,
+        "focused": false,
+        "layer": 1,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 103
+        }
+      },
+      {
+        "id": 1406,
+        "type": 1,
+        "packageName": "com.jev.mobileagent",
+        "active": true,
+        "focused": true,
+        "layer": 0,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1080,
+          "bottom": 2400
+        }
+      }
+    ]
+  },
+  "notes": "Target was AVAILABLE, active and focused throughout final diagnostic. Anonymous 103px top system bar incorrectly counted as covering target. No model call or replay; phone locked. Fix must use actual platform system bar insets for readiness and image crop."
+}

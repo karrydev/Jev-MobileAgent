@@ -1,0 +1,42 @@
+{
+  "case_id": "recovery27-existing-unknown-review03",
+  "source_sha": "c53d687acea3d941c39b11014f6df68d3aa80344",
+  "apk_sha256": "cc490e8c5754a7fec6e6747d672aba8df4fa9278dad62a278e02d1a7157bd08e",
+  "task_id": "8e7f485f-b810-465b-9b49-5d7a6a25a9a5",
+  "result": "blocked_target_transition",
+  "notification_shade_dismissed": true,
+  "original_target_page_visible_after_dismiss": true,
+  "runtime_status": "无法返回原目标应用并重新观察：原目标应用未稳定回到前台，请手动返回后重新核对；任务继续暂停，恢复权限或网络后需重新观察",
+  "recovery_review_created": false,
+  "new_recovery_screenshot": false,
+  "model_request_count_before_after": [
+    3,
+    3
+  ],
+  "jev_calls_before_after": [
+    2,
+    2
+  ],
+  "accounted_cost_before_after": [
+    0.038927,
+    0.038927
+  ],
+  "global_accounted_before_after": [
+    1.1577865000000005,
+    1.1577865000000005
+  ],
+  "followup_accessibility_window": {
+    "type": "TYPE_APPLICATION",
+    "window_id": 1388,
+    "title": "Jev Mobile Agent",
+    "active": true,
+    "focused": true,
+    "bounds": [
+      0,
+      0,
+      1080,
+      2400
+    ]
+  },
+  "notes": "Dedicated notification dismissal returned to the actual target without shell closure. Recovery still rejected the target before recording a review. Later read-only window dump showed target active/focused; bounded transition handling and compact failure metadata requested. Phone locked, no model call or action replay."
+}

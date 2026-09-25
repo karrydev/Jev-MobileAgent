@@ -1154,8 +1154,34 @@
       "requests": 3,
       "jev_requests": 2,
       "accounted_cny_in_app": 0.038927
+    },
+    {
+      "id": "tree24-purevisual01",
+      "source_commit": "d48e0d8d21b78b3f5ae7522cc088ba5092f6badb",
+      "result": "NEEDS_REVIEW: overall_goal_unknown_after_manager_finished",
+      "budget_reservation_cny": 0.009999999999999998,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0239535,
+      "actual_billed_cny": null,
+      "requests": 4,
+      "jev_requests": 1,
+      "accounted_cny_in_app": 0.0339535
+    },
+    {
+      "id": "tree24-failshot01",
+      "source_commit": "d48e0d8d21b78b3f5ae7522cc088ba5092f6badb",
+      "result": "NEEDS_REVIEW: action_verification_unknown",
+      "budget_reservation_cny": 3.469446951953614e-18,
+      "max_requests": 25,
+      "max_jev_requests": 5,
+      "estimated_list_price_cny": 0.0167805,
+      "actual_billed_cny": null,
+      "requests": 3,
+      "jev_requests": 0,
+      "accounted_cny_in_app": 0.016780500000000004
     }
   ],
-  "estimated_list_price_total_cny": 1.405083,
+  "estimated_list_price_total_cny": 1.4458170000000001,
   "unknown_usage_request_count": 4
 }
