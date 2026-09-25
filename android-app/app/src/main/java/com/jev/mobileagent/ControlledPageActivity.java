@@ -185,10 +185,10 @@ public final class ControlledPageActivity extends Activity {
         root.addView(taskControls, params());
 
         taskStatus = label("本地任务：无", 13, Color.DKGRAY);
-        taskStatus.setLines(3);
+        taskStatus.setMaxLines(3);
         taskStatus.setTextIsSelectable(true);
         taskStatus.setContentDescription("Local VLM task status");
-        root.addView(taskStatus, params());
+        root.addView(taskStatus, statusLayoutParams(taskStatus));
 
         setContentView(root);
         refreshTaskStatus();
@@ -606,10 +606,10 @@ public final class ControlledPageActivity extends Activity {
         controls.addView(cancel, rowParams());
         root.addView(controls, params());
         taskStatus = label("本地任务：无", 13, Color.DKGRAY);
-        taskStatus.setLines(3);
+        taskStatus.setMaxLines(3);
         taskStatus.setTextIsSelectable(true);
         taskStatus.setContentDescription("Local VLM task status");
-        root.addView(taskStatus, params());
+        root.addView(taskStatus, statusLayoutParams(taskStatus));
     }
 
     private void setFixtureStatus(String value) {
@@ -744,6 +744,17 @@ public final class ControlledPageActivity extends Activity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         params.topMargin = dp(3);
         params.bottomMargin = dp(3);
+        return params;
+    }
+
+    private LinearLayout.LayoutParams statusLayoutParams(TextView status) {
+        LinearLayout.LayoutParams params = params();
+        Paint.FontMetricsInt fontMetrics = new Paint.FontMetricsInt();
+        status.getPaint().getFontMetricsInt(fontMetrics);
+        int fontPadding = fontMetrics.ascent - fontMetrics.top
+                + fontMetrics.bottom - fontMetrics.descent;
+        params.height = status.getLineHeight() * 3 + fontPadding
+                + status.getCompoundPaddingTop() + status.getCompoundPaddingBottom();
         return params;
     }
 
