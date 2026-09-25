@@ -1,0 +1,23 @@
+{
+  "source_commit": "3605af4f10997778585cf3b79e7a9f0575cc4b56",
+  "apk_path": "/tmp/recovery27-evidence/request-grounding-candidate.apk",
+  "apk_sha256": "c3f68f3d28c7bb60d582ee4875e9dc0fd5253bf4625fa1354144ef19a1bf0a4e",
+  "build_command": "./gradlew --offline --no-daemon --console plain assembleDebug",
+  "build_result": "BUILD SUCCESSFUL in 8s",
+  "install": "adb install -r Success; installed base.apk SHA256 matches",
+  "certificate_sha256": "38dd45369017a980dae905841d8f76aff025fa5e3a434ed3aa421239343194c6",
+  "signing": "Android Debug upgrade-compatible candidate",
+  "test_count": 20,
+  "review": "Sol-max CLEAR",
+  "live_validation": "pending explicit planning-stage budget change; no model calls on this candidate",
+  "phone_after": {
+    "active_task_id": null,
+    "on_demand_planning_enabled": false,
+    "jev_selection_enabled": true,
+    "tree_verification_enabled": true,
+    "jev_shadow_enabled": false,
+    "global_jev_calls": 72,
+    "global_accounted_cny": 2.462321999999998,
+    "wakefulness": "Dozing"
+  }
+}

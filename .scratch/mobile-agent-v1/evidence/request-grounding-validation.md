@@ -11,3 +11,5 @@ Luna-max 仅修改 MobileAgentVlmRoles 角色提示与对应回归测试：初�
 真实复测当前受费用门禁限制：planning25阶段已计¥1.0226505，阶段¥2剩¥0.9773495，少于每任务¥1完整预留。累计¥10与每任务¥1上限未改，Jev72/150；不清历史、不改阶段归属、不擅自增限或降低冻结任务预算来绕过。先完成可审查补丁、构建和准备，再由用户决定额外复测授权。25/27/28状态保持未完成。
 
 独立Sol-max最终审查CLEAR：原请求通用限定、合法设置任务例外、合法动作JSON及两种坐标协议均保留；无范围内阻断意见。20项定向测试通过，git diff --check通过。真机效果仍待预算许可，不据静态审查关闭25。
+
+最终候选源码3605af4f10997778585cf3b79e7a9f0575cc4b56，APK SHA-256 c3f68f3d28c7bb60d582ee4875e9dc0fd5253bf4625fa1354144ef19a1bf0a4e；assembleDebug 8s成功，原Android Debug签名验证通过，install -r成功，手机base.apk哈希一致。升级后无活动任务，Jev72、费用与历史保留、规划OFF，Dozing。已向用户请求仅将planning阶段上限¥2→¥3供四项复测，其他上限不变；答复前不改预算或启动API。详情见[候选构建](request-grounding-candidate-build.json)。
