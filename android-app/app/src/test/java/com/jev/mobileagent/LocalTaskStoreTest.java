@@ -43,4 +43,36 @@ public final class LocalTaskStoreTest {
         assertFalse(LocalTaskStore.applyActionReflection(action, "A", "None"));
         assertEquals("executed", action.optString("phase"));
     }
+
+    @Test
+    public void fourStateVerificationPersistsUnknownAndCanResolveItWithoutRewritingReceipt() throws Exception {
+        JSONObject receipt = new JSONObject().put("success", true).put("receipt_id", "device-1");
+        JSONObject action = new JSONObject().put("phase", "executed").put("result", receipt);
+
+        assertTrue(LocalTaskStore.applyActionVerification(action,
+                new JSONObject().put("status", "UNKNOWN").put("source", "tree_rule")));
+        assertEquals("verification_unknown", action.optString("phase"));
+        assertEquals("UNKNOWN", action.getJSONObject("verification").optString("status"));
+
+        assertTrue(LocalTaskStore.applyActionVerification(action,
+                new JSONObject().put("status", "SUCCESS").put("source", "vlm_reflector")));
+        assertEquals("verified", action.optString("phase"));
+        assertEquals("SUCCESS", action.getJSONObject("verification").optString("status"));
+        assertEquals("device-1", action.getJSONObject("result").optString("receipt_id"));
+    }
+
+    @Test
+    public void fourStateVerificationCannotResolveAFailedReceiptOrUnknownLabel() throws Exception {
+        JSONObject failed = new JSONObject().put("phase", "executed")
+                .put("result", new JSONObject().put("success", false));
+        assertFalse(LocalTaskStore.applyActionVerification(failed,
+                new JSONObject().put("status", "SUCCESS")));
+        assertEquals("executed", failed.optString("phase"));
+
+        JSONObject action = new JSONObject().put("phase", "executed")
+                .put("result", new JSONObject().put("success", true));
+        assertFalse(LocalTaskStore.applyActionVerification(action,
+                new JSONObject().put("status", "MAYBE")));
+        assertEquals("executed", action.optString("phase"));
+    }
 }

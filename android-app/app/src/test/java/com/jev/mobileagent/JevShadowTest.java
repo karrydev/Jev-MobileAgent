@@ -10,6 +10,17 @@ import static org.junit.Assert.assertTrue;
 
 public final class JevShadowTest {
     @Test
+    public void treeVerificationUsesOnlyTheFrozenFourStateChoices() throws Exception {
+        JSONObject criteria = JevShadow.verificationCriteria();
+
+        assertEquals(4, criteria.length());
+        assertTrue(criteria.has("SUCCESS"));
+        assertTrue(criteria.has("FAILURE"));
+        assertTrue(criteria.has("PENDING"));
+        assertTrue(criteria.has("UNKNOWN"));
+    }
+
+    @Test
     public void validHighConfidenceChoiceCannotBypassMissingVlmCandidateCoverage() throws Exception {
         JSONObject button = new JSONObject().put("node_id", "preset-button").put("role", "button")
                 .put("enabled", true).put("actions", new JSONArray().put("tap"))

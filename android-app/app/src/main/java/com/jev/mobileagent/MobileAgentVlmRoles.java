@@ -181,6 +181,19 @@ public final class MobileAgentVlmRoles {
                 + "### Error Description ###\nIf the action failed, provide a detailed description of the error and the potential reason causing this failure. If the action succeeded, put \"None\" here.";
     }
 
+    /** Four-state visual fallback used only when the task's tree-verification option is enabled. */
+    public String treeReflectorPrompt() {
+        return "You verify one Android action using only the two attached real screenshots and the current task context.\n"
+                + "The execution receipt, action callback, and overall task status are not proof of the action result.\n"
+                + "Goal: " + instruction + "\n"
+                + "Action actually dispatched: " + latestActionForReflection() + "\n"
+                + "Expected behavior: " + lastSummary + "\n\n"
+                + "Return exactly one status and a short reason. SUCCESS means the expected postcondition is visibly satisfied; "
+                + "FAILURE means it is visibly wrong or the action had no effect; PENDING means the page is still changing "
+                + "and a bounded wait may help; UNKNOWN means these screenshots do not decide. Never infer SUCCESS from a click receipt.\n\n"
+                + "### Status ###\nSUCCESS, FAILURE, PENDING, or UNKNOWN\n\n### Reason ###\nBrief visual evidence for that status.";
+    }
+
     public String notetakerPrompt() {
         return "You are a helpful AI assistant for operating mobile phones. Your goal is to take notes of important content relevant to the user's request.\n\n"
                 + "### User Request ###\n" + instruction + "\n\n"
@@ -214,6 +227,13 @@ public final class MobileAgentVlmRoles {
         return new String[] {
                 clean(section(response, "### Outcome", "### Error Description")),
                 clean(after(response, "### Error Description"))
+        };
+    }
+
+    public String[] parseTreeReflection(String response) {
+        return new String[] {
+                clean(section(response, "### Status", "### Reason")),
+                clean(after(response, "### Reason"))
         };
     }
 

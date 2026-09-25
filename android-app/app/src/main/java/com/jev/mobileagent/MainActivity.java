@@ -166,6 +166,19 @@ public class MainActivity extends Activity {
         root.addView(label("开启后仍由原 VLM Executor 按原频率提出当前动作；只有该动作能唯一匹配当前观察中的完整候选时才请求 Jev。覆盖不足、建议无效或置信度不足时沿用原 VLM 动作；预算门控拒绝时安全暂停。每步至多一次 Jev 请求，任务创建时固定此开关。", 12,
                 Color.DKGRAY), widthMatchWrap());
 
+        CheckBox treeVerification = new CheckBox(this);
+        treeVerification.setText("启用树优先动作核验（默认关闭）");
+        treeVerification.setChecked(LocalTaskStore.isTreeVerificationEnabled(this));
+        treeVerification.setOnCheckedChangeListener((button, checked) -> {
+            if (!LocalTaskStore.setTreeVerificationEnabled(this, checked)) {
+                button.setChecked(!checked);
+                settingsStatus.setText("树核验设置未能保存；任务保持原配置。");
+            }
+        });
+        root.addView(treeVerification, marginTop(widthMatchWrap(), 10));
+        root.addView(label("新任务快照独立开关。规则先核对当前树；必要时 Jev 给出四态，信息不足再用真实前后图调用 VLM Reflector。PENDING 最多等待 2 次、每次 600ms；前后截图缺失时保持 UNKNOWN 并暂停。", 12,
+                Color.DKGRAY), widthMatchWrap());
+
         if (BuildConfig.DEBUG) {
             root.addView(label("Jev 协议验收（仅 Debug）", 18, Color.rgb(35, 50, 65)),
                     marginTop(widthMatchWrap(), 16));
@@ -220,6 +233,15 @@ public class MainActivity extends Activity {
             startActivity(new Intent(this, ControlledPageActivity.class));
         });
         root.addView(controlledPage, widthMatchWrap());
+        if (BuildConfig.DEBUG) {
+            Button verificationFixture = button("打开树核验受控夹具（仅 Debug）");
+            verificationFixture.setOnClickListener(view -> {
+                persistGoal();
+                startActivity(new Intent(this, ControlledPageActivity.class)
+                        .putExtra(ControlledPageActivity.EXTRA_DEBUG_TREE_VERIFICATION_FIXTURE, true));
+            });
+            root.addView(verificationFixture, widthMatchWrap());
+        }
         taskStatus = label("当前没有活动任务", 14, Color.DKGRAY);
         taskStatus.setTextIsSelectable(true);
         root.addView(taskStatus, marginTop(widthMatchWrap(), 8));

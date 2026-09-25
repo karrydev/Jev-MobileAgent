@@ -305,6 +305,12 @@ public class ObservationAccessibilityService extends AccessibilityService {
             return;
         }
         long captureCount = ++screenshotCaptureCount;
+        if (DebugTreeVerificationFixtures.consumeAfterScreenshotFailure(
+                this, observation.optString("task_id", ""), captureType)) {
+            reportLocalScreenshotError(callback, "screenshot_unavailable",
+                    "Debug-only one-shot AFTER screenshot failure was injected");
+            return;
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             reportLocalScreenshotError(callback, "screenshot_api_unavailable", "Accessibility screenshots require Android 11 or newer");
             return;
