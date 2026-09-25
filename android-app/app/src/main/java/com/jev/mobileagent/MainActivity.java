@@ -248,6 +248,11 @@ public class MainActivity extends Activity {
                         .putExtra(ControlledPageActivity.EXTRA_DEBUG_TREE_VERIFICATION_FIXTURE, true));
             });
             root.addView(verificationFixture, widthMatchWrap());
+
+            Button recoveryFixture = button("打开任务27精确恢复夹具（仅 Debug）");
+            recoveryFixture.setOnClickListener(view -> startActivity(new Intent(this, ControlledPageActivity.class)
+                    .putExtra(ControlledPageActivity.EXTRA_DEBUG_RECOVERY_FIXTURE, true)));
+            root.addView(recoveryFixture, widthMatchWrap());
         }
         taskStatus = label("当前没有活动任务", 14, Color.DKGRAY);
         taskStatus.setTextIsSelectable(true);

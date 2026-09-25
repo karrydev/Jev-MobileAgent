@@ -20,6 +20,7 @@ import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -34,6 +35,9 @@ public final class ControlledPageActivity extends Activity {
     private static final String INPUT_GOAL = "在中文输入框中输入“独立手机测试成功”";
     private static final String VISUAL_GOAL = "点击受控页面中蓝色的视觉手势目标";
     static final String EXTRA_DEBUG_TREE_VERIFICATION_FIXTURE = "debug_tree_verification_fixture";
+    static final String EXTRA_DEBUG_RECOVERY_FIXTURE = "debug_recovery_fixture";
+    private static final String DEBUG_RECOVERY_PREFS = "debug_recovery_fixture";
+    private static final String DEBUG_RECOVERY_INPUT_KEY = "target_input_value";
     private static final String DEBUG_LOADING_GOAL = "点击“延迟加载按钮”一次，等待页面显示“加载完成”，不要重复点击。";
     private static final String DEBUG_NO_EFFECT_GOAL = "点击“无效果按钮”一次，不要重复点击。";
     private static final String DEBUG_VISUAL_GOAL = "点击自绘区域蓝框中心";
@@ -48,6 +52,8 @@ public final class ControlledPageActivity extends Activity {
     private TextView visualStatus;
     private String taskId = "";
     private boolean debugFixturePage;
+    private boolean debugRecoveryFixturePage;
+    private boolean debugRecoveryInputPersistenceFailed;
     private boolean failAfterScreenshotArmed;
     private String debugRecoveryFaultPoint = "";
     private TextView fixtureStatus;
@@ -62,6 +68,13 @@ public final class ControlledPageActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (BuildConfig.DEBUG && getIntent().getBooleanExtra(EXTRA_DEBUG_RECOVERY_FIXTURE, false)) {
+            debugFixturePage = true;
+            debugRecoveryFixturePage = true;
+            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+            buildDebugRecoveryFixture();
+            return;
+        }
         if (BuildConfig.DEBUG && getIntent().getBooleanExtra(EXTRA_DEBUG_TREE_VERIFICATION_FIXTURE, false)) {
             debugFixturePage = true;
             buildDebugVerificationFixture();
@@ -209,6 +222,10 @@ public final class ControlledPageActivity extends Activity {
         String goal = goalInput.getText().toString().trim();
         if (goal.isEmpty()) {
             taskStatus.setText("本地任务：请先填写目标");
+            return;
+        }
+        if (debugRecoveryFixturePage && debugRecoveryInputPersistenceFailed) {
+            taskStatus.setText("本地任务：目标输入未能同步保存；先确认夹具状态后再开始");
             return;
         }
         ModelProfileStore.Profile profile = ModelProfileStore.load(this, ModelProfileStore.Type.VLM);
@@ -422,6 +439,104 @@ public final class ControlledPageActivity extends Activity {
         addTaskControls(root);
         setContentView(root);
         refreshTaskStatus();
+    }
+
+    private void buildDebugRecoveryFixture() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.WHITE);
+        root.setFocusableInTouchMode(true);
+
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(16), dp(8), dp(16), dp(12));
+        scroll.addView(content);
+        root.addView(scroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f));
+
+        TextView title = label("任务27精确恢复中断夹具（仅 Debug）", 21, Color.rgb(35, 50, 65));
+        title.setContentDescription("Standalone recovery fault fixture debug only");
+        content.addView(title, params());
+        content.addView(label("独立于树核验夹具。恢复只使用本地任务记录和通知入口；目标框保存其真实文字，不代表历史动作或核验已知。",
+                13, Color.DKGRAY), params());
+
+        fixtureStatus = label("夹具状态：就绪", 15, Color.DKGRAY);
+        fixtureStatus.setContentDescription("Fixture state ready");
+        content.addView(fixtureStatus, params());
+
+        EditText input = new EditText(this);
+        fixtureTextInput = input;
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setHint("请输入中文");
+        input.setContentDescription("中文输入框");
+        input.setShowSoftInputOnFocus(false);
+        String savedInput = getSharedPreferences(DEBUG_RECOVERY_PREFS, MODE_PRIVATE)
+                .getString(DEBUG_RECOVERY_INPUT_KEY, "");
+        input.setText(savedInput);
+        content.addView(input, params());
+
+        TextView inputStatus = label("夹具输入状态：" + (savedInput.isEmpty() ? "empty" : savedInput),
+                14, Color.DKGRAY);
+        inputStatus.setContentDescription("Fixture input state " + (savedInput.isEmpty() ? "empty" : savedInput));
+        content.addView(inputStatus, params());
+        input.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String value = s == null ? "" : s.toString();
+                String status = value.isEmpty() ? "empty" : value;
+                inputStatus.setText("夹具输入状态：" + status);
+                inputStatus.setContentDescription("Fixture input state " + status);
+                persistDebugRecoveryInput(value);
+            }
+            @Override public void afterTextChanged(Editable s) { }
+        });
+
+        Button resetInput = button("重置目标输入为空（新用例）");
+        resetInput.setOnClickListener(view -> {
+            if (LocalTaskStore.activeTask(this) != null) {
+                setFixtureStatus("请先结束当前本地任务，再重置目标输入；现有恢复记录未改动");
+                return;
+            }
+            input.setText("");
+            persistDebugRecoveryInput("");
+            input.clearFocus();
+            root.requestFocus();
+            if (!debugRecoveryInputPersistenceFailed) setFixtureStatus("目标输入已清空并同步保存；可开始新用例");
+        });
+        content.addView(resetInput, params());
+
+        goalInput = new EditText(this);
+        goalInput.setHint("测试目标");
+        goalInput.setMinLines(2);
+        goalInput.setGravity(Gravity.TOP | Gravity.START);
+        goalInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        goalInput.setContentDescription("Local VLM task goal");
+        goalInput.setShowSoftInputOnFocus(false);
+        goalInput.setText(INPUT_GOAL);
+        content.addView(goalInput, params());
+
+        addDebugRecoveryFaultControls(content);
+        Button openSettings = button("VLM / Jev 凭据设置");
+        openSettings.setOnClickListener(view -> startActivity(new Intent(this, MainActivity.class)));
+        content.addView(openSettings, params());
+        addTaskControls(root);
+        setContentView(root);
+        root.requestFocus();
+        refreshTaskStatus();
+    }
+
+    private void persistDebugRecoveryInput(String value) {
+        boolean persisted = getSharedPreferences(DEBUG_RECOVERY_PREFS, MODE_PRIVATE).edit()
+                .putString(DEBUG_RECOVERY_INPUT_KEY, value)
+                .commit();
+        debugRecoveryInputPersistenceFailed = !persisted;
+        if (!persisted) {
+            setFixtureStatus("目标输入同步保存失败；此轮不能作为可恢复目标状态的证据");
+        } else if (debugRecoveryFixturePage) {
+            setFixtureStatus("目标实际输入已同步保存；任务和动作历史仍需单独核对");
+        }
     }
 
     private void addFixtureGoalButton(LinearLayout content, String title, String goal) {
